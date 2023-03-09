@@ -1,3 +1,14 @@
 # spectoda-node
 
-Just run `npm i` and then `npm start` to make it run
+
+
+```bash
+
+# Initialization
+# Don't forget to load submodules 
+git submodule update --init
+npm i
+
+# to make it compile and run
+npm start
+```
