@@ -1,0 +1,3 @@
+[submodule "src/lib/spectoda-js"]
+	path = src/lib/spectoda-js
+	url = https://github.com/Spectoda/spectoda-js.git
