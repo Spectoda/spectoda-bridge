@@ -1,11 +1,9 @@
 # spectoda-node
 
-
-
 ```bash
 
 # Initialization
-# Don't forget to load submodules 
+# Don't forget to load submodules
 git submodule update --init
 npm i
 
