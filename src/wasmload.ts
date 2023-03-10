@@ -1,9 +1,16 @@
-const Module = require("./wasm/RELEASE_0.9.0_20230309.js");
-console.log("Module", Module);
+import { onWasmLoad } from "./lib/spectoda-js/src/SpectodaWasm";
 
-Module.onRuntimeInitialized = () => {
-  console.log("Webassembly runtime initilized");
-};
+const Module = require("./wasm/RELEASE_0.9.0_20230309.js");
+// @ts-ignore
+globalThis.Module = Module;
+
+onWasmLoad()
+
+// console.log("Module", Module);
+
+// Module.onRuntimeInitialized = () => {
+//   console.log("Webassembly runtime initilized");
+// };
 
 // function onWasmLoad() {
 //   Module.onRuntimeInitialized = () => {
@@ -17,5 +24,6 @@ Module.onRuntimeInitialized = () => {
 
 //   };
 // }
+
 
 export { Module };
