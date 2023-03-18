@@ -1,6 +1,7 @@
 import { createBluetooth } from "node-ble";
 // import { sortAndDeduplicateDiagnostics } from "typescript";
 import { spectodaDevice } from "./communication";
+import "./server";
 // import { Module } from "./wasmload";
 
 async function main() {
