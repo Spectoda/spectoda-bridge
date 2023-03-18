@@ -1,51 +1,86 @@
 import { createBluetooth } from "node-ble";
+// import { sortAndDeduplicateDiagnostics } from "typescript";
 import { spectodaDevice } from "./communication";
-import { Module } from "./wasmload";
+// import { Module } from "./wasmload";
 
 async function main() {
   // NODE BLE and even Noble library seems to not work on MAC OS (i will try it on RPI or Windows machine)
 
-  const { bluetooth, destroy } = createBluetooth();
-  const adapter = await bluetooth.defaultAdapter();
-  if (! await adapter.isDiscovering()) {
-    await adapter.startDiscovery()
-
-  }
-
-  const device = await adapter.waitDevice('30:83:98:DC:0F:BE')
-  await device.connect()
+  // const SPECTODA_SERVICE_UUID = "cc540e31-80be-44af-b64a-5d2def886bf5";
   
-  console.log("Connected to device name: ", await device.getName())
-  const gattServer = await device.gatt()
+  // const TERMINAL_CHAR_UUID = "33a0937e-0c61-41ea-b770-007ade2c79fa";
+  // const DEVICE_CHAR_UUID = "9ebe2e4b-10c7-4a81-ac83-49540d1135a5";
+  // const CLOCK_CHAR_UUID = "7a1e0e3a-6b9b-49ef-b9b7-65c81b714a19";
+
+  // const { bluetooth, destroy } = createBluetooth();
+  // const adapter = await bluetooth.defaultAdapter();
+
+  // if (! await adapter.isDiscovering()) {
+  //   await adapter.startDiscovery();
+  //   console.log("Scanning started");
+  // }
+
+  // const device = await adapter.waitDevice('0C:B8:15:C3:32:E6');
+  // console.log("Device selected");
+
+
+  // // for some reason the scanning need to stop after some time
+  // setTimeout(async () => {
+  //   await adapter.stopDiscovery();
+  //   console.log("Scanning stopped");
+  // }, 1000)
+
+  // const paired = await device.isPaired();
+  // if (!paired) {
+  //   await device.pair(); // pair and connect
+  // } else {
+  //   await device.connect();
+  // }
+
+  // console.log("Connected to device name: ", await device.getName())
+  // const gattServer = await device.gatt();
+
+
+  // console.log("gattServer", gattServer);
+  // const service = await gattServer.getPrimaryService(SPECTODA_SERVICE_UUID)
   
-  console.log("gatt",gattServer)
-  const service = await gattServer.getPrimaryService("cc540e31-80be-44af-b64a-5d2def886bf5")
-  const clock = await service.getCharacteristic("7a1e0e3a-6b9b-49ef-b9b7-65c81b714a19");
-  const timestamp = clock.readValue();
-  console.log(timestamp)
-  // @ts-ignore
-  globalThis.device = device;
-    // @ts-ignore
-  globalThis.clock = clock;
-  // spectodaDevice.assignConnector("dummy");
-  // console.log(await spectodaDevice.connected());
 
-  // console.log(await spectodaDevice.connect());
+  // const terminal_characteristics = await service.getCharacteristic(TERMINAL_CHAR_UUID);
+  // const device_characteristics = await service.getCharacteristic(DEVICE_CHAR_UUID);
+  // const clock_characteristics = await service.getCharacteristic(CLOCK_CHAR_UUID);
 
-  // console.log(await spectodaDevice.connected());
+  // console.log("terminal_characteristics", terminal_characteristics);
+  // console.log("device_characteristics", device_characteristics);
+  // console.log("clock_characteristics", clock_characteristics);
 
-  setInterval(() => {
-    spectodaDevice.emitPercentageEvent("test", Math.random() * 200 - 100);
-  }, 100000);
 
-  // // THIS WILL log emitted events from spectoda device. This way we will see if we got it right
-  // spectodaDevice.on("emitted_events", (events: any) => {
-  //   console.log("emitted_events", events);
-  // });
+  // const clock_timestamp_bytes = await clock_characteristics.readValue();
+  // console.log("clock_timestamp_bytes", clock_timestamp_bytes);
 
-  Module;
+  // // @ts-ignore
+  // globalThis.bluetooth = bluetooth;
+  // // @ts-ignore
+  // globalThis.adapter = adapter;
+  // // @ts-ignore
+  // globalThis.device = device;
 
-  // console.log(adapter);
+  // console.log("Ready");
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+// @ts-ignore
+  globalThis.spectodaDevice = spectodaDevice;
+
+  console.log("Ready");
+
+  //  @ts-ignore
+  console.log("Selecting...");
+  await spectodaDevice.interface?.autoSelect([{ mac: "0C:B8:15:C3:32:E6" }], 1000, 60000);
+  console.log("Connecting...");
+  await spectodaDevice.interface?.connect();
+
+
 }
 
 main();
