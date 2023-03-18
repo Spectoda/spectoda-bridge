@@ -39,11 +39,14 @@ app.get("/scan", async (req, res) => {
 });
 
 app.post("/connect", async (req, res) => {
-  const mac = req.body.mac;
+  const { key, signature } = req.body as { signature: string; key: string };
+
+  spectodaDevice.assignOwnerSignature(signature);
+  spectodaDevice.assignOwnerKey(key);
 
   try {
     const result = await spectodaDevice.connect();
-    res.json({ status: "success", result: result });
+    return res.json({ status: "success", result: result });
   } catch (error) {
     res.statusCode = 405;
     return res.json({ status: "error", error: error });
