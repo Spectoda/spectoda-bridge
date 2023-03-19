@@ -47,9 +47,10 @@ app.post("/connect", async (req, res) => {
   try {
     let result;
     if (mac) {
-      result = spectodaDevice.connectToMac(mac);
+      // @ts-ignore
+      result = await spectodaDevice.connect([{ mac: mac }], true, null, null, false, "", true);
     } else {
-      result = await spectodaDevice.connect();
+      result = await spectodaDevice.connect(null, true, null, null, true, "", true);
     }
     return res.json({ status: "success", result: result });
   } catch (error) {
