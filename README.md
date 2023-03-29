@@ -1,4 +1,10 @@
-# spectoda-node
+# Spectoda Node
+Spectoda Node is a "bridge" that enables communication with Spectoda devices using Bluetooth and provides a REST API for accessing their functionalities.
+
+## Features
+- Bluetooth connectivity with Spectoda devices.
+- REST API for accessing device functionalities.
+- More in progress...
 
 ## Install Release version
 ```bash
