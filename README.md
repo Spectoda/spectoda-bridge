@@ -6,7 +6,9 @@ Spectoda Node is a "bridge" that enables communication with Spectoda devices usi
 - REST API for accessing device functionalities.
 - More in progress...
 
-## Install Release version
+## Install Release version on PI
+- run this script in console, or run it as install.sh file
+
 ```bash
 #!/bin/bash
 
@@ -53,7 +55,6 @@ ExecStart='"$path"'
 Restart=on-failure
 RestartSec=5s
 
-
 [Install]
 WantedBy=default.target'
 
@@ -67,10 +68,6 @@ systemctl daemon-reload
 systemctl enable --now spectoda-node
 ```
 
-
-
-## Build
-- manual in progress
 
 ## Development
 ```bash
