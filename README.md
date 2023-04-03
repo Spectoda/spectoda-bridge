@@ -1,12 +1,15 @@
 # Spectoda Node
+
 Spectoda Node is a "bridge" that enables communication with Spectoda devices using Bluetooth and provides a REST API for accessing their functionalities.
 
 ## Features
+
 - Bluetooth connectivity with Spectoda devices.
 - REST API for accessing device functionalities.
 - More in progress...
 
 ## Install Release version on PI
+
 - run this script in console, or run it as install.sh file
 
 ```bash
@@ -68,8 +71,8 @@ systemctl daemon-reload
 systemctl enable --now spectoda-node
 ```
 
-
 ## Development
+
 ```bash
 
 # Initialization
@@ -79,4 +82,88 @@ npm i
 
 # to make it compile and run
 npm start
+```
+
+## API documentation
+
+#### Route: GET /events
+
+Description: This route sets up a server-sent event (SSE) connection to receive events emitted by the Spectoda device. The Spectoda device emits events such as changes in color or percentage values.
+
+#### Route: GET /scan
+
+Description: This route scans for available Spectoda devices and returns a list of their MAC addresses.
+
+#### Route: POST /connect
+
+Description: This route connects to a Spectoda device using a key and signature. If a MAC address is provided, it will connect to that specific device. Otherwise, it will connect to the first device found.
+
+Request Body:
+
+```json
+{
+  "signature": "00000000000000000000000000000000", // The owner's signature
+  "key": "00000000000000000000000000000000", // The owner's key
+  "mac": "08:b6:1f:ee:b8:8c" // The MAC address of the device to connect to
+}
+```
+
+Response:
+
+```json
+{
+  "status": "success", // Indicates whether the request was successful ("success") or not ("error")
+  "result": {} // The result of the connect operation
+}
+```
+
+Route: POST /disconnect
+
+Description: This route disconnects from the Spectoda device.
+
+Response:
+
+```json
+{
+  "status": "success", // Indicates whether the request was successful ("success") or not ("error")
+  "result": {} // The result of the disconnect operation
+}
+```
+
+#### Route: POST /event
+
+Description: This route emits an event to the Spectoda device. The event can be a percentage, color, timestamp, or empty event.
+
+Request Body example payloads:
+
+```json
+{
+  "label": "barva",
+  "id": 255, // 255 for broadcast on all devices on the network
+  "type": "color",
+  "value": "#ff0000" // hex string color
+}
+
+{
+  "label": "speed",
+  "id": [1,2,3], // array of device ids which react to event
+  "type": "percentage",
+  "value": 50,  // number -100 - 100%
+}
+
+{
+  "label": "delay",
+  "id": 1, // device id which should react to event
+  "type": "timestamp",
+  "value": 5000,  // value in ms (example 5 seconds)
+}
+```
+
+Response:
+
+```json
+{
+  "status": "success", // Indicates whether the request was successful ("success") or not ("error")
+  "result": {} // The result of the emit operation
+}
 ```
