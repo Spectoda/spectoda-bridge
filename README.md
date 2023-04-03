@@ -88,9 +88,10 @@ npm start
 
 #### Route: GET /events
 
-Description: This route sets up a server-sent event (SSE) connection to receive events emitted by the Spectoda device. The Spectoda device emits events such as changes in color or percentage values.
+Description: This route sets up a server-sent event (SSE) connection to receive events emitted by the Spectoda device. The Spectoda device emits events such as changes in color or percentage values, sensor reactions and you can listen for those events.
 
-#### Route: GET /scan
+
+#### `WORK IN PROGRESS` Route: GET /scan
 
 Description: This route scans for available Spectoda devices and returns a list of their MAC addresses.
 
@@ -117,7 +118,7 @@ Response:
 }
 ```
 
-Route: POST /disconnect
+#### Route: POST /disconnect
 
 Description: This route disconnects from the Spectoda device.
 
@@ -137,6 +138,12 @@ Description: This route emits an event to the Spectoda device. The event can be 
 Request Body example payloads:
 
 ```json
+{
+  "label": "shoot",
+  "id": 255, // 255 for broadcast on all devices on the network
+  "type": "empty"
+}
+
 {
   "label": "barva",
   "id": 255, // 255 for broadcast on all devices on the network
