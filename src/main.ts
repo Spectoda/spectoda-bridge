@@ -88,6 +88,12 @@ async function main() {
   //   console.error(e);
   // }
 
+  // //  @ts-ignore
+  // console.log("> Selecting...");
+  // await spectodaDevice.interface?.autoSelect([{ mac: "0C:B8:15:D6:F7:EE" }], 1000, 60000);
+  // console.log("> Connecting...");
+  // await spectodaDevice.interface?.connect(60000, false);
+
 }
 
 main();
