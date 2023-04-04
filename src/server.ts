@@ -1,8 +1,8 @@
 import bodyParser from "body-parser";
 import express from "express";
-import SSE from "express-sse-ts";
 import { spectodaDevice } from "./communication";
 import cors from "cors";
+import SSE from "express-sse-ts";
 
 const jsonParser = bodyParser.json();
 const urlencodedParser = bodyParser.urlencoded({ extended: false });
@@ -59,6 +59,16 @@ app.post("/connect", async (req, res) => {
   }
 });
 
+app.post("/disconnect", async (req, res) => {
+  try {
+    const result = await spectodaDevice.disconnect();
+    return res.json({ status: "success", result: result });
+  } catch (error) {
+    res.statusCode = 405;
+    return res.json({ status: "error", error: error });
+  }
+});
+
 app.post("/event", async (req, res) => {
   const event = req.body as SpectodaEvent;
 
@@ -92,6 +102,13 @@ app.post("/tngl", (req, res) => {
 
 app.get("/tngl-fingerprint", (req, res) => {
   // TODO return finger print of the device
+});
+
+//An error handling middleware
+// @ts-ignore
+app.use(function (err, req, res, next) {
+  res.status(500);
+  res.send("Oops, something went wrong.");
 });
 
 app.listen(port, () => {
