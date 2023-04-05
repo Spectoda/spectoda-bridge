@@ -3,6 +3,7 @@ import express from "express";
 import { spectodaDevice } from "./communication";
 import cors from "cors";
 import SSE from "express-sse-ts";
+import fs from "fs";
 
 const jsonParser = bodyParser.json();
 const urlencodedParser = bodyParser.urlencoded({ extended: false });
@@ -15,11 +16,17 @@ app.use(urlencodedParser);
 app.use(cors());
 
 export const sse = new SSE();
+export const sseota = new SSE();
 app.get("/events", sse.init);
 spectodaDevice.on("emitted_events", (events: SpectodaEvent[]) => {
   for (const event of events) {
     sse.send(JSON.stringify(event));
   }
+});
+
+app.get("/ota-progress", sseota.init);
+spectodaDevice.on("ota_progress", (progress: any) => {
+  sse.send(JSON.stringify(progress));
 });
 
 interface SpectodaEvent {
@@ -102,6 +109,32 @@ app.post("/tngl", (req, res) => {
 
 app.get("/tngl-fingerprint", (req, res) => {
   // TODO return finger print of the device
+});
+
+app.post("/notifier", async (req, res) => {
+  let { message } = req.body as { message: string };
+  message = message.substring(0, 5);
+  try {
+    const result = await spectodaDevice.emitEvent(message, 255);
+    return res.json({ status: "success", result: result });
+  } catch (error) {
+    spectodaDevice.updateDeviceFirmware();
+    res.statusCode = 405;
+    return res.json({ status: "error", error: error });
+  }
+});
+
+app.post("/upload-fw", async (req, res) => {
+  try {
+    const filePath = "/home/pi/spectoda/fw.enc";
+    const fileData = fs.readFileSync(filePath);
+    const uint8Array = new Uint8Array(fileData);
+    const result = await spectodaDevice.updateDeviceFirmware(uint8Array);
+    return res.json({ status: "success", result: result });
+  } catch (error) {
+    res.statusCode = 405;
+    return res.json({ status: "error", error: error });
+  }
 });
 
 //An error handling middleware
