@@ -111,14 +111,25 @@ app.get("/tngl-fingerprint", (req, res) => {
   // TODO return finger print of the device
 });
 
-app.post("/notifier", async (req, res) => {
-  let { message } = req.body as { message: string };
-  message = message.substring(0, 5);
+app.post('/notifier', async (req, res) => {
+  const { message } = req.body as { message: string };
   try {
-    const result = await spectodaDevice.emitEvent(message, 255);
-    return res.json({ status: "success", result: result });
+    let parsed: { [key: string]: string } = {};
+    message.split(' ').forEach((c) => {
+      const [key, value] = c.split('=');
+      if (key && value) {
+        parsed[key.toLowerCase()] = value;
+      }
+    });
+    console.log(parsed)
+    const label = parsed['label'];
+    if (label) {
+      const result = await spectodaDevice.emitEvent(label.substring(0, 5), 255);
+      return res.json({ status: "success", result: result });
+    }
+    res.statusCode = 400;
+    return res.json({ status: "error", result: "no label in message" });
   } catch (error) {
-    spectodaDevice.updateDeviceFirmware();
     res.statusCode = 405;
     return res.json({ status: "error", error: error });
   }

@@ -1,6 +1,6 @@
-import { createBluetooth } from "node-ble";
+// import { createBluetooth } from "node-ble";
 // import { sortAndDeduplicateDiagnostics } from "typescript";
-import { spectodaDevice } from "./communication";
+// import { spectodaDevice } from "./communication";
 import "./server";
 // import { Module } from "./wasmload";
 
