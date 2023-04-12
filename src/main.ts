@@ -1,6 +1,6 @@
 // import { createBluetooth } from "node-ble";
 // import { sortAndDeduplicateDiagnostics } from "typescript";
-// import { spectodaDevice } from "./communication";
+import { spectodaDevice } from "./communication";
 import "./server";
 // import { Module } from "./wasmload";
 
@@ -93,6 +93,11 @@ async function main() {
   // await spectodaDevice.interface?.autoSelect([{ mac: "0C:B8:15:D6:F7:EE" }], 1000, 60000);
   // console.log("> Connecting...");
   // await spectodaDevice.interface?.connect(60000, false);
+
+    //////////////////////////////////////////////////////////////////////////////////////////
+
+    // const controllers = await spectodaDevice.scan([{name: "DevKit"}]);
+    // spectodaDevice.connect(controllers);
 
 }
 

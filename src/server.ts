@@ -30,12 +30,10 @@ spectodaDevice.on("ota_progress", (progress: any) => {
 });
 
 interface SpectodaEvent {
-  id: number | number[];
   label: string;
-  value: number | string | null;
-  timestamp: number;
-  type?: "percentage" | "color" | "timestamp" | "empty";
-  forceDelivery?: boolean;
+  value?: number | string | null;
+  type?: "percentage" | "color" | "timestamp" | "undefined";
+  destination?: number | number[];
 }
 
 app.get("/scan", async (req, res) => {
@@ -46,20 +44,34 @@ app.get("/scan", async (req, res) => {
 });
 
 app.post("/connect", async (req, res) => {
-  const { key, signature, mac } = req.body as { signature: string; key: string; mac?: string };
-
-  spectodaDevice.assignOwnerSignature(signature);
-  spectodaDevice.assignOwnerKey(key);
+  const { key, signature, mac, name } = req.body as { signature?: string; key?: string; mac?: string; name?: string };
 
   try {
-    let result;
-    if (mac) {
-      // @ts-ignore
-      result = await spectodaDevice.connect([{ mac: mac }], true, null, null, false, "", true);
-    } else {
-      result = await spectodaDevice.connect(null, true, null, null, true, "", true);
+
+    if (signature) {
+      spectodaDevice.assignOwnerSignature(signature);
     }
+
+    if (key) {
+      spectodaDevice.assignOwnerKey(key);
+    }
+
+    if (mac) {
+      //@ts-ignore
+      const result = await spectodaDevice.connect([{ mac: mac }]);
+      return res.json({ status: "success", result: result });
+    }
+
+    if (name) {
+      const controllers = await spectodaDevice.scan([{ name: name }]);
+      const result = await spectodaDevice.connect(controllers);
+      return res.json({ status: "success", result: result });
+    }
+
+    const controllers = await spectodaDevice.scan([{}]);
+    const result = await spectodaDevice.connect(controllers);
     return res.json({ status: "success", result: result });
+
   } catch (error) {
     res.statusCode = 405;
     return res.json({ status: "error", error: error });
@@ -77,26 +89,40 @@ app.post("/disconnect", async (req, res) => {
 });
 
 app.post("/event", async (req, res) => {
+
   const event = req.body as SpectodaEvent;
 
-  let result;
   try {
-    switch (event.type) {
-      case "percentage":
-        result = await spectodaDevice.emitPercentageEvent(event.label, event.value as number, event.id, event?.forceDelivery);
-        break;
-      case "color":
-        result = await spectodaDevice.emitColorEvent(event.label, event.value as string, event.id, event?.forceDelivery);
-        break;
-      case "timestamp":
-        result = await spectodaDevice.emitTimestampEvent(event.label, event.value as number, event.id, event?.forceDelivery);
-        break;
-      default:
-        result = await spectodaDevice.emitEvent(event.label, event.id, event?.forceDelivery);
-        break;
+
+    if (event.label === undefined || event.label === null) {
+      res.statusCode = 400;
+      return res.json({ status: "error", result: "no label specified" });
     }
 
-    return res.json({ status: "success", result: result });
+    if (event.value === undefined || event.value === null) {
+      const result = await spectodaDevice.emitEvent(event.label, event.destination);
+      return res.json({ status: "success", result: result });
+    }
+
+    switch (event.type) {
+      case "percentage": {
+        const result = await spectodaDevice.emitPercentageEvent(event.label, event.value as number, event.destination);
+        return res.json({ status: "success", result: result });
+      }
+      case "color": {
+        const result = await spectodaDevice.emitColorEvent(event.label, event.value as string, event.destination);
+        return res.json({ status: "success", result: result });
+      }
+      case "timestamp": {
+        const result = await spectodaDevice.emitTimestampEvent(event.label, event.value as number, event.destination);
+        return res.json({ status: "success", result: result });
+      }
+      default: {
+        const result = await spectodaDevice.emitEvent(event.label, event.destination);
+        return res.json({ status: "success", result: result });
+      }
+    }
+
   } catch (error) {
     res.statusCode = 405;
     return res.json({ status: "error", error: error });
@@ -113,6 +139,7 @@ app.get("/tngl-fingerprint", (req, res) => {
 
 app.post('/notifier', async (req, res) => {
   const { message } = req.body as { message: string };
+
   try {
     let parsed: { [key: string]: string } = {};
     message.split(' ').forEach((c) => {
@@ -121,14 +148,47 @@ app.post('/notifier', async (req, res) => {
         parsed[key.toLowerCase()] = value;
       }
     });
+
     console.log(parsed)
-    const label = parsed['label'];
+
+    const label = parsed['label'] ?? undefined;
+    const value = parsed['value'] ?? undefined;
+    const type = parsed['type'] ?? undefined;
+
+    if (label === undefined || label === null) {
+      res.statusCode = 400;
+      return res.json({ status: "error", result: "no label specified" });
+    }
+
+    if (value === undefined || value === null) {
+      const result = await spectodaDevice.emitEvent(label);
+      return res.json({ status: "success", result: result });
+    }
+
     if (label) {
+      switch (type) {
+        case "percentage": {
+          const result = await spectodaDevice.emitPercentageEvent(label, Number(value));
+          return res.json({ status: "success", result: result });
+        }
+        case "color": {
+          const result = await spectodaDevice.emitColorEvent(label, value as string);
+          return res.json({ status: "success", result: result });
+        }
+        case "timestamp": {
+          const result = await spectodaDevice.emitTimestampEvent(label, Number(value));
+          return res.json({ status: "success", result: result });
+        }
+        default: {
+          const result = await spectodaDevice.emitEvent(label);
+          return res.json({ status: "success", result: result });
+        }
+      }
       const result = await spectodaDevice.emitEvent(label.substring(0, 5), 255);
       return res.json({ status: "success", result: result });
     }
-    res.statusCode = 400;
-    return res.json({ status: "error", result: "no label in message" });
+
+
   } catch (error) {
     res.statusCode = 405;
     return res.json({ status: "error", error: error });
