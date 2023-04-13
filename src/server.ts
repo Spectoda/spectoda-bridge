@@ -44,10 +44,9 @@ app.get("/scan", async (req, res) => {
 });
 
 app.post("/connect", async (req, res) => {
-  const { key, signature, mac, name } = req.body as { signature?: string; key?: string; mac?: string; name?: string };
+  const { key, signature, mac, name, remember } = req.body as { signature?: string; key?: string; mac?: string; name?: string; remember?: boolean };
 
   try {
-
     if (signature) {
       spectodaDevice.assignOwnerSignature(signature);
     }
@@ -59,19 +58,24 @@ app.post("/connect", async (req, res) => {
     if (mac) {
       //@ts-ignore
       const result = await spectodaDevice.connect([{ mac: mac }]);
+      remember && fs.writeFileSync("mac.txt", result?.mac || mac);
+
       return res.json({ status: "success", result: result });
     }
 
     if (name) {
       const controllers = await spectodaDevice.scan([{ name: name }]);
       const result = await spectodaDevice.connect(controllers);
+      result.mac && remember && fs.writeFileSync("mac.txt", result.mac);
+
       return res.json({ status: "success", result: result });
     }
 
     const controllers = await spectodaDevice.scan([{}]);
     const result = await spectodaDevice.connect(controllers);
-    return res.json({ status: "success", result: result });
+    result.mac && remember && fs.writeFileSync("mac.txt", result.mac);
 
+    return res.json({ status: "success", result: result });
   } catch (error) {
     res.statusCode = 405;
     return res.json({ status: "error", error: error });
@@ -89,11 +93,9 @@ app.post("/disconnect", async (req, res) => {
 });
 
 app.post("/event", async (req, res) => {
-
   const event = req.body as SpectodaEvent;
 
   try {
-
     if (event.label === undefined || event.label === null) {
       res.statusCode = 400;
       return res.json({ status: "error", result: "no label specified" });
@@ -122,7 +124,6 @@ app.post("/event", async (req, res) => {
         return res.json({ status: "success", result: result });
       }
     }
-
   } catch (error) {
     res.statusCode = 405;
     return res.json({ status: "error", error: error });
@@ -137,23 +138,23 @@ app.get("/tngl-fingerprint", (req, res) => {
   // TODO return finger print of the device
 });
 
-app.post('/notifier', async (req, res) => {
+app.post("/notifier", async (req, res) => {
   const { message } = req.body as { message: string };
 
   try {
     let parsed: { [key: string]: string } = {};
-    message.split(' ').forEach((c) => {
-      const [key, value] = c.split('=');
+    message.split(" ").forEach(c => {
+      const [key, value] = c.split("=");
       if (key && value) {
         parsed[key.toLowerCase()] = value;
       }
     });
 
-    console.log(parsed)
+    console.log(parsed);
 
-    const label = parsed['label'] ?? undefined;
-    const value = parsed['value'] ?? undefined;
-    const type = parsed['type'] ?? undefined;
+    const label = parsed["label"] ?? undefined;
+    const value = parsed["value"] ?? undefined;
+    const type = parsed["type"] ?? undefined;
 
     if (label === undefined || label === null) {
       res.statusCode = 400;
@@ -187,8 +188,6 @@ app.post('/notifier', async (req, res) => {
       const result = await spectodaDevice.emitEvent(label.substring(0, 5), 255);
       return res.json({ status: "success", result: result });
     }
-
-
   } catch (error) {
     res.statusCode = 405;
     return res.json({ status: "error", error: error });
