@@ -57,25 +57,23 @@ app.post("/connect", async (req, res) => {
 
     if (mac) {
       //@ts-ignore
-      const result = await spectodaDevice.connect([{ mac: mac }]);
-      remember && fs.writeFileSync("mac.txt", result?.mac || mac);
-
+      const result = await spectodaDevice.connect([{ mac: mac }], true, null, null, false, "", true);
+      remember && fs.writeFileSync("assets/mac.txt", mac);
       return res.json({ status: "success", result: result });
     }
 
     if (name) {
       const controllers = await spectodaDevice.scan([{ name: name }]);
-      const result = await spectodaDevice.connect(controllers);
-      result.mac && remember && fs.writeFileSync("mac.txt", result.mac);
-
+      controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac);
+      const result = await spectodaDevice.connect(controllers, true, null, null, false, "", true);
       return res.json({ status: "success", result: result });
     }
 
     const controllers = await spectodaDevice.scan([{}]);
-    const result = await spectodaDevice.connect(controllers);
-    result.mac && remember && fs.writeFileSync("mac.txt", result.mac);
-
+    controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac);
+    const result = await spectodaDevice.connect(controllers, true, null, null, false, "", true);
     return res.json({ status: "success", result: result });
+
   } catch (error) {
     res.statusCode = 405;
     return res.json({ status: "error", error: error });

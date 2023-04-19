@@ -4,3 +4,6 @@
 [submodule "src/lib/node-ble"]
 	path = src/lib/node-ble
 	url = https://github.com/Spectoda/node-ble.git
+[submodule "spectoda-pws400k"]
+	path = spectoda-pws400k
+	url = https://github.com/Spectoda/spectoda-pws400k.git
