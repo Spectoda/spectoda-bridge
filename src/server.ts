@@ -212,6 +212,9 @@ app.use(function (err, req, res, next) {
   res.send("Oops, something went wrong.");
 });
 
+app.use("/assets",express.static('assets'));
+
 app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}/`);
 });
+
