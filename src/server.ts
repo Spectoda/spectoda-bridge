@@ -11,6 +11,9 @@ const urlencodedParser = bodyParser.urlencoded({ extended: false });
 const app: express.Application = express();
 const port: number = Number(process.env.PORT) || 8888;
 
+let connecting = false;
+let fwUploading = false;
+
 app.use(jsonParser);
 app.use(urlencodedParser);
 app.use(cors());
@@ -40,13 +43,21 @@ app.get("/scan", async (req, res) => {
   // TODO
   // const devices = await spectodaDevice.interface?.scan();
   // res.json(devices);
-  res.json("Not implemented");
+  return res.json({ status: "error", error: "NotImplemented" });
 });
 
 app.post("/connect", async (req, res) => {
   const { key, signature, mac, name, remember } = req.body as { signature?: string; key?: string; mac?: string; name?: string; remember?: boolean };
 
+  if (connecting) {
+    res.statusCode = 405;
+    return res.json({ status: "error", error: "ConnectingInProgress" });
+  }
+
+  connecting = true;
+
   try {
+
     if (signature) {
       spectodaDevice.assignOwnerSignature(signature);
     }
@@ -57,7 +68,7 @@ app.post("/connect", async (req, res) => {
 
     if (mac) {
       //@ts-ignore
-      const result = await spectodaDevice.connect([{ mac: mac }], true, null, null, false, "", true);
+      const result = await spectodaDevice.connect([{ mac: mac }], true, null, null, false, "", true, true);
       remember && fs.writeFileSync("assets/mac.txt", mac);
       return res.json({ status: "success", result: result });
     }
@@ -65,17 +76,20 @@ app.post("/connect", async (req, res) => {
     if (name) {
       const controllers = await spectodaDevice.scan([{ name: name }]);
       controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac);
-      const result = await spectodaDevice.connect(controllers, true, null, null, false, "", true);
+      const result = await spectodaDevice.connect(controllers, true, null, null, false, "", true, true);
       return res.json({ status: "success", result: result });
     }
 
     const controllers = await spectodaDevice.scan([{}]);
     controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac);
-    const result = await spectodaDevice.connect(controllers, true, null, null, false, "", true);
+    const result = await spectodaDevice.connect(controllers, true, null, null, false, "", true, true);
     return res.json({ status: "success", result: result });
+
   } catch (error) {
     res.statusCode = 405;
     return res.json({ status: "error", error: error });
+  } finally {
+    connecting = false;
   }
 });
 
@@ -95,7 +109,7 @@ app.post("/event", async (req, res) => {
   try {
     if (event.label === undefined || event.label === null) {
       res.statusCode = 400;
-      return res.json({ status: "error", result: "no label specified" });
+      return res.json({ status: "error", result: "NoEventLabelSpecified" });
     }
 
     if (event.value === undefined || event.value === null) {
@@ -129,10 +143,12 @@ app.post("/event", async (req, res) => {
 
 app.post("/tngl", (req, res) => {
   // TODO: implement, type for write/sync tngl
+  return res.json({ status: "error", error: "NotImplemented" });
 });
 
 app.get("/tngl-fingerprint", (req, res) => {
   // TODO return finger print of the device
+  return res.json({ status: "error", error: "NotImplemented" });
 });
 
 app.post("/notifier", async (req, res) => {
@@ -147,7 +163,7 @@ app.post("/notifier", async (req, res) => {
       }
     });
 
-    console.log(parsed);
+    // console.log(parsed);
 
     const label = parsed["label"] ?? undefined;
     const value = parsed["value"] ?? undefined;
@@ -155,7 +171,7 @@ app.post("/notifier", async (req, res) => {
 
     if (label === undefined || label === null) {
       res.statusCode = 400;
-      return res.json({ status: "error", result: "no label specified" });
+      return res.json({ status: "error", result: "NoEventLabelSpecified" });
     }
 
     if (value === undefined || value === null) {
@@ -192,6 +208,14 @@ app.post("/notifier", async (req, res) => {
 });
 
 app.post("/upload-fw", async (req, res) => {
+
+  if (fwUploading) {
+    res.statusCode = 405;
+    return res.json({ status: "error", error: "AlreadingUploadingFW" });
+  }
+
+  fwUploading = true;
+
   try {
     const filePath = "/home/pi/spectoda/fw.enc";
     const fileData = fs.readFileSync(filePath);
@@ -201,12 +225,15 @@ app.post("/upload-fw", async (req, res) => {
   } catch (error) {
     res.statusCode = 405;
     return res.json({ status: "error", error: error });
+  } finally {
+    fwUploading = false;
   }
 });
 
 app.get("/", (req, res) => {
   res.redirect("/control");
 });
+
 app.get("/assets/control", (req, res) => {
   res.redirect("/control");
 });
