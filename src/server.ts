@@ -73,7 +73,6 @@ app.post("/connect", async (req, res) => {
     controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac);
     const result = await spectodaDevice.connect(controllers, true, null, null, false, "", true);
     return res.json({ status: "success", result: result });
-
   } catch (error) {
     res.statusCode = 405;
     return res.json({ status: "error", error: error });
@@ -205,6 +204,15 @@ app.post("/upload-fw", async (req, res) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.redirect("/control");
+});
+app.get("/assets/control", (req, res) => {
+  res.redirect("/control");
+});
+
+app.use("/control", express.static("assets/control"));
+
 //An error handling middleware
 // @ts-ignore
 app.use(function (err, req, res, next) {
@@ -212,9 +220,6 @@ app.use(function (err, req, res, next) {
   res.send("Oops, something went wrong.");
 });
 
-app.use("/assets",express.static('assets'));
-
 app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}/`);
 });
-
