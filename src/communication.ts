@@ -33,8 +33,8 @@ spectodaDevice.assignOwnerKey("bfd39c89ccc2869f240508e9a0609420");
 // @ts-ignore
 globalThis.spectodaDevice = spectodaDevice;
 
-
 spectodaDevice.on("connected", async () => {
+  
   logging.info("> Checking for updates...");
 
   await sleep(1000);
@@ -77,6 +77,7 @@ spectodaDevice.on("connected", async () => {
         const fileData = fs.readFileSync(filePath);
         const uint8Array = new Uint8Array(fileData);
         await spectodaDevice.updateNetworkFirmware(uint8Array);
+
         logging.info("Firmware successfully updated.");
         return;
 
@@ -85,7 +86,6 @@ spectodaDevice.on("connected", async () => {
       logging.error(`Error updating firmware: ${error}`);
 
     }
-
   }
 
   if (fs.existsSync("assets/tngl.txt")) {
