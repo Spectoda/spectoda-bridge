@@ -4,7 +4,7 @@ import { logging } from "./lib/spectoda-js/Logging";
 import fs from "fs";
 import { sleep } from "./lib/spectoda-js/functions";
 
-const spectodaDevice = new Spectoda("nodebluetooth", 0, true);
+const spectodaDevice = new Spectoda("nodebluetooth", true, true);
 
 spectodaDevice.setDebugLevel(3);
 
