@@ -27,6 +27,16 @@ spectodaDevice.on("emitted_events", (events: SpectodaEvent[]) => {
   }
 });
 
+export const sseconnection = new SSE();
+app.get("/connection", sseconnection.init);
+spectodaDevice.on("connected", (event: any) => {
+  sseconnection.send(("connected"))
+});
+
+spectodaDevice.on("disconnected", (event: any) => {
+  sseconnection.send(("disconnected"))
+});
+
 app.get("/ota-progress", sseota.init);
 spectodaDevice.on("ota_progress", (progress: any) => {
   sse.send(JSON.stringify(progress));
