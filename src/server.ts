@@ -20,6 +20,9 @@ app.use(cors());
 
 export const sse = new SSE();
 export const sseota = new SSE();
+
+fs.writeFileSync("assets/lastboot.txt", new Date().toISOString())
+
 app.get("/events", sse.init);
 spectodaDevice.on("emitted_events", (events: SpectodaEvent[]) => {
   for (const event of events) {
@@ -64,12 +67,16 @@ app.post("/connect", async (req, res) => {
     return res.json({ status: "error", error: "ConnectingInProgress" });
   }
 
+  remember && signature && fs.writeFileSync("assets/ownersignature.txt",signature)
+  remember && key && fs.writeFileSync("assets/ownerkey.txt", key);
+
   connecting = true;
 
   try {
 
     if (signature) {
       spectodaDevice.assignOwnerSignature(signature);
+      console.log("Assign Signature", signature)
     }
 
     if (key) {
@@ -91,12 +98,12 @@ app.post("/connect", async (req, res) => {
     }
 
     const controllers = await spectodaDevice.scan([{}]);
-    controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac);
+
+    controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac)
+
+
     const result = await spectodaDevice.connect(controllers, true, null, null, false, "", true, true);
 
-    signature && fs.writeFileSync("assets/ownersignature.txt",signature)
-    key && fs.writeFileSync("assets/ownerkey.txt", key);
-    
     return res.json({ status: "success", result: result });
 
   } catch (error) {
@@ -269,7 +276,7 @@ app.get("/owner",(req,res) => {
   
     res.json(info)
   } catch(error) {
-    res.sendStatus(405).json({error})
+    res.json({error})
   }
 
 })
