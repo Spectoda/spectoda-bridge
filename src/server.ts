@@ -93,6 +93,10 @@ app.post("/connect", async (req, res) => {
     const controllers = await spectodaDevice.scan([{}]);
     controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac);
     const result = await spectodaDevice.connect(controllers, true, null, null, false, "", true, true);
+
+    signature && fs.writeFileSync("assets/ownersignature.txt",signature)
+    key && fs.writeFileSync("assets/ownerkey.txt", key);
+    
     return res.json({ status: "success", result: result });
 
   } catch (error) {
@@ -255,6 +259,20 @@ app.get("/", (req, res) => {
 app.get("/assets/control", (req, res) => {
   res.redirect("/control");
 });
+
+app.get("/owner",(req,res) => {
+  try {
+    const info = {
+      ownerKey: fs.readFileSync("assets/ownerkey.txt").toString(),
+      ownerSignature: fs.readFileSync("assets/ownersignature.txt").toString()
+    }
+  
+    res.json(info)
+  } catch(error) {
+    res.sendStatus(405).json({error})
+  }
+
+})
 
 app.use("/control", express.static("assets/control"));
 
