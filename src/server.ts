@@ -60,7 +60,7 @@ app.get("/scan", async (req, res) => {
 });
 
 app.post("/connect", async (req, res) => {
-  const { key, signature, mac, name, remember } = req.body as { signature?: string; key?: string; mac?: string; name?: string; remember?: boolean };
+  const { key, signature, mac, name, remember, network } = req.body as { signature?: string; key?: string; mac?: string; name?: string; remember?: boolean, network?: string };
 
   if (connecting) {
     res.statusCode = 405;
@@ -69,6 +69,7 @@ app.post("/connect", async (req, res) => {
 
   remember && signature && fs.writeFileSync("assets/ownersignature.txt",signature)
   remember && key && fs.writeFileSync("assets/ownerkey.txt", key);
+  remember && network && fs.writeFileSync("assets/network.txt", network);
 
   connecting = true;
 
@@ -98,9 +99,7 @@ app.post("/connect", async (req, res) => {
     }
 
     const controllers = await spectodaDevice.scan([{}]);
-
     controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac)
-
 
     const result = await spectodaDevice.connect(controllers, true, null, null, false, "", true, true);
 
@@ -271,14 +270,14 @@ app.get("/owner",(req,res) => {
   try {
     const info = {
       ownerKey: fs.readFileSync("assets/ownerkey.txt").toString(),
-      ownerSignature: fs.readFileSync("assets/ownersignature.txt").toString()
+      ownerSignature: fs.readFileSync("assets/ownersignature.txt").toString(),
+      network: fs.readFileSync("assets/network.txt").toString()
     }
   
     res.json(info)
   } catch(error) {
     res.json({error})
   }
-
 })
 
 app.use("/control", express.static("assets/control"));
