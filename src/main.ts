@@ -1,5 +1,5 @@
 import { spectodaDevice } from "./communication";
-import { logging } from "./lib/spectoda-js/Logging";
+import { logging } from "./lib/spectoda-js/logging";
 import { sleep } from "./lib/spectoda-js/functions";
 import "./server";
 import fs from "fs";

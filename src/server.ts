@@ -278,7 +278,31 @@ app.get("/owner",(req,res) => {
   } catch(error) {
     res.json({error})
   }
-})
+});
+
+app.get("/variable", async (req, res) => {
+  const name = req.query.name;
+  const segId = req.query.seg_id;
+
+  if (!name || !segId) {
+    res.status(400).json({ error: "Both 'name' and 'seg_id' parameters are required" });
+    return;
+  }
+
+  // TODO pridat error handling apod
+  try {
+    const value = await spectodaDevice.readVariable(name, segId);
+    res.json({ value: value });
+  } catch (error) {
+    res.status(404).json({ error: "Variable or segment not found" });
+  }
+
+  // if (variableData[name] && variableData[name][segId] !== undefined) {
+  // res.json({ value: value });
+  // } else {
+  //   res.status(404).json({ error: "Variable or segment not found" });
+  // }
+});
 
 app.use("/control", express.static("assets/control"));
 

@@ -1,16 +1,6 @@
-// Light logic
-const light = genSmoothOut(genLastEventParam($light), 1s);
-addLayer(0s, Infinity, {
-    addDrawing(0s, Infinity, animFill(Infinity, #ffffff));
-}).modifyBrightness(&light);
-// Update animation
-catchEvent($INJEC).setValue(0%).emitAs($UPDAT);
-const time = mapValue(genLastEventParam($UPDAT), 0%, 100%, 0s, 100s);
-const mask = mapValue(genLastEventParam($UPDAT), 0%, 0.01%, 100%, 0%);
-scaLayer(0s, Infinity, {
-    addDrawing(0s, Infinity, animFill(Infinity, #ffffff));
-}).modifyBrightness(&mask);
-addLayer(0s, Infinity, {
-    addDrawing(0s, Infinity, animFade(100s, #ff0000, #00ff00).animFill(Infinity, #00ff00));
-    scaDrawing(0s, Infinity, animLoadingBar(100s, #ffffff, #000000).animFill(Infinity, #ffffff));
-}).modifyTimeSet(&time);
+catchEvent($INIT).setValue(#ffaacc).emitAs($color);
+
+catchEvent($test).emitAs($luky).emitAs($misa).emitAs($matty);
+
+var color = genSmoothOut(genLastEventParam($color), 1s);
+addDrawing(0s, Infinity, animFill(Infinity, &color));

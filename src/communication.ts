@@ -1,12 +1,13 @@
 // import esPkg from 'essentia.js';
 import { Spectoda } from "./lib/spectoda-js/Spectoda";
-import { logging } from "./lib/spectoda-js/Logging";
+import { logging } from "./lib/spectoda-js/logging";
 import fs from "fs";
 import { sleep } from "./lib/spectoda-js/functions";
 
-const spectodaDevice = new Spectoda("nodebluetooth", true, true);
+// const spectodaDevice = new Spectoda("nodebluetooth", 1000);
+const spectodaDevice = new Spectoda("dummy", 1000);
 
-spectodaDevice.setDebugLevel(3);
+spectodaDevice.setDebugLevel(4);
 
 spectodaDevice.assignOwnerSignature("a06cd5c4d5741b61fee69422f2590926");
 spectodaDevice.assignOwnerKey("bfd39c89ccc2869f240508e9a0609420");
@@ -41,7 +42,7 @@ spectodaDevice.on("connected", async () => {
 
   // upload latest FW
   if (fs.existsSync("assets/fw.txt")) {
-    try {
+    // try {
       do {
         const fwFilePath = fs.readFileSync("assets/fw.txt", "utf8");
         const controllerFwInfo = await spectodaDevice.getFwVersion().catch(() => { return "UNKNOWN_0.0.0_00000000" });
@@ -82,10 +83,10 @@ spectodaDevice.on("connected", async () => {
         return;
 
       } while (0);
-    } catch (error) {
-      logging.error(`Error updating firmware: ${error}`);
+    // } catch (error) {
+    //   logging.error(`Error updating firmware: ${error}`);
 
-    }
+    // }
   }
 
   if (fs.existsSync("assets/tngl.txt")) {
