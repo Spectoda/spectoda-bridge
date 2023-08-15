@@ -4,8 +4,8 @@ import { logging } from "./lib/spectoda-js/logging";
 import fs from "fs";
 import { sleep } from "./lib/spectoda-js/functions";
 
-// const spectodaDevice = new Spectoda("nodebluetooth", 1000);
-const spectodaDevice = new Spectoda("dummy", 1000);
+ const spectodaDevice = new Spectoda("nodebluetooth", 1000);
+//const spectodaDevice = new Spectoda("dummy", 1000);
 
 spectodaDevice.setDebugLevel(4);
 
@@ -92,7 +92,8 @@ spectodaDevice.on("connected", async () => {
   if (fs.existsSync("assets/tngl.txt")) {
     // upload latest TNGL
     try {
-      await spectodaDevice.syncTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString());
+      // await spectodaDevice.syncTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString());
+      await spectodaDevice.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString()); // ! for now to put tngl into webassembly
     } catch (error) {
       logging.error(`Error updating TNGL: ${error}`);
     }

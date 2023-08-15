@@ -1,6 +1,290 @@
-catchEvent($INIT).setValue(#ffaacc).emitAs($color);
+defDevice($dali, 0x02, 0xff, 2px, $_dali, 0xff, {
+});
 
-catchEvent($test).emitAs($luky).emitAs($misa).emitAs($matty);
+defSegment($white, 0x00, { slice($_dali, 0px, 1px, 1px); });
 
+defSegment($white, 0x01, { slice($_dali, 1px, 1px, 1px); });
+
+// Sonoff with automatic brightness
+
+// Sonoff witout automatic brightness
+
+defSegment($txult, 0x00, { slice($_txul, 27px, 3px, 1px); slice($_txul, 0px, 27px, 1px); });
+
+defDevice($txult, 0x01, 0xff, 30px, $_txul, 0xff, 1px, $onoff, 0x00, {
+  const ultimate = Provider($txult);
+  const int = Integer();
+  const eventToggle = EventToggle($toggl, 0xff);
+  const eventStepper = EventStepper($brigh, 0xff, 0x05, 0x64, 0x0A);
+  const if1 = If();
+  const if10 = If();
+  const if2 = If();
+  const if3 = If();
+  const if4 = If();
+  const if5 = If();
+  const if6 = If();
+  const if7 = If();
+  const if8 = If();
+  const if9 = If();
+  const compE1 = ComparatorEqual(0x01);
+  const compE10 = ComparatorEqual(0x0A);
+  const compE2 = ComparatorEqual(0x02);
+  const compE3 = ComparatorEqual(0x03);
+  const compE4 = ComparatorEqual(0x04);
+  const compE5 = ComparatorEqual(0x05);
+  const middleClickCounter = Counter();
+  const middleClickDelay = DelayOverwrite(400ms); // How much time without no click is considered a stop of clicking
+  const threeClicks = ComparatorGreater(0x03); // 3 or more
+  const ifThreeClicks = If();
+  const oneClick = ComparatorEqual(0x01);
+  const ifOneClick = If();
+  const twoClicks = ComparatorEqual(0x02);
+  const ifTwoClicks = If();
+  const automatizationEvent = EventToggle($a_bri, 0xff);
+  const debounceDelay = DelayOverwrite(100ms); // How much time between clicks is considered a new click
+  const compE6 = ComparatorEqual(0x06);
+  const compE7 = ComparatorEqual(0x07);
+  const compE8 = ComparatorEqual(0x08);
+  const compE9 = ComparatorEqual(0x09);
+
+  ultimate->[0x00]int;
+
+  int->[0x00]compE1;
+  compE1->[0x00]if1;
+  if1->[0x01]eventStepper;
+
+  int->[0x00]compE10;
+  compE10->[0x00]if10;
+  if10->[0x00]eventStepper;
+
+  int->[0x00]compE2;
+  compE2->[0x00]if2;
+  //if2->[0x00]eventToggle;
+
+  int->[0x00]compE3;
+  compE3->[0x00]if3;
+  // if3->[0x00]eventToggle;
+  if3->[0x00]middleClickCounter;
+
+  int->[0x00]compE4;
+  compE4->[0x00]if4;
+  // if4->[0x00]eventToggle;
+  if4->[0x00]middleClickCounter;
+  middleClickCounter->[0x00]middleClickDelay;
+  middleClickDelay->[0x00]threeClicks;
+  threeClicks->[0x00]ifThreeClicks;
+  ifThreeClicks->[0x00]automatizationEvent;
+  middleClickDelay->[0x00]oneClick;
+  oneClick->[0x00]ifOneClick;
+  middleClickDelay->[0x00]twoClicks;
+  twoClicks->[0x00]ifTwoClicks;
+  ifTwoClicks->[0x00]debounceDelay;
+  ifOneClick->[0x00]eventToggle;
+  ifOneClick->[0x00]debounceDelay;
+  ifThreeClicks->[0x00]debounceDelay;
+  debounceDelay->[0x02]middleClickCounter;
+
+  int->[0x00]compE5;
+  compE5->[0x00]if5;
+  // if5->[0x00]eventToggle;
+  if5->[0x00]middleClickCounter;
+
+
+
+  int->[0x00]compE6;
+  compE6->[0x00]if6;
+  // if6->[0x00]eventToggle;
+  if6->[0x00]middleClickCounter;
+
+  int->[0x00]compE7;
+  compE7->[0x00]if7;
+  // if7->[0x00]eventToggle;
+  if7->[0x00]middleClickCounter;
+
+  int->[0x00]compE8;
+  compE8->[0x00]if8;
+  // if8->[0x00]eventToggle;
+  if8->[0x00]middleClickCounter;
+
+  int->[0x00]compE9;
+  compE9->[0x00]if9;
+  //if9->[0x00]eventToggle;
+
+});
+
+// Prvni Double CCT svetlo s ID 1
+
+// Ctvrte Single CCT svetlo s ID 4
+
+// Druhe Double CCT svetlo s ID 2
+
+// Pate Single RGB svetlo s ID 5
+
+// Treti Double CCT svetlo s ID 3
+
+// Seste Double RGB svetlo s ID 6
+
+// Brightness automatizations
+  catchEvent($brigh).setValue(100%).emitAs($toggl);
+  catchEvent($brig1).setValue(100%).emitAs($togg1);
+  catchEvent($brig2).setValue(100%).emitAs($togg2);
+  catchEvent($brig3).setValue(100%).emitAs($togg3);
+
+// Sedme Single White svetlo s ID 7
+
+catchEvent($INIT).setValue(100%).emitAs($toggl).setValue(100%).emitAs($brigh).setValue(#ff2000).emitAs($color).setValue(0%).emitAs($tempe).setValue(50%).emitAs($speed);
+catchEvent($INIT).setValue(0%).emitAs($a_bri).setValue(0%).emitAs($bri_l).setValue(100%).emitAs($bri_u);
+// Automatizations so that normal events
+// 🕹️ $brigh 🕹️ $toggl 🕹️ $tempe also functions
+catchEvent($toggl).emitAs($togg1).emitAs($togg2).emitAs($togg3);
+catchEvent($brigh).emitAs($brig1).emitAs($brig2).emitAs($brig3);
+catchEvent($color).emitAs($colo1).emitAs($colo2).emitAs($colo3);
+catchEvent($tempe).emitAs($temp1).emitAs($temp2).emitAs($temp3);
+// Toggl is "percentage boolean" only 0% or 100%
+var toggl_not_smoothed = mapValue(genLastEventParam($toggl), 0%, 0.01%, 0%, 100%);
+var toggl_not_smoothed_1 = mapValue(genLastEventParam($togg1), 0%, 0.01%, 0%, 100%);
+var toggl_not_smoothed_2 = mapValue(genLastEventParam($togg2), 0%, 0.01%, 0%, 100%);
+var toggl_not_smoothed_3 = mapValue(genLastEventParam($togg3), 0%, 0.01%, 0%, 100%);
+var toggl = genSmoothOut(toggl_not_smoothed, 0.5s);
+var toggl_1 = genSmoothOut(toggl_not_smoothed_1, 0.5s);
+var toggl_2 = genSmoothOut(toggl_not_smoothed_2, 0.5s);
+var toggl_3 = genSmoothOut(toggl_not_smoothed_3, 0.5s);
+// Brightness is valid from 10% to 100%
+// Brightness cant be 0% or negative
+var brighntess_upper_bound = mapValue(genLastEventParam($bri_u), 1%, 100%, 1%, 100%);
+var brighntess_lower_bound = mapValue(genLastEventParam($bri_l), 1%, 100%, 1%, 100%);
+var brightness_automated = mapValue(genLastEventParam($a_bri), 0%, 0.01%, 0%, 100%);
+var brightness_automated_smooth = genSmoothOut(brightness_automated, 0.5s);
+var brightness_not_automated_smooth = mapValue(brightness_automated_smooth, 0%, 100%, 100%, 0%);
+var brighntess_fade_time = mapValue(brightness_automated, 0%, 100%, 0.5s, 2s);
+var brightness_real = genLastEventParam($brigh);
+var brightness = genSmoothOut(mapValue(brightness_real, 1%, 100%, brighntess_lower_bound, brighntess_upper_bound), &brighntess_fade_time);
+var brightness_1 = genSmoothOut(mapValue(genLastEventParam($brig1), 1%, 100%, brighntess_lower_bound, brighntess_upper_bound), &brighntess_fade_time);
+var brightness_2 = genSmoothOut(mapValue(genLastEventParam($brig2), 1%, 100%, brighntess_lower_bound, brighntess_upper_bound), &brighntess_fade_time);
+var brightness_3 = genSmoothOut(mapValue(genLastEventParam($brig3), 1%, 100%, brighntess_lower_bound, brighntess_upper_bound), &brighntess_fade_time);
+// Temperature is -100% cold, 0% mix, 100% warm
+var temperature = genSmoothOut(genLastEventParam($tempe), 1s);
+var temperature_1 = genSmoothOut(genLastEventParam($temp1), 1s);
+var temperature_2 = genSmoothOut(genLastEventParam($temp2), 1s);
+var temperature_3 = genSmoothOut(genLastEventParam($temp3), 1s);
+// Color is color #00ff00
 var color = genSmoothOut(genLastEventParam($color), 1s);
-addDrawing(0s, Infinity, animFill(Infinity, &color));
+var color_1 = genSmoothOut(genLastEventParam($colo1), 1s);
+var color_2 = genSmoothOut(genLastEventParam($colo2), 1s);
+var color_3 = genSmoothOut(genLastEventParam($colo3), 1s);
+// Speed
+var speed = genSmoothOut(genLastEventParam($speed), 0.5s);
+// Light level
+var lightlevel = mulValues(toggl, brightness);
+var lightlevel_1 = mulValues(toggl_1, brightness_1);
+var lightlevel_2 = mulValues(toggl_2, brightness_2);
+var lightlevel_3 = mulValues(toggl_3, brightness_3);
+// CCT device (🧩 $cct segment)
+  var teperature_color = addValues(mulValues(mapValue(temperature, -100%, 0%, #0000ff, #ffffff), mapValue(temperature, -0.001%, 0.001%, 100%, 0%)), mulValues(mapValue(temperature, 0%, 100%, #ffffff, #ff0000), mapValue(temperature, -0.001%, 0.001%, 0%, 100%)));
+  var teperature_color_1 = addValues(mulValues(mapValue(temperature_1, -100%, 0%, #0000ff, #ffffff), mapValue(temperature_1, -0.001%, 0.001%, 100%, 0%)), mulValues(mapValue(temperature_1, 0%, 100%, #ffffff, #ff0000), mapValue(temperature_1, -0.001%, 0.001%, 0%, 100%)));
+  var teperature_color_2 = addValues(mulValues(mapValue(temperature_2, -100%, 0%, #0000ff, #ffffff), mapValue(temperature_2, -0.001%, 0.001%, 100%, 0%)), mulValues(mapValue(temperature_2, 0%, 100%, #ffffff, #ff0000), mapValue(temperature_2, -0.001%, 0.001%, 0%, 100%)));
+  var teperature_color_3 = addValues(mulValues(mapValue(temperature_3, -100%, 0%, #0000ff, #ffffff), mapValue(temperature_3, -0.001%, 0.001%, 100%, 0%)), mulValues(mapValue(temperature_3, 0%, 100%, #ffffff, #ff0000), mapValue(temperature_3, -0.001%, 0.001%, 0%, 100%)));
+  // Single CCT device (🧩 $cct segment)
+  siftSegments({ segment($cct); }, {
+    addLayer(0s, Infinity, {
+      addDrawing(0s, Infinity, animFill(Infinity, &teperature_color));
+    }).modifyBrightness(&lightlevel);
+  });
+  // Double CCT device (🧩 $cct1 and 🧩 $cct2 segments)
+  siftSegments({ segment($cct1); }, {
+    addLayer(0s, Infinity, {
+      addDrawing(0s, Infinity, animFill(Infinity, &teperature_color_1));
+    }).modifyBrightness(&lightlevel_1);
+  });
+  siftSegments({ segment($cct2); }, {
+    addLayer(0s, Infinity, {
+      addDrawing(0s, Infinity, animFill(Infinity, &teperature_color_2));
+    }).modifyBrightness(&lightlevel_2);
+  });
+// WHITE device (🧩 $white segment)
+  // Single WHITE device (🧩 $white segment)
+  siftSegments({ segment($white); }, {
+    addLayer(0s, Infinity, {
+      addDrawing(0s, Infinity, animFill(Infinity, #ffffff));
+    }).modifyBrightness(&lightlevel);
+  });
+  // Double WHITE device (🧩 $whit1 and 🧩 $whit2 segment)
+  siftSegments({ segment($whit1); }, {
+    addLayer(0s, Infinity, {
+      addDrawing(0s, Infinity, animFill(Infinity, #ffffff));
+    }).modifyBrightness(&lightlevel_1);
+  });
+  siftSegments({ segment($whit2); }, {
+    addLayer(0s, Infinity, {
+      addDrawing(0s, Infinity, animFill(Infinity, #ffffff));
+    }).modifyBrightness(&lightlevel_2);
+  });
+// RGB device (🧩 $rgb segment)
+  // Single RGB device (🧩 $rgb segment)
+  siftSegments({ segment($rgb); segment($rgbw); }, {
+    addLayer(0s, Infinity, {
+      addDrawing(0s, Infinity, animFill(Infinity, &color));
+    }).modifyBrightness(&lightlevel);
+  });
+  // Double WHITE device (🧩 $whit1 and 🧩 $whit2 segment)
+  siftSegments({ segment($rgb1); segment($rgbw1); }, {
+    addLayer(0s, Infinity, {
+      addDrawing(0s, Infinity, animFill(Infinity, &color_1));
+    }).modifyBrightness(&lightlevel_1);
+  });
+  siftSegments({ segment($rgb2); segment($rgbw2); }, {
+    addLayer(0s, Infinity, {
+      addDrawing(0s, Infinity, animFill(Infinity, &color_2));
+    }).modifyBrightness(&lightlevel_2);
+  });
+// ON/OFF device (🧩 $onoff segment)
+  siftSegments({ segment($onoff); segment($relay); }, {
+    addLayer(0s, Infinity, {
+      addDrawing(0s, Infinity, animFill(Infinity, #ffffff));
+    }).modifyBrightness(&toggl_not_smoothed);
+  });
+// NOPIXEL device (🧩 $neopi segment)
+  siftSegments({ segment($neopi); segment($anima); }, {
+    addLayer(0s, Infinity, {
+      addDrawing(0s, Infinity, animFill(Infinity, &color));
+    }).modifyBrightness(&lightlevel);
+  });
+// Sonoff TX Ultimate (🧩 $txult segment)
+  siftSegments({ segment($txult); }, {
+    addLayer(0s, Infinity, {
+      var progress_time = mapValue(genSmoothOut(brightness_real, 0.25s), 1%, 100%, 1s, 100s);
+      addLayer(0s, Infinity, {
+        addDrawing(0s, Infinity, animLoadingBar(100s, &color, #000000).animFill(Infinity, &color));
+      }).modifyTimeSet(&progress_time);
+      scaLayer(0s, Infinity, {
+        addLayer(0s, Infinity, {
+          interactive<0x04>(0s, Infinity, $brigh, {
+            addLayer(0s, 5s, {
+              addDrawing(0s, 5s, animFill(Infinity, #ffffff));
+            }).modifyFadeIn(0.5s).modifyFadeOut(1s);
+          });
+          interactive<0x04>(0s, Infinity, $toggl, {
+            addLayer(0s, 5s, {
+              addDrawing(0s, 5s, animFill(Infinity, #ffffff));
+            }).modifyFadeIn(0.25s).modifyFadeOut(1s);
+          });
+        }).modifyBrightness(&brightness_not_automated_smooth);
+        addLayer(0s, Infinity, {
+          interactive<0x01>(0s, Infinity, $INIT, {
+            addDrawing(0s, Infinity, animFade(3s, #000000, #ffffff).animFade(3s, #ffffff, #000000));
+          });
+        }).modifyBrightness(&brightness_automated_smooth);
+      });
+      interactive<0x01>(0s, Infinity, $a_bri, {
+        scaDrawing(0s, 2.5s, animFill(2s, #000000).animFade(0.5s, #000000, #ffffff));
+        var animation_color = mapValue(brightness_automated, 0%, 100%, #ff0000, #00ff00);
+        var animation_direction = mapValue(brightness_automated, 0%, 100%, -1s, 1s);
+        addDrawing(0s, 1s, animPlasmaShot(&animation_direction, &animation_color, 25%));
+        addDrawing(0.5s, 1s, animPlasmaShot(&animation_direction, &animation_color, 25%));
+      });
+    }).modifyBrightness(&toggl);
+  });
+// DALI port workarounds
+  interactive<0x01>(0s, Infinity, $BOOT, {
+    addDrawing(0s, 3s, animFill(1s, #ffffff).animFade(2s, #ffffff, #000000));
+  });
