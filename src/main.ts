@@ -4,8 +4,12 @@ import { sleep } from "./lib/spectoda-js/functions";
 import "./server";
 import fs from "fs";
 
-async function main() {
+// if not exists, create assets folder
+if (!fs.existsSync("assets")) {
+  fs.mkdirSync("assets");
+}
 
+async function main() {
   await sleep(1000);
 
   if (fs.existsSync("assets/mac.txt")) {
