@@ -30,6 +30,13 @@ spectodaDevice.on("emitted_events", (events: SpectodaEvent[]) => {
   }
 });
 
+app.get("/local-events", sse.init);
+spectodaDevice.on("emitted_local_events", (events: SpectodaEvent[]) => {
+  for (const event of events) {
+    sse.send(JSON.stringify(event));
+  }
+});
+
 export const sseconnection = new SSE();
 app.get("/connection", sseconnection.init);
 spectodaDevice.on("connected", (event: any) => {
@@ -171,12 +178,25 @@ app.post("/event", async (req, res) => {
 
 app.post("/tngl", (req, res) => {
   // TODO: implement, type for write/sync tngl
+  res.statusCode = 501;
   return res.json({ status: "error", error: "NotImplemented" });
 });
 
 app.get("/tngl-fingerprint", (req, res) => {
   // TODO return finger print of the device
+  res.statusCode = 501;
   return res.json({ status: "error", error: "NotImplemented" });
+});
+
+app.get("/emit-history", (req, res) => {
+
+  spectodaDevice.readEventHistory().then(() => {
+    return res.json({ status: "success", result: "success" });
+  }).catch((error) => {
+    res.statusCode = 400;
+    return res.json({ status: "error", error: error });
+  })
+
 });
 
 app.post("/notifier", async (req, res) => {
