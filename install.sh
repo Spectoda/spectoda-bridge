@@ -39,8 +39,7 @@ After=network.target
 [Service]
 User=gateway
 Group=gateway
-WorkingDirectory=/home/gateway/spectoda-node/spectoda-pws400k
-ExecStart=node main.js
+WorkingDirectory=/home/gateway/spectoda-node/build/
 ExecStart=/bin/bash -i -c 'node main.js'
 Restart=on-failure
 RestartSec=5s
