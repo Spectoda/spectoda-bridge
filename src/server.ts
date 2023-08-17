@@ -21,7 +21,7 @@ app.use(cors());
 export const sse = new SSE();
 export const sseota = new SSE();
 
-fs.writeFileSync("assets/lastboot.txt", new Date().toISOString())
+fs.writeFileSync("assets/lastboot.txt", new Date().toISOString());
 
 app.get("/events", sse.init);
 spectodaDevice.on("emitted_events", (events: SpectodaEvent[]) => {
@@ -40,11 +40,11 @@ spectodaDevice.on("emitted_local_events", (events: SpectodaEvent[]) => {
 export const sseconnection = new SSE();
 app.get("/connection", sseconnection.init);
 spectodaDevice.on("connected", (event: any) => {
-  sseconnection.send(("connected"))
+  sseconnection.send("connected");
 });
 
 spectodaDevice.on("disconnected", (event: any) => {
-  sseconnection.send(("disconnected"))
+  sseconnection.send("disconnected");
 });
 
 app.get("/ota-progress", sseota.init);
@@ -67,24 +67,23 @@ app.get("/scan", async (req, res) => {
 });
 
 app.post("/connect", async (req, res) => {
-  const { key, signature, mac, name, remember, network } = req.body as { signature?: string; key?: string; mac?: string; name?: string; remember?: boolean, network?: string };
+  const { key, signature, mac, name, remember, network } = req.body as { signature?: string; key?: string; mac?: string; name?: string; remember?: boolean; network?: string };
 
   if (connecting) {
     res.statusCode = 405;
     return res.json({ status: "error", error: "ConnectingInProgress" });
   }
 
-  remember && signature && fs.writeFileSync("assets/ownersignature.txt",signature)
+  remember && signature && fs.writeFileSync("assets/ownersignature.txt", signature);
   remember && key && fs.writeFileSync("assets/ownerkey.txt", key);
   remember && network && fs.writeFileSync("assets/network.txt", network);
 
   connecting = true;
 
   try {
-
     if (signature) {
       spectodaDevice.assignOwnerSignature(signature);
-      console.log("Assign Signature", signature)
+      console.log("Assign Signature", signature);
     }
 
     if (key) {
@@ -106,14 +105,12 @@ app.post("/connect", async (req, res) => {
     }
 
     const controllers = await spectodaDevice.scan([{}]);
-    controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac)
+    controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac);
 
     const result = await spectodaDevice.connect(controllers, true, null, null, false, "", true, true);
 
     return res.json({ status: "success", result: result });
-
   } catch (error) {
-
     if (error === "ScanFailed") {
       // restart node in 10 ms
       setTimeout(() => {
@@ -176,10 +173,17 @@ app.post("/event", async (req, res) => {
   }
 });
 
-app.post("/tngl", (req, res) => {
+app.post("/write-tngl", async (req, res) => {
   // TODO: implement, type for write/sync tngl
-  res.statusCode = 501;
-  return res.json({ status: "error", error: "NotImplemented" });
+  const { tngl } = req.body as string;
+
+  // create tngl.txt in assets
+  fs.writeFileSync("assets/tngl.txt", tngl);
+
+  const result = await spectodaDevice.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString()); // ! for now to put tngl into webassembly
+  await spectodaDevice.readEventHistory();
+
+  return res.json({ status: "success", result });
 });
 
 app.get("/tngl-fingerprint", (req, res) => {
@@ -189,14 +193,15 @@ app.get("/tngl-fingerprint", (req, res) => {
 });
 
 app.get("/emit-history", (req, res) => {
-
-  spectodaDevice.readEventHistory().then(() => {
-    return res.json({ status: "success", result: "success" });
-  }).catch((error) => {
-    res.statusCode = 400;
-    return res.json({ status: "error", error: error });
-  })
-
+  spectodaDevice
+    .readEventHistory()
+    .then(() => {
+      return res.json({ status: "success", result: "success" });
+    })
+    .catch(error => {
+      res.statusCode = 400;
+      return res.json({ status: "error", error: error });
+    });
 });
 
 app.post("/notifier", async (req, res) => {
@@ -256,7 +261,6 @@ app.post("/notifier", async (req, res) => {
 });
 
 app.post("/upload-fw", async (req, res) => {
-
   if (fwUploading) {
     res.statusCode = 405;
     return res.json({ status: "error", error: "AlreadingUploadingFW" });
@@ -286,17 +290,17 @@ app.get("/assets/control", (req, res) => {
   res.redirect("/control");
 });
 
-app.get("/owner",(req,res) => {
+app.get("/owner", (req, res) => {
   try {
     const info = {
       ownerKey: fs.readFileSync("assets/ownerkey.txt").toString(),
       ownerSignature: fs.readFileSync("assets/ownersignature.txt").toString(),
-      network: fs.readFileSync("assets/network.txt").toString()
-    }
-  
-    res.json(info)
-  } catch(error) {
-    res.json({error})
+      network: fs.readFileSync("assets/network.txt").toString(),
+    };
+
+    res.json(info);
+  } catch (error) {
+    res.json({ error });
   }
 });
 
