@@ -7,7 +7,7 @@ import { sleep } from "./lib/spectoda-js/functions";
  const spectodaDevice = new Spectoda("nodebluetooth", true);
 //const spectodaDevice = new Spectoda("dummy", true);
 
-spectodaDevice.setDebugLevel(4);
+spectodaDevice.setDebugLevel(3);
 
 spectodaDevice.assignOwnerSignature("a06cd5c4d5741b61fee69422f2590926");
 spectodaDevice.assignOwnerKey("bfd39c89ccc2869f240508e9a0609420");
