@@ -21,8 +21,10 @@ echo
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
     sleep 1
+    su gateway
     npm i
     ./build.sh
+    exit
 fi
 
 echo "Installing systemd service and enabling it..."
