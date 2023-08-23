@@ -326,7 +326,6 @@ app.post("/variables", async (req, res) => {
   const variables = req.body.variables;
 
   let results = [];
-  let fails: any[] = [];
 
   try {
     for (const { name, segId } of variables) {
@@ -339,13 +338,13 @@ app.post("/variables", async (req, res) => {
         const value = await spectodaDevice.readVariable(name, segId);
         results.push({ name, segId, value });
       } catch (error) {
-        fails.push({ name, segId, error });
+        results.push({ name, segId, value: null, error });
         console.warn(name, segId, error);
         continue;
       }
     }
 
-    res.json({ data: results, fails: fails });
+    res.json({ data: results });
   } catch (error) {
     res.status(500).json({ error: "Something went wrong" });
   }
