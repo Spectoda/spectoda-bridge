@@ -320,12 +320,35 @@ app.get("/variable", async (req, res) => {
   } catch (error) {
     res.status(404).json({ error: "Variable or segment not found" });
   }
+});
 
-  // if (variableData[name] && variableData[name][segId] !== undefined) {
-  // res.json({ value: value });
-  // } else {
-  //   res.status(404).json({ error: "Variable or segment not found" });
-  // }
+app.post("/variables", async (req, res) => {
+  const variables = req.body.variables;
+
+  let results = [];
+  let fails: any[] = [];
+
+  try {
+    for (const { name, segId } of variables) {
+      if (!name || !segId) {
+        res.status(400).json({ error: "Both 'name' and 'segId' parameters are required" });
+        return;
+      }
+
+      try {
+        const value = await spectodaDevice.readVariable(name, segId);
+        results.push({ name, segId, value });
+      } catch (error) {
+        fails.push({ name, segId, error });
+        console.warn(name, segId, error);
+        continue;
+      }
+    }
+
+    res.json({ data: results, fails: fails });
+  } catch (error) {
+    res.status(500).json({ error: "Something went wrong" });
+  }
 });
 
 app.use("/control", express.static("assets/control"));
