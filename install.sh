@@ -13,6 +13,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]
 then
     sleep 1
     git pull
+    git submodule update --init --recursive
 fi
 
 # ask user if he wants to build the project first
