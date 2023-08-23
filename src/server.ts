@@ -316,7 +316,7 @@ app.get("/variable", async (req, res) => {
   // TODO pridat error handling apod
   try {
     const value = await spectodaDevice.readVariable(name, segId);
-    res.json({ value: value });
+    res.json(value);
   } catch (error) {
     res.status(404).json({ error: "Variable or segment not found" });
   }
