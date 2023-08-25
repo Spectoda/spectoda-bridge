@@ -59,6 +59,19 @@ spectodaDevice.on("emitted_local_events", (events: SpectodaEvent[]) => {
   }
 });
 
+app.get("/events-info", async (req, res) => {
+  // TODO, do not just emit events, but instead return them
+  const result = await spectodaDevice
+    .readEventHistory()
+    .then((events: any) => {})
+    .catch((error: any) => {
+      res.statusCode = 400;
+      res.json({ status: "error", error });
+    });
+
+  res.json({ status: "success", data: result });
+});
+
 export const sseconnection = new SSE();
 app.get("/connection", sseconnection.init);
 spectodaDevice.on("connected", (event: any) => {
