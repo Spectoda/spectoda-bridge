@@ -23,6 +23,28 @@ export const sseota = new SSE();
 
 fs.writeFileSync("assets/lastboot.txt", new Date().toISOString());
 
+export const ssepeers = new SSE();
+
+app.get("/peers", ssepeers.init);
+spectodaDevice.on("peer_connected", (peer: any) => {
+  ssepeers.send(JSON.stringify({ mac: peer, type: "peer_connected" }));
+});
+spectodaDevice.on("peer_disconnected", (peer: any) => {
+  ssepeers.send(JSON.stringify({ mac: peer, type: "peer_disconnected" }));
+});
+
+app.get("/peers-info", (req, res) => {
+  spectodaDevice
+    .getConnectedPeersInfo()
+    .then((peers: any) => {
+      res.json({ status: "success", data: peers });
+    })
+    .catch((error: any) => {
+      res.statusCode = 400;
+      res.json({ status: "error", error });
+    });
+});
+
 app.get("/events", sse.init);
 spectodaDevice.on("emitted_events", (events: SpectodaEvent[]) => {
   for (const event of events) {
