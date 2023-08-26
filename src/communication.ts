@@ -81,6 +81,7 @@ spectodaDevice.on("connected", async () => {
 
       logging.info("Firmware successfully updated.");
       return;
+      
     } while (0);
     // } catch (error) {
     //   logging.error(`Error updating firmware: ${error}`);

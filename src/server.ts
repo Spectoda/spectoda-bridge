@@ -215,6 +215,7 @@ app.post("/write-tngl", async (req, res) => {
   // create tngl.txt in assets
   fs.writeFileSync("assets/tngl.txt", tngl);
 
+  await spectodaDevice.eraseEventHistory();
   const result = await spectodaDevice.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString()); // ! for now to put tngl into webassembly
   await spectodaDevice.readEventHistory();
 
