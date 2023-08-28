@@ -92,9 +92,7 @@ spectodaDevice.on("connected", async () => {
   if (fs.existsSync("assets/tngl.txt")) {
     // upload latest TNGL
     try {
-      // await spectodaDevice.syncTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString());
-      await spectodaDevice.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString()); // ! for now to put tngl into webassembly
-      await spectodaDevice.readEventHistory();
+      await spectodaDevice.syncTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString());
     } catch (error) {
       logging.error(`Error updating TNGL: ${error}`);
     }

@@ -12,6 +12,12 @@ if (!fs.existsSync("assets")) {
 async function main() {
   await sleep(1000);
 
+  if (fs.existsSync("assets/tngl.txt")) {
+    // ! set TNGL to webassembly before connection
+    // this is a workaround for a bug in the firmware
+    await spectodaDevice.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString()).catch((e) => { console.log(e); });
+  }
+
   if (fs.existsSync("assets/mac.txt")) {
     const mac = fs.readFileSync("assets/mac.txt").toString();
     logging.info("Connecting to remembered device with MAC: " + mac);

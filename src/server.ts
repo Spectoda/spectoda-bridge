@@ -210,16 +210,16 @@ app.post("/event", async (req, res) => {
 
 app.post("/write-tngl", async (req, res) => {
   // TODO: implement, type for write/sync tngl
-  const { tngl } = req.body as string;
+  const { tngl } = req.body as { tngl: string };
 
   // create tngl.txt in assets
   fs.writeFileSync("assets/tngl.txt", tngl);
 
-  await spectodaDevice.eraseEventHistory();
-  const result = await spectodaDevice.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString()); // ! for now to put tngl into webassembly
-  await spectodaDevice.readEventHistory();
+  // await spectodaDevice.eraseEventHistory();
+  // const result = await spectodaDevice.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString()); // ! for now to put tngl into webassembly
+  // await spectodaDevice.syncEventHistory();
 
-  return res.json({ status: "success", result });
+  return res.json({ status: "success", result: "Dont forget to restart spectoda-node for the TNGL to be written" });
 });
 
 app.get("/tngl-fingerprint", (req, res) => {
@@ -229,15 +229,19 @@ app.get("/tngl-fingerprint", (req, res) => {
 });
 
 app.get("/emit-history", (req, res) => {
-  spectodaDevice
-    .readEventHistory()
-    .then(() => {
-      return res.json({ status: "success", result: "success" });
-    })
-    .catch(error => {
-      res.statusCode = 400;
-      return res.json({ status: "error", error: error });
-    });
+
+  // ! syncEventHistory does not do this anymore  
+  // spectodaDevice
+  //   .syncEventHistory()
+  //   .then(() => {
+  //     return res.json({ status: "success", result: "success" });
+  //   })
+  //   .catch(error => {
+  //     res.statusCode = 400;
+  //     return res.json({ status: "error", error: error });
+  //   });
+
+    return res.json({ status: "error", error: "NotImplemented" });
 });
 
 app.post("/notifier", async (req, res) => {
