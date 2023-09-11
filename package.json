@@ -5,7 +5,7 @@
   "main": "src/main.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "DEBUG=* tsx .",
+    "start": "tsx .",
     "start:old": "ts-node --transpile-only .",
     "dummy": "DEBUG=* DUMMY=1 tsx .",
     "dev": "DUMMY=* ts-node-dev --respawn --transpile-only src/main.ts"
