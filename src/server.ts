@@ -126,14 +126,14 @@ app.post("/connect", async (req, res) => {
     if (name) {
       const controllers = await spectodaDevice.scan([{ name: name }]);
       controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac);
-      const result = await spectodaDevice.connect(controllers, true, null, null, false, "", true, true);
+      const result = await spectodaDevice.connect(controllers, true, signature, key, false, "", true, true);
       return res.json({ status: "success", result: result });
     }
 
     const controllers = await spectodaDevice.scan([{}]);
     controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac);
 
-    const result = await spectodaDevice.connect(controllers, true, null, null, false, "", true, true);
+    const result = await spectodaDevice.connect(controllers, true, signature, key, false, "", true, true);
 
     return res.json({ status: "success", result: result });
   } catch (error) {
