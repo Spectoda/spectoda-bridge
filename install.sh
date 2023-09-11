@@ -32,6 +32,7 @@ if prompt "Do you want to build the project first?"; then
   sleep 1
   su gateway -c 'npm i'
   su gateway -c './build.sh'
+  chown -R gateway:gateway .
 fi
 
 echo "Installing systemd service and enabling it..."
@@ -46,8 +47,8 @@ After=network.target
 [Service]
 User=gateway
 Group=gateway
-WorkingDirectory=/home/gateway/spectoda-node/build/
-ExecStart=/bin/bash -i -c 'node main.js'
+WorkingDirectory=/home/gateway/spectoda-node/
+ExecStart=/bin/bash -i -c 'DEBUG=* npm start'
 Restart=on-failure
 RestartSec=5s
 

@@ -5,9 +5,10 @@
   "main": "src/main.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node --transpile-only .",
-    "dummy": "DUMMY=1 ts-node --transpile-only .",
-    "dev": "ts-node-dev --respawn --transpile-only src/main.ts"
+    "start": "DEBUG=* tsx .",
+    "start:old": "ts-node --transpile-only .",
+    "dummy": "DEBUG=* DUMMY=1 tsx .",
+    "dev": "DUMMY=* ts-node-dev --respawn --transpile-only src/main.ts"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +30,7 @@
     "nanoid": "^4.0.1",
     "node-ble": "^1.9.0",
     "ts-node": "^10.9.1",
+    "tsx": "^3.12.8",
     "typescript": "^4.9.5"
   },
   "devDependencies": {

@@ -229,8 +229,7 @@ app.get("/tngl-fingerprint", (req, res) => {
 });
 
 app.get("/emit-history", (req, res) => {
-
-  // ! syncEventHistory does not do this anymore  
+  // ! syncEventHistory does not do this anymore
   // spectodaDevice
   //   .syncEventHistory()
   //   .then(() => {
@@ -241,7 +240,7 @@ app.get("/emit-history", (req, res) => {
   //     return res.json({ status: "error", error: error });
   //   });
 
-    return res.json({ status: "error", error: "NotImplemented" });
+  return res.json({ status: "error", error: "NotImplemented" });
 });
 
 app.post("/notifier", async (req, res) => {
