@@ -17,6 +17,7 @@ let fwUploading = false;
 app.use(jsonParser);
 app.use(urlencodedParser);
 app.use(cors());
+app.use(express.text());
 
 export const sse = new SSE();
 export const sseota = new SSE();
@@ -201,7 +202,7 @@ app.post("/event", async (req, res) => {
 
 app.post("/write-tngl", async (req, res) => {
   // TODO: implement, type for write/sync tngl
-  const { tngl } = req.body as { tngl: string };
+  const tngl = req.body;
 
   // create tngl.txt in assets
   fs.writeFileSync("assets/tngl.txt", tngl);
