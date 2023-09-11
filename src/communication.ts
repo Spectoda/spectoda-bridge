@@ -8,8 +8,8 @@ const spectodaDevice = new Spectoda(process.env.DUMMY ? "dummy" : "nodebluetooth
 
 spectodaDevice.setDebugLevel(3);
 
-spectodaDevice.assignOwnerSignature("a06cd5c4d5741b61fee69422f2590926");
-spectodaDevice.assignOwnerKey("bfd39c89ccc2869f240508e9a0609420");
+// spectodaDevice.assignOwnerSignature("a06cd5c4d5741b61fee69422f2590926");
+// spectodaDevice.assignOwnerKey("bfd39c89ccc2869f240508e9a0609420");
 
 // spectodaDevice.assignConnector("dummy");
 // if (typeof window !== "undefined") {
@@ -81,7 +81,6 @@ spectodaDevice.on("connected", async () => {
 
       logging.info("Firmware successfully updated.");
       return;
-      
     } while (0);
     // } catch (error) {
     //   logging.error(`Error updating firmware: ${error}`);

@@ -116,18 +116,9 @@ app.post("/connect", async (req, res) => {
   connecting = true;
 
   try {
-    if (signature) {
-      spectodaDevice.assignOwnerSignature(signature);
-      console.log("Assign Signature", signature);
-    }
-
-    if (key) {
-      spectodaDevice.assignOwnerKey(key);
-    }
-
     if (mac) {
       //@ts-ignore
-      const result = await spectodaDevice.connect([{ mac: mac }], true, null, null, false, "", true, true);
+      const result = await spectodaDevice.connect([{ mac: mac }], true, signature, key, false, "", true, true);
       remember && fs.writeFileSync("assets/mac.txt", mac);
       return res.json({ status: "success", result: result });
     }
