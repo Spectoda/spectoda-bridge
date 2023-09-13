@@ -381,6 +381,16 @@ app.post("/variables", async (req, res) => {
   }
 });
 
+app.get("/restart", async (req, res) => {
+  console.error("Restarting spectoda-node. Reason:", req?.query?.reason);
+
+  res.json({ status: "success", message: "Restarting spectoda-node" });
+
+  setTimeout(() => {
+    process.exit(1);
+  }, 1);
+});
+
 app.use("/control", express.static("assets/control"));
 
 //An error handling middleware
