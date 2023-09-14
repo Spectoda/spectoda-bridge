@@ -75,12 +75,19 @@ app.get("/events-info", async (req, res) => {
 
 export const sseconnection = new SSE();
 app.get("/connection", sseconnection.init);
+
+let shouldSendDisconnected = true;
+
 spectodaDevice.on("connected", (event: any) => {
   sseconnection.send("connected");
+  shouldSendDisconnected = true;
 });
 
 spectodaDevice.on("disconnected", (event: any) => {
-  sseconnection.send("disconnected");
+  if (shouldSendDisconnected) {
+    sseconnection.send("disconnected");
+    shouldSendDisconnected = false;
+  }
 });
 
 app.get("/ota-progress", sseota.init);
