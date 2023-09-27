@@ -110,7 +110,7 @@ app.get("/scan", async (req, res) => {
 });
 
 app.post("/connect", async (req, res) => {
-  const { key, signature, mac, name, remember, network } = req.body as { signature?: string; key?: string; mac?: string; name?: string; remember?: boolean; network?: string };
+  const { key, signature, mac, name, remember, network, remotecontrol } = req.body as { signature?: string; key?: string; mac?: string; name?: string; remember?: boolean; network?: string; remotecontrol?: boolean };
 
   if (connecting) {
     res.statusCode = 405;
@@ -120,6 +120,20 @@ app.post("/connect", async (req, res) => {
   remember && signature && fs.writeFileSync("assets/ownersignature.txt", signature);
   remember && key && fs.writeFileSync("assets/ownerkey.txt", key);
   remember && network && fs.writeFileSync("assets/network.txt", network);
+  remember && remotecontrol && fs.writeFileSync("assets/remotecontrol.txt", remotecontrol.toString());
+  if (!remotecontrol) {
+    fs.rmSync("assets/remotecontrol.txt", { force: true });
+  }
+
+  if (remotecontrol) {
+    spectodaDevice.enableRemoteControl({
+      signature,
+      key,
+      sessionOnly: false,
+    });
+  } else {
+    spectodaDevice.disableRemoteControl();
+  }
 
   connecting = true;
 

@@ -33,6 +33,14 @@ async function main() {
     } catch {
       logging.error("Failed to connect to remembered device with MAC: " + mac);
     }
+
+    try {
+      if (fs.existsSync("assets/remotecontrol.txt")) {
+        await spectodaDevice.enableRemoteControl({ signature, key });
+      }
+    } catch (err) {
+      logging.error("Failed to enable remote control", err);
+    }
   }
 }
 
