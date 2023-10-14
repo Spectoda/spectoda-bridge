@@ -22,6 +22,7 @@ prompt() {
 
 # Ask user if they want to update the repo
 if prompt "Do you want to update the repo?"; then
+  chown -R gateway:gateway .
   sleep 1
   git pull
   git submodule update --init --recursive
@@ -29,10 +30,10 @@ fi
 
 # Ask user if they want to build the project first
 if prompt "Do you want to build the project first?"; then
+  chown -R gateway:gateway .
   sleep 1
   su gateway -c 'npm i'
   su gateway -c './build.sh'
-  chown -R gateway:gateway .
 fi
 
 echo "Installing systemd service and enabling it..."
