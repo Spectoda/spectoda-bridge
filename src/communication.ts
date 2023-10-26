@@ -4,9 +4,9 @@ import { logging } from "./lib/spectoda-js/logging";
 import fs from "fs";
 import { sleep } from "./lib/spectoda-js/functions";
 
-const spectodaDevice = new Spectoda(process.env.DUMMY ? "dummy" : "nodebluetooth", true);
+const spectodaDevice = new Spectoda("nodeserial", true);
 
-spectodaDevice.setDebugLevel(3);
+spectodaDevice.setDebugLevel(4);
 
 // spectodaDevice.assignOwnerSignature("a06cd5c4d5741b61fee69422f2590926");
 // spectodaDevice.assignOwnerKey("bfd39c89ccc2869f240508e9a0609420");
