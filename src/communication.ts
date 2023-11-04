@@ -38,75 +38,220 @@ spectodaDevice.on("connected", async () => {
 
   await sleep(1000);
 
-  // upload latest FW
-  if (fs.existsSync("assets/fw.txt")) {
-    // try {
-    do {
-      const fwFilePath = fs.readFileSync("assets/fw.txt", "utf8");
-      const controllerFwInfo = await spectodaDevice.getFwVersion().catch(() => {
-        return "UNKNOWN_0.0.0_00000000";
-      });
+  if (fs.existsSync("assets/config.json")) {
 
-      const fwFileMatch = fwFilePath.match(/(\d+\.\d+\.\d+)_(\d+)/);
+    const config = JSON.parse(fs.readFileSync("assets/config.json", "utf8"));
 
-      if (!fwFileMatch) {
-        logging.error("Invalid firmware file format in fw.txt.");
-        break;
+    /*
+    {
+      "spectoda": {
+          "connect": {
+              "connector": "nodeserial",
+              "criteria": {
+                  "uart": "/dev/ttyS0",
+                  "baudrate": 115200
+              }
+          },
+          "network": {
+              "signature": "00000000000000000000000000000000",
+              "key": "00000000000000000000000000000000"
+          },
+          "synchronize": {
+              "tngl": {
+                  "bytecode": "02c2c322bc8813000c8ff",
+                  "code": "addDrawing(0s, Infinity, animRainbow(5s, 100%));",
+                  "path": "tngl.txt"
+              },
+              "config": {
+                  "json": "{\"DELETE_KEYS\":[\"tohle\", \"tamto\"]}",
+                  "path": "config.json"
+              },
+              "fw": {
+                  "path": "0.10.0_20231010.enc"
+              }
+          }
       }
+    }  
+    */
 
-      const controllerFwMatch = controllerFwInfo.match(/(\d+\.\d+\.\d+)_(\d+)/);
+    if (config && config.spectoda) {
 
-      if (!controllerFwMatch) {
-        logging.error("Invalid firmware version format from spectodaDevice.");
-        break;
+      if (config.spectoda.synchronize) {
+
+        if (config.spectoda.synchronize.fw) {
+
+          if (config.spectoda.synchronize.fw.path) {
+
+            do {
+              const fwFilePath = `assets/${config.spectoda.synchronize.fw.path.trim()}`;
+              const controllerFwInfo = await spectodaDevice.getFwVersion().catch(() => {
+                return "UNKNOWN_0.0.0_00000000";
+              });
+
+              const fwFileMatch = fwFilePath.match(/(\d+\.\d+\.\d+)_(\d+)/);
+
+              if (!fwFileMatch) {
+                logging.error("Invalid firmware file format in fw.txt.");
+                break;
+              }
+
+              const controllerFwMatch = controllerFwInfo.match(/(\d+\.\d+\.\d+)_(\d+)/);
+
+              if (!controllerFwMatch) {
+                logging.error("Invalid firmware version format from spectodaDevice.");
+                break;
+              }
+
+              const fwFileVersionDate = parseInt(fwFileMatch[2], 10);
+              const controllerFwVersionDate = parseInt(controllerFwMatch[2], 10);
+
+              if (controllerFwVersionDate >= fwFileVersionDate) {
+                logging.info("FW is up to date.");
+                break;
+              }
+
+              const filePath = `assets/${fwFilePath.trim()}`;
+              if (!fs.existsSync(filePath)) {
+                logging.error(`Firmware file not found at: ${filePath}`);
+                break;
+              }
+
+              const fileData = fs.readFileSync(filePath);
+              const uint8Array = new Uint8Array(fileData);
+
+              try {
+              await spectodaDevice.updateNetworkFirmware(uint8Array);
+              } catch (error) {
+                logging.error(`Error updating firmware: ${error}`);
+                break;
+              }
+
+              logging.info("Firmware successfully updated.");
+              return; // after update we need to reconnect
+
+            } while (0);           
+          }
+        }
+
+        if (config.spectoda.synchronize.tngl) {
+
+          let tngl_code = null;
+          let tngl_bytecode = null;
+
+          if (config.spectoda.synchronize.tngl.bytecode) {
+            tngl_bytecode = config.spectoda.synchronize.tngl.bytecode;
+          }
+
+          else if (config.spectoda.synchronize.tngl.code) {
+            tngl_code = config.spectoda.synchronize.tngl.code;
+          }
+
+          else if (config.spectoda.synchronize.tngl.path) {
+            if (fs.existsSync(config.spectoda.synchronize.tngl.path)) {
+              tngl_code = fs.readFileSync(config.spectoda.synchronize.tngl.path, "utf8").toString();
+            }
+          }
+
+          try {
+            await spectodaDevice.syncTngl(tngl_code, tngl_bytecode);
+          } catch (error) {
+            logging.error(`Error updating TNGL: ${error}`);
+          }
+        }
+
+        if (config.spectoda.synchronize.config) {
+
+          let config_json = undefined;
+
+          if (config.spectoda.synchronize.config.json) {
+            config_json = config.spectoda.synchronize.config.json;
+          }
+
+          else if (config.spectoda.synchronize.config.path) {
+            if (fs.existsSync(config.spectoda.synchronize.config.path)) {
+              config_json = fs.readFileSync(config.spectoda.synchronize.config.path, "utf8").toString();
+            }
+          }
+
+          // TODO - read controller config and merge with config_json
+          logging.warn("Updating controller config is not implemented yet");
+
+          // return; // after update we need to reconnect
+        }
       }
+    }
 
-      const fwFileVersionDate = parseInt(fwFileMatch[2], 10);
-      const controllerFwVersionDate = parseInt(controllerFwMatch[2], 10);
+  } 
+  //
+  else /* !fs.existsSync("assets/config.json") */ {
 
-      if (controllerFwVersionDate >= fwFileVersionDate) {
-        logging.info("FW is up to date.");
-        break;
+    // upload latest FW
+    if (fs.existsSync("assets/fw.txt")) {
+      // try {
+      do {
+        const fwFilePath = fs.readFileSync("assets/fw.txt", "utf8").toString();
+        const controllerFwInfo = await spectodaDevice.getFwVersion().catch(() => {
+          return "UNKNOWN_0.0.0_00000000";
+        });
+
+        const fwFileMatch = fwFilePath.match(/(\d+\.\d+\.\d+)_(\d+)/);
+
+        if (!fwFileMatch) {
+          logging.error("Invalid firmware file format in fw.txt.");
+          break;
+        }
+
+        const controllerFwMatch = controllerFwInfo.match(/(\d+\.\d+\.\d+)_(\d+)/);
+
+        if (!controllerFwMatch) {
+          logging.error("Invalid firmware version format from spectodaDevice.");
+          break;
+        }
+
+        const fwFileVersionDate = parseInt(fwFileMatch[2], 10);
+        const controllerFwVersionDate = parseInt(controllerFwMatch[2], 10);
+
+        if (controllerFwVersionDate >= fwFileVersionDate) {
+          logging.info("FW is up to date.");
+          break;
+        }
+
+        const filePath = `assets/${fwFilePath.trim()}`;
+        if (!fs.existsSync(filePath)) {
+          logging.error(`Firmware file not found at: ${filePath}`);
+          break;
+        }
+
+        const fileData = fs.readFileSync(filePath);
+        const uint8Array = new Uint8Array(fileData);
+        await spectodaDevice.updateNetworkFirmware(uint8Array);
+
+        logging.info("Firmware successfully updated.");
+        return;
+      } while (0);
+      // } catch (error) {
+      //   logging.error(`Error updating firmware: ${error}`);
+
+      // }
+    }
+
+    if (fs.existsSync("assets/tngl.txt")) {
+      // upload latest TNGL
+      try {
+        await spectodaDevice.syncTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString());
+      } catch (error) {
+        logging.error(`Error updating TNGL: ${error}`);
       }
-
-      const filePath = `assets/${fwFilePath.trim()}`;
-      if (!fs.existsSync(filePath)) {
-        logging.error(`Firmware file not found at: ${filePath}`);
-        break;
-      }
-
-      const fileData = fs.readFileSync(filePath);
-      const uint8Array = new Uint8Array(fileData);
-      await spectodaDevice.updateNetworkFirmware(uint8Array);
-
-      logging.info("Firmware successfully updated.");
-      return;
-    } while (0);
-    // } catch (error) {
-    //   logging.error(`Error updating firmware: ${error}`);
-
-    // }
-  }
-
-  if (fs.existsSync("assets/tngl.txt")) {
-    // upload latest TNGL
-    try {
-      await spectodaDevice.syncTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString());
-    } catch (error) {
-      logging.error(`Error updating TNGL: ${error}`);
     }
   }
-
-  // // emit event that indicates the orange pi is connected
-  // await spectodaDevice.emitEvent("READY");
 });
 
 spectodaDevice.on("ota_progress", (percentages: number) => {
-  logging.info("OTA progress", percentages);
+  logging.info("OTA progress:", percentages);
 });
 
 spectodaDevice.on("ota_status", (status: string) => {
-  logging.info("OTA status", status);
+  logging.info("OTA status:", status);
 });
 
 export { spectodaDevice };
