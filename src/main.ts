@@ -70,7 +70,8 @@ async function main() {
       if (config.spectoda.connect) {
 
         if (config.spectoda.connect.connector) {
-          spectodaDevice.assignConnector(config.spectoda.connect.connector);
+          logging.info("> Assigning Connector...");
+          await spectodaDevice.assignConnector(config.spectoda.connect.connector);
         }
 
         let criteria = null;
@@ -79,10 +80,11 @@ async function main() {
           criteria = config.spectoda.connect.criteria;
         }
 
+        logging.info("> Connecting...");
         try {
           await spectodaDevice.connect(criteria, true, null, null, false, "", true, false);
-        } catch {
-          logging.error("Failed to connect");
+        } catch(error) {
+          logging.error("Failed to connect", error);
         }
 
       }
@@ -90,6 +92,7 @@ async function main() {
       if (config.spectoda.remoteControl) {
         
         if (config.spectoda.remoteControl.enabled) {
+          logging.info("> Enabling Remote Control...");
           try {
             await spectodaDevice.enableRemoteControl({ signature: spectodaDevice.getOwnerSignature(), key: spectodaDevice.getOwnerKey() });
           } catch (err) {
@@ -98,8 +101,7 @@ async function main() {
         }
         
       }
-
-
+      
     }
 
   }

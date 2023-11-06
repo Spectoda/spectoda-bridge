@@ -2,7 +2,7 @@
 import { Spectoda } from "./lib/spectoda-js/Spectoda";
 import { logging } from "./lib/spectoda-js/logging";
 import fs from "fs";
-import { sleep } from "./lib/spectoda-js/functions";
+import { hexStringToArray, hexStringToUint8Array, sleep } from "./lib/spectoda-js/functions";
 
 const spectodaDevice = new Spectoda("nodeserial", true);
 
@@ -106,7 +106,7 @@ spectodaDevice.on("connected", async () => {
               const controllerFwVersionDate = parseInt(controllerFwMatch[2], 10);
 
               if (controllerFwVersionDate >= fwFileVersionDate) {
-                logging.info("FW is up to date.");
+                logging.info("> FW is up to date.");
                 break;
               }
 
@@ -119,6 +119,7 @@ spectodaDevice.on("connected", async () => {
               const fileData = fs.readFileSync(filePath);
               const uint8Array = new Uint8Array(fileData);
 
+              logging.info("> Updating Network Firmware...")
               try {
               await spectodaDevice.updateNetworkFirmware(uint8Array);
               } catch (error) {
@@ -126,7 +127,7 @@ spectodaDevice.on("connected", async () => {
                 break;
               }
 
-              logging.info("Firmware successfully updated.");
+              logging.info("> Firmware successfully updated.");
               return; // after update we need to reconnect
 
             } while (0);           
@@ -139,7 +140,7 @@ spectodaDevice.on("connected", async () => {
           let tngl_bytecode = null;
 
           if (config.spectoda.synchronize.tngl.bytecode) {
-            tngl_bytecode = config.spectoda.synchronize.tngl.bytecode;
+            tngl_bytecode = hexStringToArray(config.spectoda.synchronize.tngl.bytecode);
           }
 
           else if (config.spectoda.synchronize.tngl.code) {
@@ -147,11 +148,15 @@ spectodaDevice.on("connected", async () => {
           }
 
           else if (config.spectoda.synchronize.tngl.path) {
-            if (fs.existsSync(config.spectoda.synchronize.tngl.path)) {
-              tngl_code = fs.readFileSync(config.spectoda.synchronize.tngl.path, "utf8").toString();
+            const tngl_path = "assets/" + config.spectoda.synchronize.tngl.path;
+            if (fs.existsSync(tngl_path)) {
+              tngl_code = fs.readFileSync(tngl_path, "utf8").toString();
+            } else {
+              logging.error("Specified TNGL doesnt exist on path:", tngl_path)
             }
           }
 
+          logging.info("> Sychronizing TNGL code...")
           try {
             await spectodaDevice.syncTngl(tngl_code, tngl_bytecode);
           } catch (error) {
