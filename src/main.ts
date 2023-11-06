@@ -83,14 +83,14 @@ async function main() {
         logging.info(">> Connecting...");
         try {
           await spectodaDevice.connect(criteria, true, null, null, false, "", true, false);
-        } catch(error) {
+        } catch (error) {
           logging.error("Failed to connect", error);
         }
 
       }
 
       if (config.spectoda.remoteControl) {
-        
+
         if (config.spectoda.remoteControl.enabled) {
           logging.info(">> Enabling Remote Control...");
           try {
@@ -99,9 +99,9 @@ async function main() {
             logging.error("Failed to enable remote control", err);
           }
         }
-        
+
       }
-      
+
     }
 
   }
