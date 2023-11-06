@@ -34,7 +34,7 @@ spectodaDevice.setDebugLevel(4);
 globalThis.spectodaDevice = spectodaDevice;
 
 spectodaDevice.on("connected", async () => {
-  logging.info(">> Checking for updates...");
+  logging.info(">> Reading Config...");
 
   await sleep(1000);
 
@@ -83,12 +83,12 @@ spectodaDevice.on("connected", async () => {
           if (config.spectoda.synchronize.fw.path) {
 
             do {
-              const fwFilePath = `assets/${config.spectoda.synchronize.fw.path.trim()}`;
+              const fwFileName = `${config.spectoda.synchronize.fw.path.trim()}`;
               const controllerFwInfo = await spectodaDevice.getFwVersion().catch(() => {
                 return "UNKNOWN_0.0.0_00000000";
               });
 
-              const fwFileMatch = fwFilePath.match(/(\d+\.\d+\.\d+)_(\d+)/);
+              const fwFileMatch = fwFileName.match(/(\d+\.\d+\.\d+)_(\d+)/);
 
               if (!fwFileMatch) {
                 logging.error("Invalid firmware file format in fw.txt.");
@@ -110,7 +110,7 @@ spectodaDevice.on("connected", async () => {
                 break;
               }
 
-              const filePath = `assets/${fwFilePath.trim()}`;
+              const filePath = `assets/${fwFileName.trim()}`;
               if (!fs.existsSync(filePath)) {
                 logging.error(`Firmware file not found at: ${filePath}`);
                 break;
@@ -194,12 +194,12 @@ spectodaDevice.on("connected", async () => {
     if (fs.existsSync("assets/fw.txt")) {
       // try {
       do {
-        const fwFilePath = fs.readFileSync("assets/fw.txt", "utf8").toString();
+        const fwFileName = fs.readFileSync("assets/fw.txt", "utf8").toString();
         const controllerFwInfo = await spectodaDevice.getFwVersion().catch(() => {
           return "UNKNOWN_0.0.0_00000000";
         });
 
-        const fwFileMatch = fwFilePath.match(/(\d+\.\d+\.\d+)_(\d+)/);
+        const fwFileMatch = fwFileName.match(/(\d+\.\d+\.\d+)_(\d+)/);
 
         if (!fwFileMatch) {
           logging.error("Invalid firmware file format in fw.txt.");
@@ -221,7 +221,7 @@ spectodaDevice.on("connected", async () => {
           break;
         }
 
-        const filePath = `assets/${fwFilePath.trim()}`;
+        const filePath = `assets/${fwFileName.trim()}`;
         if (!fs.existsSync(filePath)) {
           logging.error(`Firmware file not found at: ${filePath}`);
           break;
