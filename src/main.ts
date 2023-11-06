@@ -1,4 +1,4 @@
-import { spectodaDevice } from "./communication";
+import { spectoda } from "./communication";
 import { logging } from "./lib/spectoda-js/logging";
 import { sleep } from "./lib/spectoda-js/functions";
 import "./server";
@@ -58,12 +58,12 @@ async function main() {
 
         if (config.spectoda.network.signature) {
           logging.info(">> Assigning Signature...");
-          spectodaDevice.setOwnerSignature(config.spectoda.network.signature);
+          spectoda.setOwnerSignature(config.spectoda.network.signature);
         }
 
         if (config.spectoda.network.key) {
           logging.info(">> Assigning Key...");
-          spectodaDevice.setOwnerKey(config.spectoda.network.key);
+          spectoda.setOwnerKey(config.spectoda.network.key);
         }
       }
 
@@ -71,7 +71,7 @@ async function main() {
 
         if (config.spectoda.connect.connector) {
           logging.info(">> Assigning Connector...");
-          await spectodaDevice.assignConnector(config.spectoda.connect.connector);
+          await spectoda.assignConnector(config.spectoda.connect.connector);
         }
 
         let criteria = null;
@@ -82,7 +82,7 @@ async function main() {
 
         logging.info(">> Connecting...");
         try {
-          await spectodaDevice.connect(criteria, true, null, null, false, "", true, false);
+          await spectoda.connect(criteria, true, null, null, false, "", true, false);
         } catch (error) {
           logging.error("Failed to connect", error);
         }
@@ -94,7 +94,7 @@ async function main() {
         if (config.spectoda.remoteControl.enabled) {
           logging.info(">> Enabling Remote Control...");
           try {
-            await spectodaDevice.enableRemoteControl({ signature: spectodaDevice.getOwnerSignature(), key: spectodaDevice.getOwnerKey() });
+            await spectoda.enableRemoteControl({ signature: spectoda.getOwnerSignature(), key: spectoda.getOwnerKey() });
           } catch (err) {
             logging.error("Failed to enable remote control", err);
           }
@@ -111,7 +111,7 @@ async function main() {
     // if (fs.existsSync("assets/tngl.txt")) {
     //   // ! set TNGL to webassembly before connection
     //   // this is a workaround for a bug in the firmware
-    //   await spectodaDevice.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString()).catch(e => {
+    //   await spectoda.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString()).catch(e => {
     //     console.log(e);
     //   });
     // }
@@ -125,14 +125,14 @@ async function main() {
 
       try {
         // @ts-ignore
-        await spectodaDevice.connect([{ mac: mac }], true, signature, key, false, "", true);
+        await spectoda.connect([{ mac: mac }], true, signature, key, false, "", true);
       } catch {
         logging.error("Failed to connect to remembered device with MAC: " + mac);
       }
 
       try {
         if (fs.existsSync("assets/remotecontrol.txt")) {
-          await spectodaDevice.enableRemoteControl({ signature, key });
+          await spectoda.enableRemoteControl({ signature, key });
         }
       } catch (err) {
         logging.error("Failed to enable remote control", err);

@@ -4,20 +4,20 @@ import { logging } from "./lib/spectoda-js/logging";
 import fs from "fs";
 import { hexStringToArray, hexStringToUint8Array, sleep } from "./lib/spectoda-js/functions";
 
-const spectodaDevice = new Spectoda("nodeserial", true);
+const spectoda = new Spectoda("nodeserial", true);
 
-spectodaDevice.setDebugLevel(4);
+spectoda.setDebugLevel(4);
 
-// spectodaDevice.assignOwnerSignature("a06cd5c4d5741b61fee69422f2590926");
-// spectodaDevice.assignOwnerKey("bfd39c89ccc2869f240508e9a0609420");
+// spectoda.assignOwnerSignature("a06cd5c4d5741b61fee69422f2590926");
+// spectoda.assignOwnerKey("bfd39c89ccc2869f240508e9a0609420");
 
-// spectodaDevice.assignConnector("dummy");
+// spectoda.assignConnector("dummy");
 // if (typeof window !== "undefined") {
-//   spectodaDevice.assignOwnerSignature(localStorage.getItem("ownerSignature") || "a06cd5c4d5741b61fee69422f2590926");
-//   spectodaDevice.assignOwnerKey(localStorage.getItem("ownerKey") || "bfd39c89ccc2869f240508e9a0609420");
+//   spectoda.assignOwnerSignature(localStorage.getItem("ownerSignature") || "a06cd5c4d5741b61fee69422f2590926");
+//   spectoda.assignOwnerKey(localStorage.getItem("ownerKey") || "bfd39c89ccc2869f240508e9a0609420");
 
 //   // @ts-ignore
-//   window.spectodaDevice = spectodaDevice;
+//   window.spectoda = spectoda;
 //   process.env.NODE_ENV === "development" && setLoggingLevel(4);
 
 //   const url = new URL(location.href);
@@ -25,15 +25,15 @@ spectodaDevice.setDebugLevel(4);
 
 //   if (params.get("demo")) {
 //     setTimeout(() => {
-//       spectodaDevice.assignConnector("dummy");
+//       spectoda.assignConnector("dummy");
 //     }, 300);
 //   }
 // }
 
 // @ts-ignore
-globalThis.spectodaDevice = spectodaDevice;
+globalThis.spectoda = spectoda;
 
-spectodaDevice.on("connected", async () => {
+spectoda.on("connected", async () => {
   logging.info(">> Reading Config...");
 
   await sleep(1000);
@@ -84,7 +84,7 @@ spectodaDevice.on("connected", async () => {
 
             do {
               const fwFileName = `${config.spectoda.synchronize.fw.path.trim()}`;
-              const controllerFwInfo = await spectodaDevice.getFwVersion().catch(() => {
+              const controllerFwInfo = await spectoda.getFwVersion().catch(() => {
                 return "UNKNOWN_0.0.0_00000000";
               });
 
@@ -98,7 +98,7 @@ spectodaDevice.on("connected", async () => {
               const controllerFwMatch = controllerFwInfo.match(/(\d+\.\d+\.\d+)_(\d+)/);
 
               if (!controllerFwMatch) {
-                logging.error("Invalid firmware version format from spectodaDevice.");
+                logging.error("Invalid firmware version format from spectoda.");
                 break;
               }
 
@@ -121,7 +121,7 @@ spectodaDevice.on("connected", async () => {
 
               logging.info(">> Updating Network Firmware...")
               try {
-              await spectodaDevice.updateNetworkFirmware(uint8Array);
+              await spectoda.updateNetworkFirmware(uint8Array);
               } catch (error) {
                 logging.error(`Error updating firmware: ${error}`);
                 break;
@@ -158,7 +158,7 @@ spectodaDevice.on("connected", async () => {
 
           logging.info(">> Sychronizing TNGL code...")
           try {
-            await spectodaDevice.syncTngl(tngl_code, tngl_bytecode);
+            await spectoda.syncTngl(tngl_code, tngl_bytecode);
           } catch (error) {
             logging.error(`Error updating TNGL: ${error}`);
           }
@@ -195,7 +195,7 @@ spectodaDevice.on("connected", async () => {
       // try {
       do {
         const fwFileName = fs.readFileSync("assets/fw.txt", "utf8").toString();
-        const controllerFwInfo = await spectodaDevice.getFwVersion().catch(() => {
+        const controllerFwInfo = await spectoda.getFwVersion().catch(() => {
           return "UNKNOWN_0.0.0_00000000";
         });
 
@@ -209,7 +209,7 @@ spectodaDevice.on("connected", async () => {
         const controllerFwMatch = controllerFwInfo.match(/(\d+\.\d+\.\d+)_(\d+)/);
 
         if (!controllerFwMatch) {
-          logging.error("Invalid firmware version format from spectodaDevice.");
+          logging.error("Invalid firmware version format from spectoda.");
           break;
         }
 
@@ -229,7 +229,7 @@ spectodaDevice.on("connected", async () => {
 
         const fileData = fs.readFileSync(filePath);
         const uint8Array = new Uint8Array(fileData);
-        await spectodaDevice.updateNetworkFirmware(uint8Array);
+        await spectoda.updateNetworkFirmware(uint8Array);
 
         logging.info("Firmware successfully updated.");
         return;
@@ -243,7 +243,7 @@ spectodaDevice.on("connected", async () => {
     if (fs.existsSync("assets/tngl.txt")) {
       // upload latest TNGL
       try {
-        await spectodaDevice.syncTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString());
+        await spectoda.syncTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString());
       } catch (error) {
         logging.error(`Error updating TNGL: ${error}`);
       }
@@ -251,12 +251,12 @@ spectodaDevice.on("connected", async () => {
   }
 });
 
-spectodaDevice.on("ota_progress", (percentages: number) => {
+spectoda.on("ota_progress", (percentages: number) => {
   logging.info("OTA progress:", percentages);
 });
 
-spectodaDevice.on("ota_status", (status: string) => {
+spectoda.on("ota_status", (status: string) => {
   logging.info("OTA status:", status);
 });
 
-export { spectodaDevice };
+export { spectoda };

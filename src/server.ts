@@ -1,6 +1,6 @@
 import bodyParser from "body-parser";
 import express from "express";
-import { spectodaDevice } from "./communication";
+import { spectoda } from "./communication";
 import cors from "cors";
 import SSE from "express-sse-ts";
 import fs from "fs";
@@ -27,15 +27,15 @@ fs.writeFileSync("assets/lastboot.txt", new Date().toISOString());
 export const ssepeers = new SSE();
 
 app.get("/peers", ssepeers.init);
-spectodaDevice.on("peer_connected", (peer: any) => {
+spectoda.on("peer_connected", (peer: any) => {
   ssepeers.send(JSON.stringify({ mac: peer, type: "peer_connected" }));
 });
-spectodaDevice.on("peer_disconnected", (peer: any) => {
+spectoda.on("peer_disconnected", (peer: any) => {
   ssepeers.send(JSON.stringify({ mac: peer, type: "peer_disconnected" }));
 });
 
 app.get("/peers-info", (req, res) => {
-  spectodaDevice
+  spectoda
     .getConnectedPeersInfo()
     .then((peers: any) => {
       res.json({ status: "success", data: peers });
@@ -47,14 +47,14 @@ app.get("/peers-info", (req, res) => {
 });
 
 app.get("/events", sse.init);
-spectodaDevice.on("emitted_events", (events: SpectodaEvent[]) => {
+spectoda.on("emitted_events", (events: SpectodaEvent[]) => {
   for (const event of events) {
     sse.send(JSON.stringify(event));
   }
 });
 
 app.get("/local-events", sse.init);
-spectodaDevice.on("emitted_local_events", (events: SpectodaEvent[]) => {
+spectoda.on("emitted_local_events", (events: SpectodaEvent[]) => {
   for (const event of events) {
     sse.send(JSON.stringify(event));
   }
@@ -62,7 +62,7 @@ spectodaDevice.on("emitted_local_events", (events: SpectodaEvent[]) => {
 
 app.get("/events-info", async (req, res) => {
   // TODO, do not just emit events, but instead return them
-  const result = await spectodaDevice
+  const result = await spectoda
     .readEventHistory()
     .then((events: any) => {})
     .catch((error: any) => {
@@ -78,12 +78,12 @@ app.get("/connection", sseconnection.init);
 
 let shouldSendDisconnected = true;
 
-spectodaDevice.on("connected", (event: any) => {
+spectoda.on("connected", (event: any) => {
   sseconnection.send("connected");
   shouldSendDisconnected = true;
 });
 
-spectodaDevice.on("disconnected", (event: any) => {
+spectoda.on("disconnected", (event: any) => {
   if (shouldSendDisconnected) {
     sseconnection.send("disconnected");
     shouldSendDisconnected = false;
@@ -91,7 +91,7 @@ spectodaDevice.on("disconnected", (event: any) => {
 });
 
 app.get("/ota-progress", sseota.init);
-spectodaDevice.on("ota_progress", (progress: any) => {
+spectoda.on("ota_progress", (progress: any) => {
   sse.send(JSON.stringify(progress));
 });
 
@@ -104,7 +104,7 @@ interface SpectodaEvent {
 
 app.get("/scan", async (req, res) => {
   // TODO
-  // const devices = await spectodaDevice.interface?.scan();
+  // const devices = await spectoda.interface?.scan();
   // res.json(devices);
   return res.json({ status: "error", error: "NotImplemented" });
 });
@@ -126,13 +126,13 @@ app.post("/connect", async (req, res) => {
   }
 
   if (remotecontrol) {
-    spectodaDevice.enableRemoteControl({
+    spectoda.enableRemoteControl({
       signature,
       key,
       sessionOnly: false,
     });
   } else {
-    spectodaDevice.disableRemoteControl();
+    spectoda.disableRemoteControl();
   }
 
   connecting = true;
@@ -140,22 +140,22 @@ app.post("/connect", async (req, res) => {
   try {
     if (mac) {
       //@ts-ignore
-      const result = await spectodaDevice.connect([{ mac: mac }], true, signature, key, false, "", true, true);
+      const result = await spectoda.connect([{ mac: mac }], true, signature, key, false, "", true, true);
       remember && fs.writeFileSync("assets/mac.txt", mac);
       return res.json({ status: "success", result: result });
     }
 
     if (name) {
-      const controllers = await spectodaDevice.scan([{ name: name }]);
+      const controllers = await spectoda.scan([{ name: name }]);
       controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac);
-      const result = await spectodaDevice.connect(controllers, true, signature, key, false, "", true, true);
+      const result = await spectoda.connect(controllers, true, signature, key, false, "", true, true);
       return res.json({ status: "success", result: result });
     }
 
-    const controllers = await spectodaDevice.scan([{}]);
+    const controllers = await spectoda.scan([{}]);
     controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac);
 
-    const result = await spectodaDevice.connect(controllers, true, signature, key, false, "", true, true);
+    const result = await spectoda.connect(controllers, true, signature, key, false, "", true, true);
 
     return res.json({ status: "success", result: result });
   } catch (error) {
@@ -175,7 +175,7 @@ app.post("/connect", async (req, res) => {
 
 app.post("/disconnect", async (req, res) => {
   try {
-    const result = await spectodaDevice.disconnect();
+    const result = await spectoda.disconnect();
     return res.json({ status: "success", result: result });
   } catch (error) {
     res.statusCode = 405;
@@ -193,25 +193,25 @@ app.post("/event", async (req, res) => {
     }
 
     if (event.value === undefined || event.value === null) {
-      const result = await spectodaDevice.emitEvent(event.label, event.destination);
+      const result = await spectoda.emitEvent(event.label, event.destination);
       return res.json({ status: "success", result: result });
     }
 
     switch (event.type) {
       case "percentage": {
-        const result = await spectodaDevice.emitPercentageEvent(event.label, event.value as number, event.destination);
+        const result = await spectoda.emitPercentageEvent(event.label, event.value as number, event.destination);
         return res.json({ status: "success", result: result });
       }
       case "color": {
-        const result = await spectodaDevice.emitColorEvent(event.label, event.value as string, event.destination);
+        const result = await spectoda.emitColorEvent(event.label, event.value as string, event.destination);
         return res.json({ status: "success", result: result });
       }
       case "timestamp": {
-        const result = await spectodaDevice.emitTimestampEvent(event.label, event.value as number, event.destination);
+        const result = await spectoda.emitTimestampEvent(event.label, event.value as number, event.destination);
         return res.json({ status: "success", result: result });
       }
       default: {
-        const result = await spectodaDevice.emitEvent(event.label, event.destination);
+        const result = await spectoda.emitEvent(event.label, event.destination);
         return res.json({ status: "success", result: result });
       }
     }
@@ -228,9 +228,9 @@ app.post("/write-tngl", async (req, res) => {
   // create tngl.txt in assets
   fs.writeFileSync("assets/tngl.txt", tngl);
 
-  // await spectodaDevice.eraseEventHistory();
-  // const result = await spectodaDevice.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString()); // ! for now to put tngl into webassembly
-  // await spectodaDevice.syncEventHistory();
+  // await spectoda.eraseEventHistory();
+  // const result = await spectoda.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString()); // ! for now to put tngl into webassembly
+  // await spectoda.syncEventHistory();
 
   return res.json({ status: "success", result: "Dont forget to restart spectoda-node for the TNGL to be written" });
 });
@@ -243,7 +243,7 @@ app.get("/tngl-fingerprint", (req, res) => {
 
 app.get("/emit-history", (req, res) => {
   // ! syncEventHistory does not do this anymore
-  // spectodaDevice
+  // spectoda
   //   .syncEventHistory()
   //   .then(() => {
   //     return res.json({ status: "success", result: "success" });
@@ -280,30 +280,30 @@ app.post("/notifier", async (req, res) => {
     }
 
     if (value === undefined || value === null) {
-      const result = await spectodaDevice.emitEvent(label);
+      const result = await spectoda.emitEvent(label);
       return res.json({ status: "success", result: result });
     }
 
     if (label) {
       switch (type) {
         case "percentage": {
-          const result = await spectodaDevice.emitPercentageEvent(label, Number(value));
+          const result = await spectoda.emitPercentageEvent(label, Number(value));
           return res.json({ status: "success", result: result });
         }
         case "color": {
-          const result = await spectodaDevice.emitColorEvent(label, value as string);
+          const result = await spectoda.emitColorEvent(label, value as string);
           return res.json({ status: "success", result: result });
         }
         case "timestamp": {
-          const result = await spectodaDevice.emitTimestampEvent(label, Number(value));
+          const result = await spectoda.emitTimestampEvent(label, Number(value));
           return res.json({ status: "success", result: result });
         }
         default: {
-          const result = await spectodaDevice.emitEvent(label);
+          const result = await spectoda.emitEvent(label);
           return res.json({ status: "success", result: result });
         }
       }
-      const result = await spectodaDevice.emitEvent(label.substring(0, 5), 255);
+      const result = await spectoda.emitEvent(label.substring(0, 5), 255);
       return res.json({ status: "success", result: result });
     }
   } catch (error) {
@@ -324,7 +324,7 @@ app.post("/upload-fw", async (req, res) => {
     const filePath = "/home/pi/spectoda/fw.enc";
     const fileData = fs.readFileSync(filePath);
     const uint8Array = new Uint8Array(fileData);
-    const result = await spectodaDevice.updateDeviceFirmware(uint8Array);
+    const result = await spectoda.updateDeviceFirmware(uint8Array);
     return res.json({ status: "success", result: result });
   } catch (error) {
     res.statusCode = 405;
@@ -367,7 +367,7 @@ app.get("/variable", async (req, res) => {
 
   // TODO pridat error handling apod
   try {
-    const value = await spectodaDevice.readVariable(name, segId);
+    const value = await spectoda.readVariable(name, segId);
     res.json(value);
   } catch (error) {
     res.status(404).json({ error: "Variable or segment not found" });
@@ -387,7 +387,7 @@ app.post("/variables", async (req, res) => {
       }
 
       try {
-        const value = await spectodaDevice.readVariable(name, segId);
+        const value = await spectoda.readVariable(name, segId);
         results.push({ name, segId, value });
       } catch (error) {
         results.push({ name, segId, value: null, error });
