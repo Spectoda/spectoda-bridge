@@ -56,12 +56,14 @@ async function main() {
 
       if (config.spectoda.network) {
 
-        if (config.network.network.signature) {
-          spectodaDevice.setOwnerSignature(config.network.network.signature);
+        if (config.spectoda.network.signature) {
+          logging.info("> Assigning Signature...");
+          spectodaDevice.setOwnerSignature(config.spectoda.network.signature);
         }
 
-        if (config.network.network.key) {
-          spectodaDevice.setOwnerKey(config.network.network.key);
+        if (config.spectoda.network.key) {
+          logging.info("> Assigning Key...");
+          spectodaDevice.setOwnerKey(config.spectoda.network.key);
         }
       }
 
