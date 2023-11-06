@@ -34,7 +34,7 @@ spectodaDevice.setDebugLevel(4);
 globalThis.spectodaDevice = spectodaDevice;
 
 spectodaDevice.on("connected", async () => {
-  logging.info("> Checking for updates...");
+  logging.info(">> Checking for updates...");
 
   await sleep(1000);
 
@@ -106,7 +106,7 @@ spectodaDevice.on("connected", async () => {
               const controllerFwVersionDate = parseInt(controllerFwMatch[2], 10);
 
               if (controllerFwVersionDate >= fwFileVersionDate) {
-                logging.info("> FW is up to date.");
+                logging.info(">> FW is up to date.");
                 break;
               }
 
@@ -119,7 +119,7 @@ spectodaDevice.on("connected", async () => {
               const fileData = fs.readFileSync(filePath);
               const uint8Array = new Uint8Array(fileData);
 
-              logging.info("> Updating Network Firmware...")
+              logging.info(">> Updating Network Firmware...")
               try {
               await spectodaDevice.updateNetworkFirmware(uint8Array);
               } catch (error) {
@@ -127,7 +127,7 @@ spectodaDevice.on("connected", async () => {
                 break;
               }
 
-              logging.info("> Firmware successfully updated.");
+              logging.info(">> Firmware successfully updated.");
               return; // after update we need to reconnect
 
             } while (0);           
@@ -156,7 +156,7 @@ spectodaDevice.on("connected", async () => {
             }
           }
 
-          logging.info("> Sychronizing TNGL code...")
+          logging.info(">> Sychronizing TNGL code...")
           try {
             await spectodaDevice.syncTngl(tngl_code, tngl_bytecode);
           } catch (error) {

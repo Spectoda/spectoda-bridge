@@ -57,12 +57,12 @@ async function main() {
       if (config.spectoda.network) {
 
         if (config.spectoda.network.signature) {
-          logging.info("> Assigning Signature...");
+          logging.info(">> Assigning Signature...");
           spectodaDevice.setOwnerSignature(config.spectoda.network.signature);
         }
 
         if (config.spectoda.network.key) {
-          logging.info("> Assigning Key...");
+          logging.info(">> Assigning Key...");
           spectodaDevice.setOwnerKey(config.spectoda.network.key);
         }
       }
@@ -70,7 +70,7 @@ async function main() {
       if (config.spectoda.connect) {
 
         if (config.spectoda.connect.connector) {
-          logging.info("> Assigning Connector...");
+          logging.info(">> Assigning Connector...");
           await spectodaDevice.assignConnector(config.spectoda.connect.connector);
         }
 
@@ -80,7 +80,7 @@ async function main() {
           criteria = config.spectoda.connect.criteria;
         }
 
-        logging.info("> Connecting...");
+        logging.info(">> Connecting...");
         try {
           await spectodaDevice.connect(criteria, true, null, null, false, "", true, false);
         } catch(error) {
@@ -92,7 +92,7 @@ async function main() {
       if (config.spectoda.remoteControl) {
         
         if (config.spectoda.remoteControl.enabled) {
-          logging.info("> Enabling Remote Control...");
+          logging.info(">> Enabling Remote Control...");
           try {
             await spectodaDevice.enableRemoteControl({ signature: spectodaDevice.getOwnerSignature(), key: spectodaDevice.getOwnerKey() });
           } catch (err) {
