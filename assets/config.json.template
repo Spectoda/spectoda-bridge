@@ -13,10 +13,14 @@
         },
         "synchronize": {
             "tngl": {
+                "bytecode": "026affed0271781617abced681",
                 "path": "tngl.txt"
             },
+            "config": {
+                "json": "{\"DELETE_KEYS\":[\"tohle\", \"tamto\"]}"
+            },
             "fw": {
-                "path": "PWS_0.10.0_20231114.enc"
+                "path": "0.10.0_20231010.enc"
             }
         }
     }
