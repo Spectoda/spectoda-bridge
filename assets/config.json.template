@@ -1,0 +1,23 @@
+{
+    "spectoda": {
+        "network": {
+            "signature": "00000000000000000000000000000000",
+            "key": "00000000000000000000000000000000"
+        },
+        "connect": {
+            "connector": "nodeserial",
+            "criteria": {
+                "uart": "/dev/ttyS0",
+                "baudrate": 115200
+            }
+        },
+        "synchronize": {
+            "tngl": {
+                "path": "tngl.txt"
+            },
+            "fw": {
+                "path": "PWS_0.10.0_20231114.enc"
+            }
+        }
+    }
+}
