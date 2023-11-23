@@ -1,10 +1,10 @@
 {
-    "bridge": {
+    "spectoda": {
         "connect": {
             "connector": "nodeserial",
             "criteria": {
-                "uart": "/dev/ttyS0",
-                "baudrate": 115200
+                "uart": "/dev/ttyS3",
+                "baudrate": 1500000
             }
         },
         "network": {
@@ -12,15 +12,9 @@
             "key": "00000000000000000000000000000000"
         },
         "synchronize": {
-            "tngl": {
-                "bytecode": "026affed0271781617abced681",
-                "path": "tngl.txt"
-            },
-            "config": {
-                "json": "{\"DELETE_KEYS\":[\"tohle\", \"tamto\"]}"
-            },
             "fw": {
-                "path": "0.10.0_20231010.enc"
+                "force": false,
+                "path": "CEET_0.10.0_20231122.enc"
             }
         }
     }
