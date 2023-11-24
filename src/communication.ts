@@ -156,11 +156,22 @@ spectoda.on("connected", async () => {
             }
           }
 
-          logging.info(">> Sychronizing TNGL code...")
-          try {
-            await spectoda.syncTngl(tngl_code, tngl_bytecode);
-          } catch (error) {
-            logging.error(`Error updating TNGL: ${error}`);
+          if (config.spectoda.synchronize.tngl.force) {
+            logging.info(">> Writing TNGL code...")
+            try {
+              await spectoda.writeTngl(tngl_code, tngl_bytecode);
+            } catch (error) {
+              logging.error(`Error writing TNGL: ${error}`);
+            }
+          } 
+          
+          else /* if (!config.spectoda.synchronize.tngl.force) */ {
+            logging.info(">> Sychronizing TNGL code...")
+            try {
+              await spectoda.syncTngl(tngl_code, tngl_bytecode);
+            } catch (error) {
+              logging.error(`Error synchronizing TNGL: ${error}`);
+            }
           }
         }
 

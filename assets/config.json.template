@@ -13,6 +13,7 @@
         },
         "synchronize": {
             "tngl": {
+                "force": true,
                 "bytecode": "026affed0271781617abced681",
                 "path": "tngl.txt"
             },
@@ -20,6 +21,7 @@
                 "json": "{\"DELETE_KEYS\":[\"tohle\", \"tamto\"]}"
             },
             "fw": {
+                "force": true,
                 "path": "0.10.0_20231010.enc"
             }
         }
