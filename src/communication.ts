@@ -33,14 +33,16 @@ spectoda.setDebugLevel(4);
 // @ts-ignore
 globalThis.spectoda = spectoda;
 
+let fw_update_finished = false;
+
+const config = JSON.parse(fs.readFileSync("assets/config.json", "utf8"));
+
 spectoda.on("connected", async () => {
   logging.info(">> Reading Config...");
 
   await sleep(1000);
 
   if (fs.existsSync("assets/config.json")) {
-
-    const config = JSON.parse(fs.readFileSync("assets/config.json", "utf8"));
 
     /*
     {
@@ -82,7 +84,8 @@ spectoda.on("connected", async () => {
 
           if (config.spectoda.synchronize.fw.path) {
 
-            do {
+            const do_fw_update = async function () {
+
               const fwFileName = `${config.spectoda.synchronize.fw.path.trim()}`;
               const controllerFwInfo = await spectoda.getFwVersion().catch(() => {
                 return "UNKNOWN_0.0.0_00000000";
@@ -92,14 +95,14 @@ spectoda.on("connected", async () => {
 
               if (!fwFileMatch) {
                 logging.error("Invalid firmware file format in fw.txt.");
-                break;
+                return false;
               }
 
               const controllerFwMatch = controllerFwInfo.match(/(\d+\.\d+\.\d+)_(\d+)/);
 
               if (!controllerFwMatch) {
                 logging.error("Invalid firmware version format from spectoda.");
-                break;
+                return false;
               }
 
               const fwFileVersionDate = parseInt(fwFileMatch[2], 10);
@@ -107,13 +110,18 @@ spectoda.on("connected", async () => {
 
               if (controllerFwVersionDate >= fwFileVersionDate) {
                 logging.info(">> FW is up to date.");
-                break;
+
+                if (config.spectoda.synchronize.fw.force && !fw_update_finished) {
+                  logging.info(">> Forcing FW Update.");
+                } else {
+                  return false;
+                }
               }
 
               const filePath = `assets/${fwFileName.trim()}`;
               if (!fs.existsSync(filePath)) {
                 logging.error(`Firmware file not found at: ${filePath}`);
-                break;
+                return false;
               }
 
               const fileData = fs.readFileSync(filePath);
@@ -121,16 +129,20 @@ spectoda.on("connected", async () => {
 
               logging.info(">> Updating Network Firmware...")
               try {
-              await spectoda.updateNetworkFirmware(uint8Array);
+                await spectoda.updateNetworkFirmware(uint8Array);
+                fw_update_finished = true;
+                logging.info(">> Firmware successfully updated.");
+                return true; // after update we need to reconnect
               } catch (error) {
                 logging.error(`Error updating firmware: ${error}`);
-                break;
+                return false;
               }
+            }
 
-              logging.info(">> Firmware successfully updated.");
-              return; // after update we need to reconnect
-
-            } while (0);           
+            if (await do_fw_update()) {
+              // controller reboots after sucessfull update
+              return;
+            }
           }
         }
 

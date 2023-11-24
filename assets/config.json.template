@@ -23,6 +23,7 @@
             "fw": {
                 "force": true,
                 "path": "0.10.0_20231010.enc"
+                "url": "https://server.com/UNIVERSAL_0.10.0_20231122.enc"
             }
         }
     }
