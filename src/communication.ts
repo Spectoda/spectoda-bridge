@@ -33,7 +33,7 @@ spectoda.setDebugLevel(4);
 // @ts-ignore
 globalThis.spectoda = spectoda;
 
-let fw_update_finished = false;
+let force_fw_update_finished = false;
 
 const config = JSON.parse(fs.readFileSync("assets/config.json", "utf8"));
 
@@ -82,10 +82,14 @@ spectoda.on("connected", async () => {
 
         if (config.spectoda.synchronize.fw) {
 
+          // reset force_fw_update_finished if someone changes the force fw config attribute during the run of the service
+          if (!config.spectoda.synchronize.fw.force) {
+            force_fw_update_finished = false;
+          }
+
           if (config.spectoda.synchronize.fw.path) {
 
             const do_fw_update = async function () {
-
               const fwFileName = `${config.spectoda.synchronize.fw.path.trim()}`;
               const controllerFwInfo = await spectoda.getFwVersion().catch(() => {
                 return "UNKNOWN_0.0.0_00000000";
@@ -111,7 +115,7 @@ spectoda.on("connected", async () => {
               if (controllerFwVersionDate >= fwFileVersionDate) {
                 logging.info(">> FW is up to date.");
 
-                if (config.spectoda.synchronize.fw.force && !fw_update_finished) {
+                if (config.spectoda.synchronize.fw.force && !force_fw_update_finished) {
                   logging.info(">> Forcing FW Update.");
                 } else {
                   return false;
@@ -130,8 +134,10 @@ spectoda.on("connected", async () => {
               logging.info(">> Updating Network Firmware...")
               try {
                 await spectoda.updateNetworkFirmware(uint8Array);
-                fw_update_finished = true;
                 logging.info(">> Firmware successfully updated.");
+                if (config.spectoda.synchronize.fw.force) {
+                  force_fw_update_finished = true;
+                }
                 return true; // after update we need to reconnect
               } catch (error) {
                 logging.error(`Error updating firmware: ${error}`);

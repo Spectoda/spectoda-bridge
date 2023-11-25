@@ -8,7 +8,7 @@
     "start": "tsx .",
     "start:old": "ts-node --transpile-only .",
     "dummy": "DEBUG=* DUMMY=1 tsx .",
-    "dev": "DUMMY=* ts-node-dev --respawn --transpile-only src/main.ts"
+    "dev": "tsx ."
   },
   "keywords": [],
   "author": "",
