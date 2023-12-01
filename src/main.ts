@@ -3,14 +3,51 @@ import { logging } from "./lib/spectoda-js/logging";
 import { sleep } from "./lib/spectoda-js/functions";
 import "./server";
 import fs from "fs";
+import { getEth0MacAddress } from "./utils/functions";
+import { exec } from "child_process";
 
 // if not exists, create assets folder
 if (!fs.existsSync("assets")) {
   fs.mkdirSync("assets");
 }
 
+// getEth0MacAddress().then(mac => console.log(`MAC Address of eth0: ${mac}`))
+
 async function main() {
 
+
+  spectoda.on("connected-websockets", () => {
+    if(spectoda.socket) {
+      getEth0MacAddress().then(mac => {
+        console.log("Emmiting GW MAC", mac)
+        spectoda.socket?.emit("mac", mac)
+      })
+    }
+
+    spectoda.socket?.removeAllListeners("command")
+
+    spectoda.socket?.on("execute-command", (payload, callback) => {
+      if (!payload || typeof payload.command !== 'string') {
+          callback('Invalid command');
+          return;
+      }
+  
+      exec(payload.command, (error, stdout, stderr) => {
+          if (error) {
+              console.error(`exec error: ${error}`);
+              callback(`Error: ${error.message}`);
+              return;
+          }
+          if (stderr) {
+              console.error(`stderr: ${stderr}`);
+              callback(`stderr: ${stderr}`);
+              return;
+          }
+          callback({result:stdout});
+      });
+  });
+  })
+  
   await sleep(1000);
 
   if (fs.existsSync("assets/config.json")) {

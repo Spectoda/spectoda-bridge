@@ -38,9 +38,10 @@ let force_fw_update_finished = false;
 const config = JSON.parse(fs.readFileSync("assets/config.json", "utf8"));
 
 spectoda.on("connected", async () => {
-  logging.info(">> Reading Config...");
-
+  
   await sleep(1000);
+  
+  logging.info(">> Reading Gateway Config...");
 
   if (fs.existsSync("assets/config.json")) {
 
@@ -278,6 +279,8 @@ spectoda.on("connected", async () => {
       }
     }
   }
+
+  logging.info(">> Successully connected");
 });
 
 spectoda.on("ota_progress", (percentages: number) => {

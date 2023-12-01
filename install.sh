@@ -1,5 +1,8 @@
 #!/bin/bash
 
+sudo usermod -a -G dialout gateway
+sudo usermod -a -G uucp gateway
+
 # Check if the -y flag is passed as an argument
 if [[ "$1" == "-y" ]]; then
   AUTO_YES=true
@@ -39,27 +42,27 @@ fi
 echo "Installing systemd service and enabling it..."
 sleep 1
 
-# Create the systemd service file
-cat <<EOF > /etc/systemd/system/spectoda-node.service
-[Unit]
-Description=Bridge for connecting to Spectoda Ecosystem
-After=network.target
+# # Create the systemd service file
+# cat <<EOF > /etc/systemd/system/spectoda-bridge.service
+# [Unit]
+# Description=Bridge for connecting to Spectoda Ecosystem
+# After=network.target
 
-[Service]
-User=gateway
-Group=gateway
-WorkingDirectory=/home/gateway/spectoda-node/
-ExecStart=/bin/bash -i -c 'npm start'
-Restart=on-failure
-RestartSec=5s
+# [Service]
+# User=gateway
+# Group=gateway
+# WorkingDirectory=/home/gateway/spectoda-bridge/
+# ExecStart=/bin/bash -i -c 'npm start'
+# Restart=on-failure
+# RestartSec=5s
 
-[Install]
-WantedBy=default.target
-EOF
+# [Install]
+# WantedBy=default.target
+# EOF
 
 # Reload systemd daemon to pick up the new service file
 systemctl daemon-reload
 
 # Enable and start the service
-systemctl restart spectoda-node.service
-systemctl enable --now spectoda-node.service
+systemctl restart spectoda-bridge.service
+systemctl enable --now spectoda-bridge.service
