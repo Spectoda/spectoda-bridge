@@ -275,11 +275,11 @@ spectoda.on("connected", async () => {
 });
 
 spectoda.on("ota_progress", (percentages: number) => {
-  logging.info("OTA progress:", percentages);
+  console.log("OTA progress:", percentages);
 });
 
 spectoda.on("ota_status", (status: string) => {
-  logging.info("OTA status:", status);
+  console.log("OTA status:", status);
 });
 
 export { spectoda };
