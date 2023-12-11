@@ -3,8 +3,9 @@ import { logging } from "./lib/spectoda-js/logging";
 import { sleep } from "./lib/spectoda-js/functions";
 import "./server";
 import fs from "fs";
-import { getEth0MacAddress } from "./utils/functions";
+import { getEth0MacAddress, getLocalIp, getUnameString } from "./utils/functions";
 import { exec } from "child_process";
+import os from "os";
 
 // if not exists, create assets folder
 if (!fs.existsSync("assets")) {
@@ -13,45 +14,97 @@ if (!fs.existsSync("assets")) {
 
 // getEth0MacAddress().then(mac => console.log(`MAC Address of eth0: ${mac}`))
 
-async function main() {
+const gatherPiInfo = async () => {
+  const gatewayMetadata = {
+    hostname: os.hostname(),
+    mac: await getEth0MacAddress(),
+    // todo handle wifi ip
+    localIp: getLocalIp("eth0"),
+    unameString: await getUnameString(),
+  };
 
+  console.log({ gatewayMetadata });
+
+  return gatewayMetadata;
+};
+
+async function main() {
+  const gatewayMetadata = await gatherPiInfo();
+
+  // spectodabridge:{
+  //   version:
+  // }
+  // spectodacollector: {
+  //   version
+  // }
 
   spectoda.on("connected-websockets", () => {
-    if(spectoda.socket) {
+    if (spectoda.socket) {
       getEth0MacAddress().then(mac => {
-        console.log("Emmiting GW MAC", mac)
-        spectoda.socket?.emit("mac", mac)
-      })
+        console.log("Emmiting GW MAC", mac);
+        spectoda.socket?.emit("mac", mac);
+      });
     }
 
-    spectoda.socket?.removeAllListeners("command")
+    spectoda.socket?.removeAllListeners("command");
 
     spectoda.socket?.on("execute-command", (payload, callback) => {
-      if (!payload || typeof payload.command !== 'string') {
-          callback('Invalid command');
-          return;
+      if (!payload || typeof payload.command !== "string") {
+        callback("Invalid command");
+        return;
       }
-  
+
       exec(payload.command, (error, stdout, stderr) => {
-          if (error) {
-              console.error(`exec error: ${error}`);
-              callback(`Error: ${error.message}`);
-              return;
-          }
-          if (stderr) {
-              console.error(`stderr: ${stderr}`);
-              callback(`stderr: ${stderr}`);
-              return;
-          }
-          callback({result:stdout});
+        if (error) {
+          console.error(`exec error: ${error}`);
+          callback(`Error: ${error.message}`);
+          return;
+        }
+        if (stderr) {
+          console.error(`stderr: ${stderr}`);
+          callback(`stderr: ${stderr}`);
+          return;
+        }
+        callback({ result: stdout });
       });
+    });
   });
-  })
-  
+
+  spectoda.on("connected-websockets", () => {
+    if (spectoda.socket) {
+      getEth0MacAddress().then(mac => {
+        console.log("Emmiting GW MAC", mac);
+        spectoda.socket?.emit("mac", mac);
+      });
+    }
+
+    spectoda.socket?.removeAllListeners("command");
+
+    spectoda.socket?.on("execute-command", (payload, callback) => {
+      if (!payload || typeof payload.command !== "string") {
+        callback("Invalid command");
+        return;
+      }
+
+      exec(payload.command, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`exec error: ${error}`);
+          callback(`Error: ${error.message}`);
+          return;
+        }
+        if (stderr) {
+          console.error(`stderr: ${stderr}`);
+          callback(`stderr: ${stderr}`);
+          return;
+        }
+        callback({ result: stdout });
+      });
+    });
+  });
+
   await sleep(1000);
 
   if (fs.existsSync("assets/config.json")) {
-
     const config = JSON.parse(fs.readFileSync("assets/config.json", "utf8"));
 
     /*
@@ -90,9 +143,7 @@ async function main() {
      */
 
     if (config && config.spectoda) {
-
       if (config.spectoda.network) {
-
         if (config.spectoda.network.signature) {
           logging.info(">> Assigning Signature...");
           spectoda.setOwnerSignature(config.spectoda.network.signature);
@@ -105,22 +156,19 @@ async function main() {
       }
 
       if (config.spectoda.remoteControl) {
-
         if (config.spectoda.network && config.spectoda.network.signature && config.spectoda.network.key) {
           logging.info(">> Enabling Remote Control...");
           try {
-            await spectoda.enableRemoteControl({ signature: config.spectoda.network.signature, key: config.spectoda.network.key });
+            await spectoda.enableRemoteControl({ signature: config.spectoda.network.signature, key: config.spectoda.network.key, meta: { gw: gatewayMetadata } });
           } catch (err) {
             logging.error("Failed to enable remote control", err);
           }
         } else {
           logging.error("To enable remoteControl config.spectoda.network.signature && config.spectoda.network.key needs to be defined.");
         }
-
       }
 
       if (config.spectoda.connect) {
-
         if (config.spectoda.connect.connector) {
           logging.info(">> Assigning Connector...");
           try {
@@ -142,14 +190,12 @@ async function main() {
         } catch (error) {
           logging.error("Failed to connect", error);
         }
-
       }
     }
-
   }
   //
-  else /* !fs.existsSync("assets/config.json") */ {
-
+  /* !fs.existsSync("assets/config.json") */
+  else {
     // if (fs.existsSync("assets/tngl.txt")) {
     //   // ! set TNGL to webassembly before connection
     //   // this is a workaround for a bug in the firmware
@@ -174,7 +220,7 @@ async function main() {
 
       try {
         if (fs.existsSync("assets/remotecontrol.txt")) {
-          await spectoda.enableRemoteControl({ signature, key });
+          await spectoda.enableRemoteControl({ signature, key, meta: { gw: gatewayMetadata } });
         }
       } catch (err) {
         logging.error("Failed to enable remote control", err);
