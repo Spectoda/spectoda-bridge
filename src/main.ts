@@ -54,6 +54,13 @@ async function main() {
 
     if (config && config.spectoda) {
 
+      if(config.spectoda.debug) {
+
+        if(config.spectoda.debug.level) {
+          spectoda.setDebugLevel(config.spectoda.debug.level);
+        }
+      }
+
       if (config.spectoda.network) {
 
         if (config.spectoda.network.signature) {
@@ -69,17 +76,20 @@ async function main() {
 
       if (config.spectoda.remoteControl) {
 
-        if (config.spectoda.network && config.spectoda.network.signature && config.spectoda.network.key) {
-          logging.info(">> Enabling Remote Control...");
-          try {
-            await spectoda.enableRemoteControl({ signature: config.spectoda.network.signature, key: config.spectoda.network.key });
-          } catch (err) {
-            logging.error("Failed to enable remote control", err);
-          }
-        } else {
-          logging.error("To enable remoteControl config.spectoda.network.signature && config.spectoda.network.key needs to be defined.");
-        }
+        if (config.spectoda.remoteControl.enable || config.spectoda.remoteControl.enabled) {
 
+          if (config.spectoda.network && config.spectoda.network.signature && config.spectoda.network.key) {
+            logging.info(">> Enabling Remote Control...");
+            try {
+              await spectoda.enableRemoteControl({ signature: config.spectoda.network.signature, key: config.spectoda.network.key });
+            } catch (err) {
+              logging.error("Failed to enable remote control", err);
+            }
+          } else {
+            logging.error("To enable remoteControl config.spectoda.network.signature && config.spectoda.network.key needs to be defined.");
+          }
+
+        }
       }
 
       if (config.spectoda.connect) {
