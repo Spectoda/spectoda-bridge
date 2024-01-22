@@ -11,15 +11,12 @@ if (!fs.existsSync("assets")) {
   fs.mkdirSync("assets");
 }
 
-
-
 async function main() {
   const gatewayMetadata = await fetchPiInfo();
 
   await sleep(1000);
 
   if (fs.existsSync("assets/config.json")) {
-
     const config = JSON.parse(fs.readFileSync("assets/config.json", "utf8"));
 
     /*
@@ -58,16 +55,13 @@ async function main() {
      */
 
     if (config && config.spectoda) {
-
-      if(config.spectoda.debug) {
-
-        if(config.spectoda.debug.level) {
+      if (config.spectoda.debug) {
+        if (config.spectoda.debug.level) {
           spectoda.setDebugLevel(config.spectoda.debug.level);
         }
       }
 
       if (config.spectoda.network) {
-
         if (config.spectoda.network.signature) {
           logging.info(">> Assigning Signature...");
           spectoda.setOwnerSignature(config.spectoda.network.signature);
@@ -79,8 +73,22 @@ async function main() {
         }
       }
 
-      if (config.spectoda.connect) {
+      if (config.spectoda.remoteControl) {
+        if (config.spectoda.remoteControl.enable || config.spectoda.remoteControl.enabled) {
+          if (config.spectoda.network && config.spectoda.network.signature && config.spectoda.network.key) {
+            logging.info(">> Enabling Remote Control...");
+            try {
+              spectoda.enableRemoteControl({ signature: config.spectoda.network.signature, key: config.spectoda.network.key, meta: { gw: gatewayMetadata }, sessionOnly: config.spectoda.remoteControl.sessionOnly });
+            } catch (err) {
+              logging.error("Failed to enable remote control", err);
+            }
+          } else {
+            logging.error("To enable remoteControl config.spectoda.network.signature && config.spectoda.network.key needs to be defined.");
+          }
+        }
+      }
 
+      if (config.spectoda.connect) {
         if (config.spectoda.connect.connector) {
           logging.info(">> Assigning Connector...");
           try {
@@ -102,32 +110,12 @@ async function main() {
         } catch (error) {
           logging.error("Failed to connect", error);
         }
-
-      }
-
-      if (config.spectoda.remoteControl) {
-
-        if (config.spectoda.remoteControl.enable || config.spectoda.remoteControl.enabled) {
-
-          if (config.spectoda.network && config.spectoda.network.signature && config.spectoda.network.key) {
-            logging.info(">> Enabling Remote Control...");
-            try {
-              await spectoda.enableRemoteControl({ signature: config.spectoda.network.signature, key: config.spectoda.network.key, meta: { gw: gatewayMetadata }, sessionOnly: config.spectoda.remoteControl.sessionOnly });
-            } catch (err) {
-              logging.error("Failed to enable remote control", err);
-            }
-          } else {
-            logging.error("To enable remoteControl config.spectoda.network.signature && config.spectoda.network.key needs to be defined.");
-          }
-
-        }
       }
     }
-
   }
   //
-  else /* !fs.existsSync("assets/config.json") */ {
-
+  /* !fs.existsSync("assets/config.json") */
+  else {
     // if (fs.existsSync("assets/tngl.txt")) {
     //   // ! set TNGL to webassembly before connection
     //   // this is a workaround for a bug in the firmware
