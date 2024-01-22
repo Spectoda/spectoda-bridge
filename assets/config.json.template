@@ -30,7 +30,8 @@
             }
         },
         "remoteControl": {
-            "enable": true
+            "enable": true,
+            "sessionOnly": false
         }
     }
 }

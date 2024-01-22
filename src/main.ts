@@ -3,13 +3,18 @@ import { logging } from "./lib/spectoda-js/logging";
 import { sleep } from "./lib/spectoda-js/functions";
 import "./server";
 import fs from "fs";
+import os from "os";
+import { fetchPiInfo, getEth0MacAddress, getLocalIp, getUnameString } from "./lib/utils/functions";
 
 // if not exists, create assets folder
 if (!fs.existsSync("assets")) {
   fs.mkdirSync("assets");
 }
 
+
+
 async function main() {
+  const gatewayMetadata = await fetchPiInfo();
 
   await sleep(1000);
 
@@ -81,7 +86,7 @@ async function main() {
           if (config.spectoda.network && config.spectoda.network.signature && config.spectoda.network.key) {
             logging.info(">> Enabling Remote Control...");
             try {
-              await spectoda.enableRemoteControl({ signature: config.spectoda.network.signature, key: config.spectoda.network.key });
+              await spectoda.enableRemoteControl({ signature: config.spectoda.network.signature, key: config.spectoda.network.key, meta: {gw:gatewayMetadata}, sessionOnly: config.spectoda.remoteControl.sessionOnly  });
             } catch (err) {
               logging.error("Failed to enable remote control", err);
             }
@@ -140,17 +145,9 @@ async function main() {
 
       try {
         // @ts-ignore
-        await spectoda.connect([{ mac: mac }], true, signature, key, false, "", true);
+        // await spectoda.connect([{ mac: mac }], true, signature, key, false, "", true);
       } catch {
         logging.error("Failed to connect to remembered device with MAC: " + mac);
-      }
-
-      try {
-        if (fs.existsSync("assets/remotecontrol.txt")) {
-          await spectoda.enableRemoteControl({ signature, key });
-        }
-      } catch (err) {
-        logging.error("Failed to enable remote control", err);
       }
     }
   }
