@@ -6,6 +6,7 @@ import fs from "fs";
 import { getEth0MacAddress, getLocalIp, getUnameString } from "./utils/functions";
 import { exec } from "child_process";
 import os from "os";
+import "./schedule";
 
 // if not exists, create assets folder
 if (!fs.existsSync("assets")) {
@@ -14,13 +15,20 @@ if (!fs.existsSync("assets")) {
 
 // getEth0MacAddress().then(mac => console.log(`MAC Address of eth0: ${mac}`))
 
+interface GatewayMetadata {
+  hostname: string;
+  mac: string | void;
+  localIp: string | null;
+  unameString: unknown;
+}
+
 const gatherPiInfo = async () => {
   const gatewayMetadata = {
     hostname: os.hostname(),
-    mac: await getEth0MacAddress(),
+    mac: await getEth0MacAddress().catch(e => console.error(e)),
     // todo handle wifi ip
     localIp: getLocalIp("eth0"),
-    unameString: await getUnameString(),
+    unameString: await getUnameString().catch(e => console.error(e)),
   };
 
   console.log({ gatewayMetadata });
@@ -29,7 +37,18 @@ const gatherPiInfo = async () => {
 };
 
 async function main() {
-  const gatewayMetadata = await gatherPiInfo();
+  let gatewayMetadata: GatewayMetadata = {
+    hostname: "",
+    mac: "",
+    localIp: "",
+    unameString: "",
+  };
+
+  try {
+    gatewayMetadata = await gatherPiInfo();
+  } catch (e) {
+    console.error(e);
+  }
 
   // spectodabridge:{
   //   version:
@@ -40,10 +59,8 @@ async function main() {
 
   spectoda.on("connected-websockets", () => {
     if (spectoda.socket) {
-      getEth0MacAddress().then(mac => {
-        console.log("Emmiting GW MAC", mac);
-        spectoda.socket?.emit("mac", mac);
-      });
+      console.log("Emmiting GW MAC", gatewayMetadata.mac);
+      spectoda.socket?.emit("mac", gatewayMetadata.mac);
     }
 
     spectoda.socket?.removeAllListeners("command");
@@ -72,10 +89,8 @@ async function main() {
 
   spectoda.on("connected-websockets", () => {
     if (spectoda.socket) {
-      getEth0MacAddress().then(mac => {
-        console.log("Emmiting GW MAC", mac);
-        spectoda.socket?.emit("mac", mac);
-      });
+      console.log("Emmiting GW MAC", gatewayMetadata.mac);
+      spectoda.socket?.emit("mac", gatewayMetadata.mac);
     }
 
     spectoda.socket?.removeAllListeners("command");
