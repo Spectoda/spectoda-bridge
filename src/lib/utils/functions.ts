@@ -45,17 +45,15 @@ export const getLocalIp = (interfaceName: string) => {
   return null;
 };
 
-
 export const fetchPiInfo = async () => {
-
   // TODO! this is not working on mac
 
   const gatewayMetadata = {
     hostname: os.hostname(),
-    mac: await getEth0MacAddress(),
+    mac: await getEth0MacAddress().catch(e => console.error("Failed to get MAC address", e)),
     // todo handle wifi ip
     localIp: getLocalIp("eth0"),
-    unameString: await getUnameString(),
+    unameString: await getUnameString().catch(e => console.error("Failed to get uname string", e)),
   };
 
   return gatewayMetadata;
