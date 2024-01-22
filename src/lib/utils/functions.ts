@@ -1,5 +1,6 @@
 import { exec } from "child_process";
 import os from "os";
+import { detectLinux, detectMacintosh } from "../spectoda-js";
 
 export function getEth0MacAddress(): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -46,6 +47,9 @@ export const getLocalIp = (interfaceName: string) => {
 
 
 export const fetchPiInfo = async () => {
+
+  // TODO! this is not working on mac
+
   const gatewayMetadata = {
     hostname: os.hostname(),
     mac: await getEth0MacAddress(),
