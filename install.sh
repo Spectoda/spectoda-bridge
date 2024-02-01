@@ -46,10 +46,10 @@ Description=Bridge for connecting to Spectoda Ecosystem
 After=network.target
 
 [Service]
-User=gateway
-Group=gateway
+User=root
+Group=root
 WorkingDirectory=/home/gateway/spectoda-bridge/
-ExecStart=/bin/bash -i -c 'sudo npm start'
+ExecStart=/bin/bash -i -c 'npm start'
 Restart=on-failure
 RestartSec=5s
 
