@@ -40,15 +40,15 @@ echo "Installing systemd service and enabling it..."
 sleep 1
 
 # Create the systemd service file
-cat <<EOF > /etc/systemd/system/spectoda-node.service
+cat <<EOF > /etc/systemd/system/spectoda-bridge.service
 [Unit]
 Description=Bridge for connecting to Spectoda Ecosystem
 After=network.target
 
 [Service]
-User=gateway
-Group=gateway
-WorkingDirectory=/home/gateway/spectoda-node/
+User=root
+Group=root
+WorkingDirectory=/home/gateway/spectoda-bridge/
 ExecStart=/bin/bash -i -c 'npm start'
 Restart=on-failure
 RestartSec=5s
@@ -61,5 +61,5 @@ EOF
 systemctl daemon-reload
 
 # Enable and start the service
-systemctl restart spectoda-node.service
-systemctl enable --now spectoda-node.service
+systemctl restart spectoda-bridge.service
+systemctl enable --now spectoda-bridge.service
