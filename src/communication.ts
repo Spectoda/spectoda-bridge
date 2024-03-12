@@ -4,9 +4,9 @@ import { logging } from "./lib/spectoda-js/logging";
 import fs from "fs";
 import { hexStringToArray, hexStringToUint8Array, sleep } from "./lib/spectoda-js/functions";
 
-const spectoda = new Spectoda("nodeserial", true);
+const spectoda = new Spectoda("dummy", true);
 
-spectoda.setDebugLevel(4);
+// spectoda.setDebugLevel(4);
 
 // spectoda.assignOwnerSignature("a06cd5c4d5741b61fee69422f2590926");
 // spectoda.assignOwnerKey("bfd39c89ccc2869f240508e9a0609420");
