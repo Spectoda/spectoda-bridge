@@ -6,6 +6,9 @@ import fs from "fs";
 import os from "os";
 import { fetchPiInfo, getEth0MacAddress, getLocalIp, getUnameString } from "./lib/utils/functions";
 
+// fetch NODEjs polyfill
+require("isomorphic-fetch");
+
 // if not exists, create assets folder
 if (!fs.existsSync("assets")) {
   fs.mkdirSync("assets");
