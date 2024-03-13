@@ -344,13 +344,9 @@ app.get("/assets/control", (req, res) => {
 
 app.get("/owner", (req, res) => {
   try {
-    const info = {
-      ownerKey: fs.readFileSync("assets/ownerkey.txt").toString(),
-      ownerSignature: fs.readFileSync("assets/ownersignature.txt").toString(),
-      network: fs.readFileSync("assets/network.txt").toString(),
-    };
+    const config = JSON.parse(fs.readFileSync("assets/config.json", "utf8"));
 
-    res.json(info);
+    res.json({ ownerSignature: config?.spectoda?.network?.signature, ownerKey: config?.spectoda?.network?.key, network: config?.spectoda?.network?.name });
   } catch (error) {
     res.json({ error });
   }
