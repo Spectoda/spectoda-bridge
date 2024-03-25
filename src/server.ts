@@ -19,7 +19,8 @@ app.use(urlencodedParser);
 app.use(cors());
 app.use(express.text());
 
-export const sse = new SSE();
+export const sselocalevents = new SSE();
+export const sseglobalevents = new SSE();
 export const sseota = new SSE();
 
 fs.writeFileSync("assets/lastboot.txt", new Date().toISOString());
@@ -46,17 +47,17 @@ app.get("/peers-info", (req, res) => {
     });
 });
 
-app.get("/events", sse.init);
+app.get("/events", sseglobalevents.init);
 spectoda.on("emitted_events", (events: SpectodaEvent[]) => {
   for (const event of events) {
-    sse.send(JSON.stringify(event));
+    sseglobalevents.send(JSON.stringify(event));
   }
 });
 
-app.get("/local-events", sse.init);
+app.get("/local-events", sselocalevents.init);
 spectoda.on("emitted_local_events", (events: SpectodaEvent[]) => {
   for (const event of events) {
-    sse.send(JSON.stringify(event));
+    sselocalevents.send(JSON.stringify(event));
   }
 });
 
