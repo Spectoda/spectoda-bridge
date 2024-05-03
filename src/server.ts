@@ -93,7 +93,7 @@ spectoda.on("disconnected", (event: any) => {
 
 app.get("/ota-progress", sseota.init);
 spectoda.on("ota_progress", (progress: any) => {
-  sse.send(JSON.stringify(progress));
+  sseota.send(JSON.stringify(progress));
 });
 
 interface SpectodaEvent {
