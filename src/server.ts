@@ -233,9 +233,11 @@ app.post("/write-tngl", async (req, res) => {
   await sleep(1000);
   await spectoda.rebootNetwork();
   await sleep(5000);
-
+  spectoda.timeline.unpause();
+  await spectoda.syncTimeline();
+  // await spectoda.eraseEventHistory();
   const result = await spectoda.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString()); // ! for now to put tngl into webassembly
-  await spectoda.syncEventHistory();
+  // await spectoda.syncEventHistory();
 
   return res.json({ status: "success", result: "Dont forget to restart spectoda-node for the TNGL to be written" });
 });
