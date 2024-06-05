@@ -4,6 +4,7 @@ import { spectoda } from "./communication";
 import cors from "cors";
 import SSE from "express-sse-ts";
 import fs from "fs";
+import { sleep } from "./lib/spectoda-js";
 
 const jsonParser = bodyParser.json();
 const urlencodedParser = bodyParser.urlencoded({ extended: false });
@@ -229,6 +230,10 @@ app.post("/write-tngl", async (req, res) => {
   fs.writeFileSync("assets/tngl.txt", tngl);
 
   await spectoda.eraseEventHistory();
+  await sleep(1000);
+  await spectoda.rebootNetwork();
+  await sleep(5000);
+
   const result = await spectoda.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString()); // ! for now to put tngl into webassembly
   await spectoda.syncEventHistory();
 
