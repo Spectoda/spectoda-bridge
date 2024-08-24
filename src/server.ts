@@ -4,6 +4,7 @@ import { spectoda } from "./communication";
 import cors from "cors";
 import SSE from "express-sse-ts";
 import fs from "fs";
+import { SpectodaEvent } from "./lib/spectoda-js/src/SpectodaWasm";
 
 const jsonParser = bodyParser.json();
 const urlencodedParser = bodyParser.urlencoded({ extended: false });
@@ -19,19 +20,18 @@ app.use(urlencodedParser);
 app.use(cors());
 app.use(express.text());
 
-export const sse = new SSE();
-export const sseota = new SSE();
+export const sse_eventstateupdates = new SSE();
+export const sse_emittedevents = new SSE();
+export const sse_ota = new SSE();
 
-fs.writeFileSync("assets/lastboot.txt", new Date().toISOString());
+export const sse_peers = new SSE();
 
-export const ssepeers = new SSE();
-
-app.get("/peers", ssepeers.init);
+app.get("/peers", sse_peers.init);
 spectoda.on("peer_connected", (peer: any) => {
-  ssepeers.send(JSON.stringify({ mac: peer, type: "peer_connected" }));
+  sse_peers.send(JSON.stringify({ mac: peer, type: "peer_connected" }));
 });
 spectoda.on("peer_disconnected", (peer: any) => {
-  ssepeers.send(JSON.stringify({ mac: peer, type: "peer_disconnected" }));
+  sse_peers.send(JSON.stringify({ mac: peer, type: "peer_disconnected" }));
 });
 
 app.get("/peers-info", (req, res) => {
@@ -46,31 +46,18 @@ app.get("/peers-info", (req, res) => {
     });
 });
 
-app.get("/events", sse.init);
-spectoda.on("emitted_events", (events: SpectodaEvent[]) => {
+app.get("/emittedevents", sse_emittedevents.init);
+spectoda.on("emittedevents", (events: SpectodaEvent[]) => {
   for (const event of events) {
-    sse.send(JSON.stringify(event));
+    sse_emittedevents.send(JSON.stringify(event));
   }
 });
 
-app.get("/local-events", sse.init);
-spectoda.on("emitted_local_events", (events: SpectodaEvent[]) => {
-  for (const event of events) {
-    sse.send(JSON.stringify(event));
+app.get("/eventstateupdates", sse_eventstateupdates.init);
+spectoda.on("eventstateupdates", (event_state_updates: SpectodaEvent[]) => {
+  for (const event_state_update of event_state_updates) {
+    sse_eventstateupdates.send(JSON.stringify(event_state_update));
   }
-});
-
-app.get("/events-info", async (req, res) => {
-  // TODO, do not just emit events, but instead return them
-  const result = await spectoda
-    .readEventHistory()
-    .then((events: any) => {})
-    .catch((error: any) => {
-      res.statusCode = 400;
-      res.json({ status: "error", error });
-    });
-
-  res.json({ status: "success", data: result });
 });
 
 export const sseconnection = new SSE();
@@ -90,87 +77,17 @@ spectoda.on("disconnected", (event: any) => {
   }
 });
 
-app.get("/ota-progress", sseota.init);
+app.get("/ota-progress", sse_ota.init);
 spectoda.on("ota_progress", (progress: any) => {
-  sse.send(JSON.stringify(progress));
+  sse_ota.send(JSON.stringify(progress));
 });
 
-interface SpectodaEvent {
-  label: string;
-  value?: number | string | null;
-  type?: "percentage" | "color" | "timestamp" | "undefined";
-  destination?: number | number[];
-}
-
 app.get("/scan", async (req, res) => {
-  // TODO
-  // const devices = await spectoda.interface?.scan();
-  // res.json(devices);
   return res.json({ status: "error", error: "NotImplemented" });
 });
 
 app.post("/connect", async (req, res) => {
-  const { key, signature, mac, name, remember, network, remotecontrol } = req.body as { signature?: string; key?: string; mac?: string; name?: string; remember?: boolean; network?: string; remotecontrol?: boolean };
-
-  if (connecting) {
-    res.statusCode = 405;
-    return res.json({ status: "error", error: "ConnectingInProgress" });
-  }
-
-  remember && signature && fs.writeFileSync("assets/ownersignature.txt", signature);
-  remember && key && fs.writeFileSync("assets/ownerkey.txt", key);
-  remember && network && fs.writeFileSync("assets/network.txt", network);
-  remember && remotecontrol && fs.writeFileSync("assets/remotecontrol.txt", remotecontrol.toString());
-  if (!remotecontrol) {
-    fs.rmSync("assets/remotecontrol.txt", { force: true });
-  }
-
-  if (remotecontrol) {
-    spectoda.enableRemoteControl({
-      signature,
-      key,
-      sessionOnly: false,
-    });
-  } else {
-    spectoda.disableRemoteControl();
-  }
-
-  connecting = true;
-
-  try {
-    if (mac) {
-      //@ts-ignore
-      const result = await spectoda.connect([{ mac: mac }], true, signature, key, false, "", true, true);
-      remember && fs.writeFileSync("assets/mac.txt", mac);
-      return res.json({ status: "success", result: result });
-    }
-
-    if (name) {
-      const controllers = await spectoda.scan([{ name: name }]);
-      controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac);
-      const result = await spectoda.connect(controllers, true, signature, key, false, "", true, true);
-      return res.json({ status: "success", result: result });
-    }
-
-    const controllers = await spectoda.scan([{}]);
-    controllers.length != 0 && controllers[0].mac && remember && fs.writeFileSync("assets/mac.txt", controllers[0].mac);
-
-    const result = await spectoda.connect(controllers, true, signature, key, false, "", true, true);
-
-    return res.json({ status: "success", result: result });
-  } catch (error) {
-    if (error === "ScanFailed") {
-      // restart node in 10 ms
-      setTimeout(() => {
-        process.exit(1);
-      }, 10);
-    }
-
-    res.statusCode = 405;
-    return res.json({ status: "error", error: error });
-  } finally {
-    connecting = false;
-  }
+  return res.json({ status: "error", error: "NotImplemented" });
 });
 
 app.post("/disconnect", async (req, res) => {
@@ -344,13 +261,8 @@ app.get("/assets/control", (req, res) => {
 
 app.get("/owner", (req, res) => {
   try {
-    const info = {
-      ownerKey: fs.readFileSync("assets/ownerkey.txt").toString(),
-      ownerSignature: fs.readFileSync("assets/ownersignature.txt").toString(),
-      network: fs.readFileSync("assets/network.txt").toString(),
-    };
-
-    res.json(info);
+    const config = JSON.parse(fs.readFileSync("assets/config.json", "utf8"));
+    res.json({ ownerSignature: config?.spectoda?.network?.signature, ownerKey: config?.spectoda?.network?.key, network: config?.spectoda?.network?.name });
   } catch (error) {
     res.json({ error });
   }
