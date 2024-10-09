@@ -4,10 +4,10 @@
             "level": 1
         },
         "connect": {
-            "connector": "nodeserial",
+            "connector": "nodebluetooth",
             "criteria": {
-                "uart": "/dev/ttyS3",
-                "baudrate": 1500000
+                "mac": "0C:8B:95:AC:F5:6E",
+                "name":"Amber"
             }
         },
         "network": {
