@@ -33,6 +33,7 @@ const spectoda = new Spectoda("dummy", true);
 // @ts-ignore
 globalThis.spectoda = spectoda;
 
+let force_tngl_update_finished = false;
 let force_fw_update_finished = false;
 
 const config = JSON.parse(fs.readFileSync("assets/config.json", "utf8"));
@@ -154,6 +155,11 @@ spectoda.on("connected", async () => {
 
         if (config.spectoda.synchronize.tngl) {
 
+          // reset force_fw_update_finished if someone changes the force fw config attribute during the run of the service
+          if (!config.spectoda.synchronize.tngl.force && !force_tngl_update_finished) {
+            force_tngl_update_finished = false;
+          }
+
           let tngl_code = null;
           let tngl_bytecode = null;
 
@@ -175,11 +181,16 @@ spectoda.on("connected", async () => {
           }
 
           if (config.spectoda.synchronize.tngl.force) {
-            logging.info(">> Writing TNGL code...")
-            try {
-              await spectoda.writeTngl(tngl_code, tngl_bytecode);
-            } catch (error) {
-              logging.error(`Error writing TNGL: ${error}`);
+            if(!force_tngl_update_finished) {
+              logging.info(">> Writing TNGL code...")
+              try {
+                await spectoda.writeTngl(tngl_code, tngl_bytecode);
+                force_tngl_update_finished = true;
+              } catch (error) {
+                logging.error(`Error writing TNGL: ${error}`);
+              }
+            } else {
+              logging.info(">> TNGL code was already written")
             }
           } 
           
