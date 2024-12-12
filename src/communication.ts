@@ -132,6 +132,7 @@ spectoda.on("connected", async () => {
               const uint8Array = new Uint8Array(fileData);
 
               logging.info(">> Updating Network Firmware...")
+              logging.info(await spectoda.getConnectedPeersInfo())
               try {
                 await spectoda.updateNetworkFirmware(uint8Array);
                 logging.info(">> Firmware successfully updated.");
