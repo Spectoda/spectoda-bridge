@@ -270,19 +270,20 @@ app.get("/owner", (req, res) => {
 
 app.get("/variable", async (req, res) => {
   const name = req.query.name;
-  const segId = req.query.seg_id;
+  const id = req.query.id;
 
-  if (!name || !segId) {
-    res.status(400).json({ error: "Both 'name' and 'seg_id' parameters are required" });
+  if (!name || !id) {
+    res.status(400).json({ error: "Both 'name' and 'id' parameters are required" });
     return;
   }
 
   // TODO pridat error handling apod
   try {
-    const value = await spectoda.readVariable(name, segId);
+    const value = await spectoda.readVariable(String(name), Number(id));
     res.json(value);
   } catch (error) {
-    res.status(404).json({ error: "Variable or segment not found" });
+    console.error(`spectoda.readVariable(${name}, ${id}) failed`);
+    res.status(500).json({ error: `spectoda.readVariable(${name}, ${id}) failed` });
   }
 });
 
@@ -292,25 +293,74 @@ app.post("/variables", async (req, res) => {
   let results = [];
 
   try {
-    for (const { name, segId } of variables) {
-      if (!name || !segId) {
-        res.status(400).json({ error: "Both 'name' and 'segId' parameters are required" });
+    for (const { name, id } of variables) {
+      if (!name || !id) {
+        res.status(400).json({ error: "Both 'name' and 'id' parameters are required" });
         return;
       }
 
       try {
-        const value = await spectoda.readVariable(name, segId);
-        results.push({ name, segId, value });
+        const value = await spectoda.readVariable(String(name), Number(id));
+        results.push({ name, id, value });
       } catch (error) {
-        results.push({ name, segId, value: null, error });
-        console.warn(name, segId, error);
+        results.push({ name, id, value: null, error });
+        console.warn(name, id, error);
         continue;
       }
     }
 
     res.json({ data: results });
   } catch (error) {
-    res.status(500).json({ error: "Something went wrong" });
+    console.error(`Getting variables failed: ${error}`);
+    res.status(500).json({ error: `Getting variables failed: ${error}` });
+  }
+});
+
+app.get("/eventstate", async (req, res) => {
+  const label = req.query.label;
+  const id = req.query.id;
+
+  if (!label || !id) {
+    res.status(400).json({ error: "Both 'label' and 'id' parameters are required" });
+    return;
+  }
+
+  // TODO pridat error handling apod
+  try {
+    const value = await spectoda.getEventState(String(label), Number(id));
+    res.json(value);
+  } catch (error) {
+    console.error(`spectoda.getEventState(${label}, ${id}) failed`);
+    res.status(500).json({ error: `spectoda.getEventState(${label}, ${id}) failed` });
+  }
+});
+
+app.post("/eventstates", async (req, res) => {
+  const eventstates = req.body.eventstates;
+
+  let results = [];
+
+  try {
+    for (const { label, id } of eventstates) {
+      if (!label || !id) {
+        res.status(400).json({ error: "Both 'label' and 'id' parameters are required" });
+        return;
+      }
+
+      try {
+        const value = await spectoda.getEventState(String(label), Number(id));
+        results.push({ label, id, value });
+      } catch (error) {
+        results.push({ label, id, value: null, error });
+        console.warn(label, id, error);
+        continue;
+      }
+    }
+
+    res.json({ data: results });
+  } catch (error) {
+    console.error(`Getting event states failed: ${error}`);
+    res.status(500).json({ error: `Getting event states failed: ${error}` });
   }
 });
 
