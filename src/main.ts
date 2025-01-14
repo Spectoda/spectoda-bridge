@@ -5,13 +5,31 @@ import "./server";
 import fs from "fs";
 import os from "os";
 import { fetchPiInfo, getEth0MacAddress, getLocalIp, getUnameString } from "./lib/utils/functions";
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
 
 // if not exists, create assets folder
 if (!fs.existsSync("assets")) {
   fs.mkdirSync("assets");
 }
 
+async function startWasmServer() {
+  const app = express();
+  const PORT = 5555;
+
+  app.use(cors());
+  app.use('/builds', express.static(path.join(__dirname, 'webassembly')));
+
+  app.listen(PORT, () => {
+    logging.info(`WASM server running at http://localhost:${PORT}`);
+  });
+}
+
 async function main() {
+  // Start WASM server first
+  await startWasmServer();
+  
   const gatewayMetadata = await fetchPiInfo();
 
   await sleep(1000);
