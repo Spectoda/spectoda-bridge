@@ -198,7 +198,7 @@ spectoda.on("connected", async () => {
           else /* if (!config.spectoda.synchronize.tngl.force) */ {
             logging.info(">> Sychronizing TNGL code...")
             try {
-              await spectoda.syncTngl(tngl_code, tngl_bytecode);
+              await spectoda.writeTngl(tngl_code, tngl_bytecode);
             } catch (error) {
               logging.error(`Error synchronizing TNGL: ${error}`);
             }
@@ -284,7 +284,7 @@ spectoda.on("connected", async () => {
     if (fs.existsSync("assets/tngl.txt")) {
       // upload latest TNGL
       try {
-        await spectoda.syncTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString());
+        await spectoda.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString(), null);
       } catch (error) {
         logging.error(`Error updating TNGL: ${error}`);
       }
