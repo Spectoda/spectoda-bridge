@@ -3,11 +3,11 @@ import { logging } from "./lib/spectoda-js/logging";
 import { sleep } from "./lib/spectoda-js/functions";
 import "./server";
 import fs from "fs";
-import os from "os";
-import { fetchPiInfo, getEth0MacAddress, getLocalIp, getUnameString } from "./lib/utils/functions";
-import express from 'express';
-import cors from 'cors';
-import path from 'path';
+import { fetchPiInfo } from "./lib/utils/functions";
+import express from "express";
+import cors from "cors";
+import path from "path";
+import { SpectodaAppEvents } from "./lib/spectoda-js";
 
 // if not exists, create assets folder
 if (!fs.existsSync("assets")) {
@@ -19,7 +19,7 @@ async function startWasmServer() {
   const PORT = 5555;
 
   app.use(cors());
-  app.use('/builds', express.static(path.join(__dirname, 'webassembly')));
+  app.use("/builds", express.static(path.join(__dirname, "webassembly")));
 
   app.listen(PORT, () => {
     logging.info(`WASM server running at http://localhost:${PORT}`);
@@ -29,7 +29,7 @@ async function startWasmServer() {
 async function main() {
   // Start WASM server first
   await startWasmServer();
-  
+
   const gatewayMetadata = await fetchPiInfo();
 
   await sleep(1000);
@@ -96,7 +96,12 @@ async function main() {
           if (config.spectoda.network && config.spectoda.network.signature && config.spectoda.network.key) {
             logging.info(">> Enabling Remote Control...");
             try {
-              spectoda.enableRemoteControl({ signature: config.spectoda.network.signature, key: config.spectoda.network.key, meta: { gw: gatewayMetadata }, sessionOnly: config.spectoda.remoteControl.sessionOnly });
+              spectoda.enableRemoteControl({
+                signature: config.spectoda.network.signature,
+                key: config.spectoda.network.key,
+                meta: { gw: gatewayMetadata },
+                sessionOnly: config.spectoda.remoteControl.sessionOnly,
+              });
             } catch (err) {
               logging.error("Failed to enable remote control", err);
             }
@@ -122,38 +127,26 @@ async function main() {
           criteria = config.spectoda.connect.criteria;
         }
 
-        logging.info(">> Connecting...");
-        try {
-          await spectoda.connect(criteria, true, null, null, false, "", true, false);
-        } catch (error) {
-          logging.error("Failed to connect", error);
-        }
-      }
-    }
-  }
-  //
-  /* !fs.existsSync("assets/config.json") */
-  else {
-    // if (fs.existsSync("assets/tngl.txt")) {
-    //   // ! set TNGL to webassembly before connection
-    //   // this is a workaround for a bug in the firmware
-    //   await spectoda.writeTngl(fs.readFileSync("assets/tngl.txt", "utf8").toString()).catch(e => {
-    //     console.log(e);
-    //   });
-    // }
+        const connect = async () => {
+          try {
+            let connected = await spectoda.connected();
+            if (!connected) {
+              logging.info(">> Connecting...");
+              await spectoda.connect(criteria, true, undefined, undefined, false, "");
+            }
+          } catch (error) {
+            logging.error("Failed to connect", error);
+          }
+        };
 
-    if (fs.existsSync("assets/mac.txt")) {
-      const mac = fs.readFileSync("assets/mac.txt").toString();
-      logging.info("Connecting to remembered device with MAC: " + mac);
+        connect();
 
-      const signature = fs.readFileSync("assets/ownersignature.txt").toString();
-      const key = fs.readFileSync("assets/ownerkey.txt").toString();
-
-      try {
-        // @ts-ignore
-        // await spectoda.connect([{ mac: mac }], true, signature, key, false, "", true);
-      } catch {
-        logging.error("Failed to connect to remembered device with MAC: " + mac);
+        let interval = setInterval(connect, 60000);
+        spectoda.on(SpectodaAppEvents.DISCONNECTED, () => {
+          clearInterval(interval);
+          interval = setInterval(connect, 60000);
+        });
+        
       }
     }
   }
