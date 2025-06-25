@@ -1,6 +1,6 @@
 import { exec } from "child_process";
 import os from "os";
-import { detectLinux, detectMacintosh } from "../spectoda-js";
+import { detectLinux, detectMacintosh } from "../spectoda-js/v012/functions";
 
 export function getEth0MacAddress(): Promise<string> {
   return new Promise((resolve, reject) => {

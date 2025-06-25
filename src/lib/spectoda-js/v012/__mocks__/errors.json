@@ -1,0 +1,15 @@
+[
+  {
+    "controller": { "mac": "1b:3e:ce:ce:cc", "label": "SC_02" },
+    "errors": [
+      {
+        "description": "Overheating detected",
+        "code": 1001
+      },
+      {
+        "description": "Connection lost to device",
+        "code": 1002
+      }
+    ]
+  }
+]
