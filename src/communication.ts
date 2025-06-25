@@ -1,8 +1,8 @@
 // import esPkg from 'essentia.js';
-import { Spectoda } from "./lib/spectoda-js/Spectoda";
-import { logging } from "./lib/spectoda-js/logging";
+import { Spectoda } from "./lib/spectoda-js/v012/Spectoda";
+import { logging } from "./lib/spectoda-js/v012/logging";
 import fs from "fs";
-import { hexStringToArray, hexStringToUint8Array, sleep } from "./lib/spectoda-js/functions";
+import { hexStringToArray, hexStringToUint8Array, sleep } from "./lib/spectoda-js/v012/functions";
 
 const spectoda = new Spectoda("dummy", true);
 

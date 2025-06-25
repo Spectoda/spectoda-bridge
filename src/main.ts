@@ -1,13 +1,13 @@
 import { spectoda } from "./communication";
-import { logging } from "./lib/spectoda-js/logging";
-import { sleep } from "./lib/spectoda-js/functions";
+import { logging } from "./lib/spectoda-js/v012/logging";
+import { sleep } from "./lib/spectoda-js/v012/functions";
 import "./server";
 import fs from "fs";
 import { fetchPiInfo } from "./lib/utils/functions";
 import express from "express";
 import cors from "cors";
 import path from "path";
-import { SpectodaAppEvents } from "./lib/spectoda-js";
+import { SpectodaAppEvents } from "./lib/spectoda-js/v012";
 
 // if not exists, create assets folder
 if (!fs.existsSync("assets")) {

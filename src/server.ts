@@ -4,7 +4,7 @@ import { spectoda } from "./communication";
 import cors from "cors";
 import SSE from "express-sse-ts";
 import fs from "fs";
-import { SpectodaEvent } from "./lib/spectoda-js/src/SpectodaWasm";
+import { SpectodaEvent } from "./lib/spectoda-js/v012";
 
 const jsonParser = bodyParser.json();
 const urlencodedParser = bodyParser.urlencoded({ extended: false });

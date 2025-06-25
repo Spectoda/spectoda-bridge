@@ -1,4 +1,4 @@
-import { createNanoEvents } from "./lib/spectoda-js/functions";
+import { createNanoEvents } from "./lib/spectoda-js/v012/functions";
 
 const BASE_URL = "http://localhost:8888";
 
