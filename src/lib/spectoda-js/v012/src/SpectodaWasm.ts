@@ -75,6 +75,38 @@ export const loadWasmFromS3 = async (version: string): Promise<MainModule> => {
   }
 }
 
+const loadWasmNode = async (version: string): Promise<MainModule> => {
+  const path = require('path')
+  const fs = require('fs')
+
+  // Path to the local “webassembly” folder (relative to this file)
+  const baseDir = path.join(__dirname, '../../../../webassembly')
+  const jsPath   = path.join(baseDir, `${version}.js`)
+  const wasmPath = path.join(baseDir, `${version}.wasm`)
+
+  const imported_module = require(jsPath)
+  if (!imported_module.default || typeof imported_module.default !== 'function') {
+    throw new Error(`JS file (${version}.js) did not export a default function as expected.`)
+  }
+
+  // Read the .wasm file from disk
+  const wasmBinary = fs.readFileSync(wasmPath)
+
+  const wasm_instance: MainModule = await imported_module.default({
+    wasmBinary,
+    locateFile: (filePath: string, prefix: string): string => {
+      // Tell Emscripten where the wasm file actually lives
+      if (filePath.endsWith('.wasm')) {
+        return wasmPath
+      }
+      return path.join(prefix, filePath)
+    },
+  })
+
+  return wasm_instance
+}
+
+
 class Wait {
   promise: Promise<void>
   resolve: (value: void | PromiseLike<void>) => void
@@ -293,9 +325,20 @@ function onWasmLoad() {
 function loadWasm(wasmVersion: string) {
   logging.info('Loading spectoda-js WASM version ' + wasmVersion)
 
-  loadWasmFromS3(wasmVersion).then((module_instance) => {
-    // @ts-ignore
-    globalThis.Module = module_instance
-    onWasmLoad()
-  })
+  // NODE enviroment
+  if (!process.env.NEXT_PUBLIC_VERSION) {
+    loadWasmNode(wasmVersion).then((module_instance) => {
+      // @ts-ignore
+      globalThis.Module = module_instance
+      onWasmLoad()
+    })
+  }
+  // BROWSER enviroment
+  else {
+    loadWasmFromS3(wasmVersion).then((module_instance) => {
+      // @ts-ignore
+      globalThis.Module = module_instance
+      onWasmLoad()
+    })
+  }
 }
