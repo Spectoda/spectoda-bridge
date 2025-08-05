@@ -23,6 +23,7 @@ export const IDSchema = z
   .number()
   .min(0, `ID must be between 0 and ${MAX_ID}`)
   .max(MAX_ID, `ID must be between 0 and ${MAX_ID}`)
+// TODO add .brand('SpectodaId')
 
 /**
  * Network signature as 32-character lowercase hexadecimal string.
@@ -90,6 +91,23 @@ export const FirmwareVersionSchema = z
   .string()
   .regex(/^!?\d+\.\d+\.\d+$/, "Firmware version must be in format 'X.Y.Z' (e.g. '0.12.2')")
 
+const DATE_REGEX_SOURCE = {
+  // TODO: Hello, maintainers of the year 9999! Please change this regex to allow for years 10000 and beyond.
+  YEAR: '(?:[2-9][0-9]{3})',
+  MONTH: '(?:0[1-9]|1[0-2])',
+  DAY: '(?:0[1-9]|[12][0-9]|3[01])',
+}
+
+export const FIRMWARE_VERSION_REGEX_SOURCES_PARTS = {
+  PREFIX: '[A-Z0-9_]+',
+  SEMVER: '\\d+\\.\\d+\\.\\d+',
+  DATE: `${DATE_REGEX_SOURCE.YEAR}(${DATE_REGEX_SOURCE.MONTH})(${DATE_REGEX_SOURCE.DAY})`,
+}
+
+const FIRMWARE_VERSION_FULL_REGEXP = new RegExp(
+  `^${FIRMWARE_VERSION_REGEX_SOURCES_PARTS.PREFIX}_${FIRMWARE_VERSION_REGEX_SOURCES_PARTS.SEMVER}_${FIRMWARE_VERSION_REGEX_SOURCES_PARTS.DATE}$`,
+)
+
 /**
  * Full firmware version string.
  * Format: PREFIX_X.Y.Z_YYYYMMDD
@@ -98,10 +116,21 @@ export const FirmwareVersionSchema = z
  */
 export const FirmwareVersionFullSchema = z
   .string()
-  .regex(
-    /^[A-Z_]+\d+\.\d+\.\d+_\d{8}$/,
-    "Firmware version must be in format 'PREFIX_X.Y.Z_YYYYMMDD' (e.g. 'UNIVERSAL_0.12.2_20250208') where PREFIX is uppercase",
-  )
+	.transform((value, ctx) => {
+		const transformed = value.replace(".enc", "")
+
+		if (FIRMWARE_VERSION_FULL_REGEXP.test(transformed)) {
+			return transformed
+		}
+
+		ctx.addIssue({
+		  code: z.ZodIssueCode.invalid_string,
+		  validation: "regex",
+		  message: "Firmware version must be in format 'PREFIX_X.Y.Z_YYYYMMDD' (e.g. 'UNIVERSAL_0.12.2_20250208') where PREFIX contains uppercase letters, numbers and underscores, X.Y.Z is a valid semantic version, and YYYYMMDD is a valid date",
+		});
+
+		return z.NEVER
+	})
 
 /**
  * Firmware version code.

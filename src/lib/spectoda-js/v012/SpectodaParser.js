@@ -4,7 +4,7 @@
 import { TnglWriter } from './TnglWriter'
 import { CPP_EVENT_VALUE_LIMITS as VALUE_LIMITS } from './src/constants/limits'
 import { PERCENTAGE_JS_VS_CPP_SCALE_FACTOR } from './src/constants'
-import { mapValue, uint8ArrayToHexString } from './functions'
+import { uint8ArrayToHexString } from './functions'
 import { logging } from './logging'
 
 const CONSTANTS = Object.freeze({
@@ -684,7 +684,6 @@ export class TnglCompiler {
     // TODO @immakermatty implement const declaration
     logging.error('const declaration is not supported in TNGL in this version of the compiler')
     throw 'ConstDeclarationNotSupported'
-
   }
 
   compileLetDeclaration(variable_declaration) {
@@ -693,7 +692,6 @@ export class TnglCompiler {
     // TODO @immakermatty implement let declaration
     logging.error('let declaration is not supported in TNGL in this version of the compiler')
     throw 'LetDeclarationNotSupported'
-
   }
 
   compileVarDeclaration(variable_declaration) {
@@ -1213,7 +1211,7 @@ export class TnglCompiler {
     V: /\{(?:\s*ID\d+\s*:\s*[^,{}]+(?:,\s*ID\d+\s*:\s*[^,{}]+)*\s*)\}/, // parameter in format "{ IDxxx: yyyy, IDxxx: yyyy }",
     U: /^(?:[0-9A-F]{2}:){5}[0-9A-F]{2}$/i, // mac address
     E: /#[0-9a-f]{6}/i, // color: /#[0-9a-f]{6}/i,
-    F: /(?:[+-]?Infinity|true|false|null|undefined)/, // +-Infinity, true, false, null, undefined
+    F: /\b(?:[+-]?Infinity|true|false|null|undefined)\b/, // +-Infinity, true, false, null, undefined
     // G: /"[\w ]*"/,
     H: /&[a-z_][\w]*/i, // value address: /&[a-z_][\w]*/i,
     I: /_?[+-]?(?:\d+\.\d+|\d+)(?:d|h|m(?!s)|s|t|ms)/, //timestamp: /(_?[+-]?[0-9]*[.]?[0-9]+(d|h|m(?!s)|s|t|ms))+/,

@@ -49,9 +49,6 @@ export {
   createNanoEvents,
   createNanoEventsWithWrappedEmit,
 
-  /** TODO @deprecated deprecate this beauty */
-  czechHackyToEnglish,
-
   // TODO Move to spectoda-js/tngl.helpers.ts
   computeTnglCodeFingerprint,
   computeTnglFingerprint,
@@ -85,6 +82,7 @@ export type {
   ValueTypeUndefined,
   ValueTypeID,
   ValueTypeIDs,
+  SpectodaIdType,
 } from './src/types/values'
 
 export type {
@@ -110,18 +108,7 @@ export type {
   SerialCriteria,
 } from './src/types/primitives'
 
-export type {
-  EventState,
-  EventStateInput,
-  LabelEvent,
-  PercentageEvent,
-  TimestampEvent,
-  ColorEvent,
-  PixelsEvent,
-  BooleanEvent,
-  NullEvent,
-  UndefinedEvent,
-} from './src/types/event'
+export { FIRMWARE_VERSION_REGEX_SOURCES_PARTS } from './src/schemas/primitives'
 
 export { CONNECTION_STATUS, REMOTECONTROL_STATUS, WEBSOCKET_CONNECTION_STATE } from './src/types/connect'
 
@@ -131,10 +118,10 @@ export type {
   ConnectorCriteria,
   RemoteControlConnectionStatus,
 } from './src/types/connect'
-export type { ControllerError, ControllerWarning } from './src/types/messages'
+export type { ControllerError, ControllerWarning, ControllerMessage } from './src/types/messages'
 
 export {
-  EventSchema,
+  EventStateSchema as EventSchema,
   EventInputSchema,
   NumberEventSchema,
   LabelEventSchema,
@@ -147,8 +134,19 @@ export {
   UndefinedEventSchema,
   AnyEventSchema,
   AnyEventValueSchema,
+  type EventState,
+  type EventInput,
+  type NumberEvent,
+  type LabelEvent,
+  type PercentageEvent,
+  type TimestampEvent,
+  type ColorEvent,
+  type PixelsEvent,
+  type BooleanEvent,
+  type NullEvent,
+  type UndefinedEvent,
+  type AnyEvent,
 } from './src/schemas/event'
-export type { AnyEvent } from './src/schemas/event'
 
 export {
   FirmwareVersionSchema,
@@ -189,57 +187,5 @@ export { VALUE_TYPES, type ValueType } from './src/constants/values'
 export { mockScanResult } from './__mocks__/scan'
 
 export { isCurrentSpectodaInstanceLocal, createSpectodaWebsocket } from './SpectodaWebSocketsConnector'
-
-/** @deprecated Use individual types instead */
-export type { SpectodaTypes } from './src/types/primitives'
-export type {
-  /** @deprecated Use ControllerMessage instead */
-  ControllerMessage as SpectodaMessage,
-  /** @deprecated Use ControllerError instead */
-  ControllerError as SpectodaError,
-  /** @deprecated Use ControllerWarning instead */
-  ControllerWarning as SpectodaWarning,
-} from './src/types/messages'
-export type {
-  /** @deprecated Use EventState instead */
-  Event,
-
-  /** @deprecated Use EventState instead */
-  Event as SpectodaEvent,
-
-  /** @deprecated Use EventState instead */
-  EventState as SpectodaEventState,
-
-  /** @deprecated Use EventStateInput instead */
-  EventStateInput as SpectodaEventInput,
-  NumberEvent,
-
-  /** @deprecated Use NumberEvent instead */
-  NumberEvent as SpectodaNumberEvent,
-
-  /** @deprecated Use LabelEvent instead */
-  LabelEvent as SpectodaLabelEvent,
-
-  /** @deprecated Use PercentageEvent instead */
-  PercentageEvent as SpectodaPercentageEvent,
-
-  /** @deprecated Use TimestampEvent instead */
-  TimestampEvent as SpectodaTimestampEvent,
-
-  /** @deprecated Use ColorEvent instead */
-  ColorEvent as SpectodaColorEvent,
-
-  /** @deprecated Use PixelsEvent instead */
-  PixelsEvent as SpectodaPixelsEvent,
-
-  /** @deprecated Use BooleanEvent instead */
-  BooleanEvent as SpectodaBooleanEvent,
-
-  /** @deprecated Use NullEvent instead */
-  NullEvent as SpectodaNullEvent,
-
-  /** @deprecated Use UndefinedEvent instead */
-  UndefinedEvent as SpectodaUndefinedEvent,
-} from './src/types/event'
 
 export { WASM_VERSION } from './src/SpectodaWasm'

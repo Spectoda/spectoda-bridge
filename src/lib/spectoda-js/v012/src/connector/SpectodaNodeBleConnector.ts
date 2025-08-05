@@ -1,6 +1,8 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import { detectGW, numberToBytes, sleep, toBytes } from '../../functions'
+import type { GattService, GattCharacteristic, Bluetooth, Adapter, Device } from 'node-ble'
+
+import { numberToBytes, sleep, toBytes } from '../../functions'
 import { logging } from '../../logging'
 import { TimeTrack } from '../../TimeTrack'
 import { TnglReader } from '../../TnglReader'
@@ -8,81 +10,8 @@ import { COMMAND_FLAGS, DEFAULT_TIMEOUT } from '../constants'
 import { SpectodaRuntime } from '../SpectodaRuntime'
 import { SpectodaWasm } from '../SpectodaWasm'
 import { SpectodaAppEvents } from '../types/app-events'
-import { SpectodaTypes } from '../types/primitives'
+import { Criterium } from '../types/primitives'
 import { Connection, Synchronization } from '../types/wasm'
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-// eslint-disable-next-line security/detect-non-literal-require, unicorn/prefer-module
-const requireBundlerWorkeround = (moduleName: string) => (detectGW() ? require(moduleName) : () => {})
-// TODO node-ble on the same level as spectoda-js or node-ble in the spectoda-js repo ? nevíme
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-let NodeBle = {
-  createBluetooth: () => ({
-    bluetooth: {
-      defaultAdapter: async () => {
-        return {
-          startDiscovery: async () => {},
-          stopDiscovery: async () => {},
-          isDiscovering: async () => false,
-          waitDevice: async (address: string, timeout: number, scanPeriod: number) => {},
-          devices: async () => [],
-          getDevice: async (address: string) => {},
-        }
-      },
-    },
-    destroy: () => {},
-  }),
-}
-
-try {
-  NodeBle = detectGW() ? requireBundlerWorkeround('../../../node-ble/src/index') : {}
-} catch {
-  //
-}
-
-const { createBluetooth } = NodeBle
-
-// Add these type definitions at the top of the file
-declare namespace NodeBle {
-  type GattService = {
-    getCharacteristic(uuid: string): Promise<GattCharacteristic>
-  }
-
-  type GattCharacteristic = {
-    writeValue(value: Buffer, options: { offset: number; type: string }): Promise<unknown>
-    readValue(): Promise<DataView>
-    startNotifications(): Promise<unknown>
-    stopNotifications(): Promise<unknown>
-    on(event: string, callback: (data: any) => void): void
-    removeAllListeners(event: string): void
-  }
-
-  type Bluetooth = {
-    defaultAdapter(): Promise<Adapter>
-  }
-
-  type Adapter = {
-    startDiscovery(): Promise<unknown>
-    stopDiscovery(): Promise<unknown>
-    isDiscovering(): Promise<boolean>
-    waitDevice(address: string, timeout: number, scanPeriod: number): Promise<Device>
-    devices(): Promise<string[]>
-    getDevice(address: string): Promise<Device>
-  }
-
-  type Device = {
-    connect(): Promise<unknown>
-    disconnect(): Promise<unknown>
-    gatt(): Promise<{ getPrimaryService(uuid: string): Promise<GattService> }>
-    getAddress(): Promise<string>
-    getName(): Promise<string>
-    isConnected(): Promise<boolean>
-    on(event: string, callback: () => void): void
-    removeAllListeners(event: string): void
-  }
-}
 
 // od 0.8.0 maji vsechny spectoda enabled BLE zarizeni jednotne SPECTODA_DEVICE_UUID.
 // kazdy typ (produkt) Spectoda Zarizeni ma svuj kod v manufacturer data
@@ -92,6 +21,8 @@ declare namespace NodeBle {
 // jedním zařízením v jednu chvíli
 
 //////////////////////////////////////////////////////////////////////////
+
+const PACKET_SIZE_INDICATING_MULTIPACKET_MESSAGE = 512
 
 // ESP Registered MAC address ranges used for device scanning
 const ESP_MAC_PREFIXES = [
@@ -289,10 +220,10 @@ const ESP_MAC_PREFIXES = [
 export class NodeBLEConnection {
   #runtimeReference: SpectodaRuntime
   // private fields
-  #service: NodeBle.GattService | undefined
-  #networkChar: NodeBle.GattCharacteristic | undefined
-  #clockChar: NodeBle.GattCharacteristic | undefined
-  #deviceChar: NodeBle.GattCharacteristic | undefined
+  #service: GattService | undefined
+  #networkChar: GattCharacteristic | undefined
+  #clockChar: GattCharacteristic | undefined
+  #deviceChar: GattCharacteristic | undefined
   #writing
   #uuidCounter
 
@@ -351,7 +282,7 @@ export class NodeBLEConnection {
     return ++this.#uuidCounter
   }
 
-  #writeBytes(characteristic: NodeBle.GattCharacteristic, bytes: Uint8Array, response: boolean): Promise<unknown> {
+  #writeBytes(characteristic: GattCharacteristic, bytes: Uint8Array, response: boolean): Promise<unknown> {
     logging.verbose('#writeBytes()', bytes, response)
 
     const write_uuid = this.#getUUID() // two messages near to each other must not have the same UUID!
@@ -415,7 +346,7 @@ export class NodeBLEConnection {
     })
   }
 
-  #readBytes(characteristic: NodeBle.GattCharacteristic): Promise<Uint8Array> {
+  #readBytes(characteristic: GattCharacteristic): Promise<Uint8Array> {
     logging.debug('#readBytes()')
     // read the requested value
 
@@ -442,7 +373,7 @@ export class NodeBLEConnection {
 
         total_bytes = [...total_bytes, ...bytes]
         logging.verbose('total_bytes', total_bytes)
-      } while (bytes.length == 512)
+      } while (bytes.length == PACKET_SIZE_INDICATING_MULTIPACKET_MESSAGE)
 
       resolve(new Uint8Array(total_bytes))
       return
@@ -475,8 +406,6 @@ export class NodeBLEConnection {
       this.#networkNotificationBuffer = newBuffer
     }
 
-    const PACKET_SIZE_INDICATING_MULTIPACKET_MESSAGE = 208
-
     if (payload.length == PACKET_SIZE_INDICATING_MULTIPACKET_MESSAGE) {
       // if the payload is equal to PACKET_SIZE_INDICATING_MULTIPACKET_MESSAGE, then another payload will be send that continues the overall message.
       return
@@ -498,7 +427,7 @@ export class NodeBLEConnection {
         SpectodaWasm.connection_rssi_t.RSSI_MAX,
       )
 
-      this.#runtimeReference.spectoda_js.execute(commandBytes, DUMMY_WEBBLE_CONNECTION)
+      this.#runtimeReference.spectoda_js.request(commandBytes, DUMMY_WEBBLE_CONNECTION)
     }
   }
 
@@ -534,7 +463,7 @@ export class NodeBLEConnection {
     this.#runtimeReference.spectoda_js.synchronize(synchronization, DUMMY_WEBBLE_CONNECTION)
   }
 
-  attach(service: NodeBle.GattService, networkUUID: string, clockUUID: string, deviceUUID: string) {
+  attach(service: GattService, networkUUID: string, clockUUID: string, deviceUUID: string) {
     logging.verbose('attach()', service, networkUUID, clockUUID, deviceUUID)
 
     this.#service = service
@@ -941,10 +870,10 @@ export class SpectodaNodeBluetoothConnector {
 
   #runtimeReference
 
-  #bluetooth: NodeBle.Bluetooth
+  #bluetooth: Bluetooth
   #bluetoothDestroy: () => void
-  #bluetoothAdapter: NodeBle.Adapter | undefined
-  #bluetoothDevice: NodeBle.Device | undefined
+  #bluetoothAdapter: Adapter | undefined
+  #bluetoothDevice: Device | undefined
 
   #connection
   #reconection
@@ -952,29 +881,31 @@ export class SpectodaNodeBluetoothConnector {
   #connectedGuard
 
   constructor(runtimeReference: SpectodaRuntime) {
-    this.#runtimeReference = runtimeReference
+    import(/* webpackIgnore: true */ /* @vite-ignore */ 'node-ble').then(({ createBluetooth }) => {
+      this.#runtimeReference = runtimeReference
 
-    const { bluetooth: bluetoothDevice, destroy: bluetoothDestroy } = createBluetooth()
+      const { bluetooth: bluetoothDevice, destroy: bluetoothDestroy } = createBluetooth()
 
-    this.#bluetooth = bluetoothDevice
-    this.#bluetoothDestroy = bluetoothDestroy
-    this.#bluetoothAdapter = undefined
-    this.#bluetoothDevice = undefined
+      this.#bluetooth = bluetoothDevice
+      this.#bluetoothDestroy = bluetoothDestroy
+      this.#bluetoothAdapter = undefined
+      this.#bluetoothDevice = undefined
 
-    this.#connection = new NodeBLEConnection(runtimeReference)
-    this.#reconection = false
-    this.#criteria = {}
+      this.#connection = new NodeBLEConnection(runtimeReference)
+      this.#reconection = false
+      this.#criteria = {}
 
-    this.#connectedGuard = false
-
-    // TODO unregister event listener on connector destroy
-    this.#runtimeReference.on(SpectodaAppEvents.PRIVATE_CONNECTED, () => {
-      this.#connectedGuard = true
-    })
-
-    // TODO unregister event listener on connector destroy
-    this.#runtimeReference.on(SpectodaAppEvents.PRIVATE_DISCONNECTED, () => {
       this.#connectedGuard = false
+
+      // TODO unregister event listener on connector destroy
+      this.#runtimeReference.on(SpectodaAppEvents.PRIVATE_CONNECTED, () => {
+        this.#connectedGuard = true
+      })
+
+      // TODO unregister event listener on connector destroy
+      this.#runtimeReference.on(SpectodaAppEvents.PRIVATE_DISCONNECTED, () => {
+        this.#connectedGuard = false
+      })
     })
   }
 
@@ -983,9 +914,9 @@ export class SpectodaNodeBluetoothConnector {
   // first bonds the BLE device with the PC/Phone/Tablet if it is needed.
   // Then selects the device
   userSelect(
-    criterium_array: Array<SpectodaTypes['Criterium']>,
+    criterium_array: Array<Criterium>,
     timeout_number: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
-  ): Promise<SpectodaTypes['Criterium'] | null> {
+  ): Promise<Criterium | null> {
     if (timeout_number === DEFAULT_TIMEOUT) {
       timeout_number = 60000
     }
@@ -1007,10 +938,10 @@ export class SpectodaNodeBluetoothConnector {
   // are eligible.
 
   autoSelect(
-    criterium_array: Array<SpectodaTypes['Criterium']>,
+    criterium_array: Array<Criterium>,
     scan_duration_number: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
     timeout_number: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
-  ): Promise<SpectodaTypes['Criterium'] | null> {
+  ): Promise<Criterium | null> {
     if (scan_duration_number === DEFAULT_TIMEOUT) {
       // ? 1200ms seems to be the minimum for the scan_duration if the controller is rebooted
       scan_duration_number = 1500
@@ -1118,7 +1049,7 @@ export class SpectodaNodeBluetoothConnector {
   //   return Promise.resolve(this.#bluetoothDevice ? true : false);
   // }
 
-  selected(): Promise<SpectodaTypes['Criterium'] | null> {
+  selected(): Promise<Criterium | null> {
     logging.debug('selected()')
 
     return new Promise(async (resolve, reject) => {
@@ -1145,9 +1076,9 @@ export class SpectodaNodeBluetoothConnector {
 
   //
   scan(
-    criterium_array: Array<SpectodaTypes['Criterium']>,
+    criterium_array: Array<Criterium>,
     scan_duration_number: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
-  ): Promise<Array<SpectodaTypes['Criterium']>> {
+  ): Promise<Array<Criterium>> {
     if (scan_duration_number === DEFAULT_TIMEOUT) {
       scan_duration_number = 7000
     }
@@ -1228,7 +1159,7 @@ export class SpectodaNodeBluetoothConnector {
 
   // connect Connector to the selected Spectoda Device. Also can be used to reconnect.
   // Fails if no device is selected
-  connect(timeout_number: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT): Promise<SpectodaTypes['Criterium']> {
+  connect(timeout_number: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT): Promise<Criterium> {
     if (timeout_number === DEFAULT_TIMEOUT) {
       timeout_number = 60000
     }
@@ -1304,7 +1235,7 @@ export class SpectodaNodeBluetoothConnector {
   }
 
   // connected() is an runtime function that needs to return a Promise
-  connected(): Promise<SpectodaTypes['Criterium'] | null> {
+  connected(): Promise<Criterium | null> {
     logging.verbose('connected()')
 
     if (!this.#bluetoothDevice) {

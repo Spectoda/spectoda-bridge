@@ -89,11 +89,28 @@ export type {
   SerialCriteria,
   BleCriteria,
   DummyCriteria,
+  TnglBytes,
+  UsedIds,
   Criteria,
   Criterium,
+  Tngl,
+  ValueType,
+  ValueTypeNumber,
+  ValueTypeLabel,
+  ValueTypePercentage,
+  ValueTypeColor,
+  ValueTypeDate,
+  ValueTypeTimestamp,
+  ValueTypeIDs,
+  ValueTypeID,
+  ValueTypeNull,
+  ValueTypeUndefined,
+  ValueTypeBoolean,
+  ValueTypePixels,
   ControllerConnectionCriteria,
   ControllerMoreData,
   ControllerInfo,
+  ControllerName,
   NetworkSignature,
   NetworkKey,
   MacAddress,
@@ -104,43 +121,4 @@ export type {
   FirmwareVersionCode,
   Fingerprint,
   TnglBank,
-  ControllerName,
-}
-
-/** @deprecated use individual types instead */
-export type SpectodaTypes = {
-  BaseCriteria: BaseCriteria
-  SerialCriteria: SerialCriteria
-  BleCriteria: BleCriteria
-  DummyCriteria: DummyCriteria
-  TnglBytes: TnglBytes
-  UsedIds: UsedIds
-  Criterium: Criterium
-  Criteria: Criteria
-  Tngl: Tngl
-  ValueType: ValueType
-  Number: ValueTypeNumber
-  Label: ValueTypeLabel
-  Timestamp: ValueTypeTimestamp
-  Percentage: ValueTypePercentage
-  Date: ValueTypeDate
-  Color: ValueTypeColor
-  Pixels: ValueTypePixels
-  Boolean: ValueTypeBoolean
-  Null: ValueTypeNull
-  Undefined: ValueTypeUndefined
-  ID: ValueTypeID
-  IDs: ValueTypeIDs
-  NetworkSignature: NetworkSignature
-  NetworkKey: NetworkKey
-  MacAddress: MacAddress
-  PcbCode: PcbCode
-  ProductCode: ProductCode
-  FirmwareVersion: FirmwareVersion
-  FirmwareVersionFull: FirmwareVersionFull
-  FirmwareVersionCode: FirmwareVersionCode
-  Fingerprint: Fingerprint
-  TnglBank: TnglBank
-  ControllerName: ControllerName
-  ControllerInfo: ControllerInfo
 }

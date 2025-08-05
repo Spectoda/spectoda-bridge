@@ -18,6 +18,7 @@ import { TimeTrack } from '../TimeTrack'
 import { Spectoda } from '../Spectoda'
 import { TnglReader } from '../TnglReader'
 import { TnglWriter } from '../TnglWriter'
+import { EventState } from '..'
 
 import { SpectodaWebBluetoothConnector } from './connector/SpectodaWebBluetoothConnector'
 import { SpectodaWebSerialConnector } from './connector/SpectodaWebSerialConnector'
@@ -32,8 +33,7 @@ import { SpectodaNodeSerialConnector } from './connector/SpectodaNodeSerialConne
 import { SpectodaSimulatedConnector } from './connector/SpectodaSimulatedConnector'
 import { SPECTODA_APP_EVENTS, SpectodaAppEventMap, SpectodaAppEvents } from './types/app-events'
 import { ConnectorType } from './types/connect'
-import { EventState } from './types/event'
-import { SpectodaTypes } from './types/primitives'
+import { Criteria, Criterium, ValueTypeID, ValueTypeIDs } from './types/primitives'
 import { Connection, Synchronization } from './types/wasm'
 
 // Spectoda.js -> SpectodaRuntime.js -> | SpectodaXXXConnector.js ->
@@ -117,18 +117,18 @@ class BitSet {
 }
 
 type UserSelectQuery = {
-  criteria_array: Array<SpectodaTypes['Criterium']>
+  criteria_array: Array<Criterium>
   timeout: number | typeof DEFAULT_TIMEOUT
 }
 
 type AutoSelectQuery = {
-  criteria_array: Array<SpectodaTypes['Criterium']>
+  criteria_array: Array<Criterium>
   scan_period: number | typeof DEFAULT_TIMEOUT
   timeout: number | typeof DEFAULT_TIMEOUT
 }
 
 type ScanQuery = {
-  criteria_array: Array<SpectodaTypes['Criterium']>
+  criteria_array: Array<Criterium>
   scan_period: number | typeof DEFAULT_TIMEOUT
 }
 
@@ -628,9 +628,9 @@ export class SpectodaRuntime {
   }
 
   userSelect(
-    criteria: SpectodaTypes['Criteria'],
+    criteria: Criteria,
     timeout: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
-  ): Promise<SpectodaTypes['Criterium'] | null> {
+  ): Promise<Criterium | null> {
     logging.verbose(`userSelect(criteria=${JSON.stringify(criteria)}, timeout=${timeout}`)
 
     if (this.#selecting) {
@@ -639,15 +639,15 @@ export class SpectodaRuntime {
 
     this.#selecting = true
 
-    // ? makes sure that criteria is always an array of SpectodaTypes['Criterium']
-    let criteria_array: Array<SpectodaTypes['Criterium']>
+    // ? makes sure that criteria is always an array of Criterium
+    let criteria_array: Array<Criterium>
 
     if (criteria === null || criteria === undefined) {
       criteria_array = []
     } else if (Array.isArray(criteria)) {
-      criteria_array = criteria as Array<SpectodaTypes['Criterium']>
+      criteria_array = criteria as Array<Criterium>
     } else {
-      criteria_array = [criteria as SpectodaTypes['Criterium']]
+      criteria_array = [criteria as Criterium]
     }
 
     const user_select_query: UserSelectQuery = { criteria_array, timeout }
@@ -664,7 +664,7 @@ export class SpectodaRuntime {
     criteria: object,
     scan_period: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
     timeout: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
-  ): Promise<SpectodaTypes['Criterium'] | null> {
+  ): Promise<Criterium | null> {
     logging.verbose(`autoSelect(criteria=${JSON.stringify(criteria)}, scan_period=${scan_period}, timeout=${timeout}`)
 
     if (this.#selecting) {
@@ -673,15 +673,15 @@ export class SpectodaRuntime {
 
     this.#selecting = true
 
-    // ? makes sure that criteria is always an array of SpectodaTypes['Criterium']
-    let criteria_array: Array<SpectodaTypes['Criterium']>
+    // ? makes sure that criteria is always an array of Criterium
+    let criteria_array: Array<Criterium>
 
     if (criteria === null || criteria === undefined) {
       criteria_array = []
     } else if (Array.isArray(criteria)) {
-      criteria_array = criteria as Array<SpectodaTypes['Criterium']>
+      criteria_array = criteria as Array<Criterium>
     } else {
-      criteria_array = [criteria as SpectodaTypes['Criterium']]
+      criteria_array = [criteria as Criterium]
     }
 
     const auto_select_query: AutoSelectQuery = {
@@ -707,7 +707,7 @@ export class SpectodaRuntime {
     return item.promise
   }
 
-  selected(): Promise<SpectodaTypes['Criterium'] | null> {
+  selected(): Promise<Criterium | null> {
     logging.verbose('selected()')
 
     const item = new Query(Query.TYPE_SELECTED)
@@ -716,10 +716,7 @@ export class SpectodaRuntime {
     return item.promise
   }
 
-  scan(
-    criteria: object,
-    scan_period: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
-  ): Promise<Array<SpectodaTypes['Criterium']>> {
+  scan(criteria: object, scan_period: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT): Promise<Array<Criterium>> {
     logging.verbose(`scan(criteria=${JSON.stringify(criteria)}, scan_period=${scan_period}`)
 
     if (this.#selecting) {
@@ -728,15 +725,15 @@ export class SpectodaRuntime {
 
     this.#selecting = true
 
-    // ? makes sure that criteria is always an array of SpectodaTypes['Criterium']
-    let criteria_array: Array<SpectodaTypes['Criterium']>
+    // ? makes sure that criteria is always an array of Criterium
+    let criteria_array: Array<Criterium>
 
     if (criteria === null || criteria === undefined) {
       criteria_array = []
     } else if (Array.isArray(criteria)) {
-      criteria_array = criteria as Array<SpectodaTypes['Criterium']>
+      criteria_array = criteria as Array<Criterium>
     } else {
-      criteria_array = [criteria as SpectodaTypes['Criterium']]
+      criteria_array = [criteria as Criterium]
     }
 
     const scan_query: ScanQuery = { criteria_array, scan_period }
@@ -748,7 +745,7 @@ export class SpectodaRuntime {
     })
   }
 
-  connect(timeout: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT): Promise<SpectodaTypes['Criterium'] | null> {
+  connect(timeout: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT): Promise<Criterium | null> {
     logging.verbose(`connect(timeout=${timeout})`)
 
     const connect_query: ConnectQuery = { timeout }
@@ -793,7 +790,7 @@ export class SpectodaRuntime {
     }
   }
 
-  connected(): Promise<SpectodaTypes['Criterium'] | null> {
+  connected(): Promise<Criterium | null> {
     logging.verbose('connected()')
 
     const item = new Query(Query.TYPE_CONNECTED)
@@ -1722,10 +1719,7 @@ export class SpectodaRuntime {
     return this.spectoda_js.emitNull(event_label, event_id)
   }
 
-  async getEventStates(
-    event_state_name: string,
-    event_state_ids: SpectodaTypes['IDs'],
-  ): Promise<(EventState | undefined)[]> {
+  async getEventStates(event_state_name: string, event_state_ids: ValueTypeIDs): Promise<(EventState | undefined)[]> {
     await this.#initialize()
     if (Array.isArray(event_state_ids)) {
       return event_state_ids.map((id) => this.spectoda_js.getEventState(event_state_name, id))
@@ -1734,7 +1728,7 @@ export class SpectodaRuntime {
     }
   }
 
-  async getEventState(event_state_name: string, event_state_id: SpectodaTypes['ID']): Promise<EventState | undefined> {
+  async getEventState(event_state_name: string, event_state_id: ValueTypeID): Promise<EventState | undefined> {
     await this.#initialize()
     return this.spectoda_js.getEventState(event_state_name, event_state_id)
   }
@@ -1744,7 +1738,7 @@ export class SpectodaRuntime {
     return this.spectoda_js.getDateTime()
   }
 
-  async registerDeviceContexts(ids: SpectodaTypes['IDs']): Promise<boolean[]> {
+  async registerDeviceContexts(ids: ValueTypeIDs): Promise<boolean[]> {
     await this.#initialize()
     if (Array.isArray(ids)) {
       return ids.map((id) => this.spectoda_js.registerDeviceContext(id))
@@ -1753,7 +1747,7 @@ export class SpectodaRuntime {
     }
   }
 
-  async registerDeviceContext(id: SpectodaTypes['ID']): Promise<boolean> {
+  async registerDeviceContext(id: ValueTypeID): Promise<boolean> {
     await this.#initialize()
     return this.spectoda_js.registerDeviceContext(id)
   }

@@ -45,12 +45,31 @@ import {
   REMOTECONTROL_STATUS,
   RemoteControlConnectionStatus,
 } from './src/types/connect'
-import { Event } from './src/types/event'
-import { SpectodaTypes } from './src/types/primitives'
+import {
+  ControllerInfo,
+  Criteria,
+  NetworkKey,
+  NetworkSignature,
+  PcbCode,
+  ProductCode,
+  TnglBank,
+  ValueTypeLabel,
+} from './src/types/primitives'
 import { SpectodaClass } from './src/types/spectodaClass'
 import { fetchTnglFromApiById, sendTnglToApi } from './tnglapi'
-import { EventSchema } from './src/schemas/event'
-import { VALUE_TYPES } from './src/constants/values'
+import { EventStateSchema } from './src/schemas/event'
+import { VALUE_TYPES, ValueType } from './src/constants/values'
+import {
+  ValueTypeColor,
+  ValueTypeDate,
+  ValueTypeID,
+  ValueTypeIDs,
+  ValueTypePercentage,
+  ValueTypePixels,
+  ValueTypeTimestamp,
+} from './src/types/values'
+
+import { EventState } from '.'
 
 const MIN_FIRMWARE_LENGTH = 10000
 const DEFAULT_RECONNECTION_TIME = 2500
@@ -64,14 +83,14 @@ export class Spectoda implements SpectodaClass {
   #parser: TnglCodeParser
 
   #uuidCounter: number
-  #ownerSignature: SpectodaTypes['NetworkSignature']
-  #ownerKey: SpectodaTypes['NetworkKey']
+  #ownerSignature: NetworkSignature
+  #ownerKey: NetworkKey
   #updating: boolean
 
   #connectionState: ConnectionStatus
   #remoteControlConnectionState: RemoteControlConnectionStatus
 
-  #criteria: SpectodaTypes['Criteria']
+  #criteria: Criteria
   #reconnecting: boolean
   #autonomousReconnection: boolean
   #wakeLock: WakeLockSentinel | null | undefined
@@ -262,7 +281,7 @@ export class Spectoda implements SpectodaClass {
     return this.#connectionState
   }
 
-  #setOwnerSignature(ownerSignature: SpectodaTypes['NetworkSignature']) {
+  #setOwnerSignature(ownerSignature: NetworkSignature) {
     const reg = ownerSignature.match(/([\dA-Fa-f]{32})/g)
 
     if (!reg || reg.length === 0 || !reg[0]) {
@@ -273,7 +292,7 @@ export class Spectoda implements SpectodaClass {
     return true
   }
 
-  #setOwnerKey(ownerKey: SpectodaTypes['NetworkKey']) {
+  #setOwnerKey(ownerKey: NetworkKey) {
     const reg = ownerKey.match(/([\dA-Fa-f]{32})/g)
 
     if (!reg || reg.length === 0 || !reg[0]) {
@@ -376,7 +395,7 @@ export class Spectoda implements SpectodaClass {
   /**
    * @alias this.setConnector
    */
-  assignOwnerSignature(ownerSignature: SpectodaTypes['NetworkSignature']) {
+  assignOwnerSignature(ownerSignature: NetworkSignature) {
     return this.#setOwnerSignature(ownerSignature)
   }
 
@@ -384,7 +403,7 @@ export class Spectoda implements SpectodaClass {
    * @deprecated
    * Set the network `signature` (deprecated terminology "ownerSignature").
    */
-  setOwnerSignature(ownerSignature: SpectodaTypes['NetworkSignature']) {
+  setOwnerSignature(ownerSignature: NetworkSignature) {
     return this.#setOwnerSignature(ownerSignature)
   }
 
@@ -392,28 +411,28 @@ export class Spectoda implements SpectodaClass {
    * @deprecated
    * Get the network `signature` (deprecated terminology "ownerSignature").
    */
-  getOwnerSignature(): SpectodaTypes['NetworkSignature'] {
+  getOwnerSignature(): NetworkSignature {
     return this.#ownerSignature
   }
 
   /**
    * @alias this.setOwnerKey
    */
-  assignOwnerKey(ownerKey: SpectodaTypes['NetworkKey']) {
+  assignOwnerKey(ownerKey: NetworkKey) {
     return this.#setOwnerKey(ownerKey)
   }
 
   /**
    * Sets the network `key` (deprecated terminology "ownerKey").
    */
-  setOwnerKey(ownerKey: SpectodaTypes['NetworkKey']) {
+  setOwnerKey(ownerKey: NetworkKey) {
     return this.#setOwnerKey(ownerKey)
   }
 
   /**
    * Get the network `key` (deprecated terminology "ownerKey").
    */
-  getOwnerKey(): SpectodaTypes['NetworkKey'] {
+  getOwnerKey(): NetworkKey {
     return this.#ownerKey
   }
 
@@ -726,95 +745,100 @@ export class Spectoda implements SpectodaClass {
         : this.runtime.userSelect(this.#criteria, scanTimeout)
     )
       .then(() => {
-        logging.debug('> Connecting controller...')
-
         // ? eraseTimeline to discard Timeline from the previous session
-        this.runtime.spectoda_js.eraseTimeline()
+        return this.eraseTimeline()
+      })
+      .then(() => {
+        logging.debug('> Connecting controller...')
 
         return this.runtime.connect()
       })
-      .then((connectedDeviceInfo) => {
-        // TODO rename to connectedControllerInfo
-        logging.debug('> Synchronizing Network State...')
+      .then((connectedControllerCriteria) => {
+        logging.debug('> Synchronizing $APP Controller State...')
 
-        // return this.requestTimeline()
-        //   .catch(e => {
-        //     logging.info("Timeline sync after reconnection failed:", e);
-        //     // ! This is only temporary until @immakermatty figures out how to implement decentralized synchronizing of RTC time
-        //     logging.info("Setting timeline to day time");
-        //     return this.syncTimelineToDayTime().catch(e => {
-        //       logging.error("Setting timeline to daytime failed:", e);
-        //     });
-        //   })
-        // ! For now on every connection, force sync timeline to day time
-        return this.syncTimelineToDayTime()
-          .then(() => {
-            return this.readControllerInfo()
-              .then(async (info) => {
-                // 0.12.4 and up implements readControllerInfo() which give a hash (fingerprint) of
-                // TNGL and EventStore on the Controller. If the TNGL and EventStore
-                // FP cashed in localstorage are equal, then the app does not need to
-                // "fetch" the TNGL and EventStore from Controller.
+        return this.readControllerInfo()
+          .then(async (info) => {
+            // 0.12.4 and up implements readControllerInfo() which give a hash (fingerprint) of
+            // TNGL and EventStore on the Controller. If the TNGL and EventStore
+            // FP cashed in localstorage are equal, then the app does not need to
+            // "fetch" the TNGL and EventStore from Controller.
 
-                const tnglFingerprint = this.runtime.spectoda_js.getTnglFingerprint()
-                const eventStoreFingerprint = this.runtime.spectoda_js.getEventStoreFingerprint()
+            const tnglFingerprint = this.runtime.spectoda_js.getTnglFingerprint()
+            const eventStoreFingerprint = this.runtime.spectoda_js.getEventStoreFingerprint()
 
-                // First erase in localstorage
-                if (info.tnglFingerprint != tnglFingerprint) {
-                  this.runtime.spectoda_js.eraseTngl()
-                }
+            logging.info('APP tnglFingerprint', tnglFingerprint)
+            logging.info('ESP tnglFingerprint', info.tnglFingerprint)
+            logging.info('APP eventStoreFingerprint', eventStoreFingerprint)
+            logging.info('ESP eventStoreFingerprint', info.eventStoreFingerprint)
 
-                if (info.eventStoreFingerprint != eventStoreFingerprint) {
-                  this.runtime.spectoda_js.eraseHistory()
-                }
-
-                // Then read from Controller
-                if (info.tnglFingerprint != tnglFingerprint) {
-                  // "fetch" the TNGL from Controller to App localstorage
-                  await this.syncTngl().catch((e) => {
-                    logging.error('TNGL sync after connection failed:', e)
-                  })
-                }
-
-                if (info.eventStoreFingerprint != eventStoreFingerprint) {
-                  // "fetch" the EventStore from Controller to App localstorage
-                  await this.syncEventHistory().catch((e) => {
-                    logging.error('EventStore sync after connection failed:', e)
-                  })
-                }
-              }) //
-              .catch(async (e) => {
-                logging.error('Reading controller info after connection failed:', e)
-
-                // App connected to FW that does not support readControllerInfo(),
-                // so remove cashed TNGL and EventStore (EventHistory) from localstogare
-                // and read it from the Controller
-
-                // first clean all
-                this.runtime.spectoda_js.eraseTngl()
-                this.runtime.spectoda_js.eraseHistory()
-
-                // "fetch" the TNGL from Controller to App localstorage
-                await this.syncTngl().catch((e) => {
-                  logging.error('TNGL sync after connection failed:', e)
-                })
-
-                // "fetch" the EventStore from Controller to App localstorage
-                await this.syncEventHistory().catch((e) => {
-                  logging.error('EventStore sync after connection failed:', e)
-                })
-              }) //
-              .then(() => {
-                return this.runtime.connected()
-              })
-          }) //
-          .then((connected) => {
-            if (!connected) {
-              throw 'ConnectionFailed'
+            // First erase in localstorage
+            if (info.tnglFingerprint != tnglFingerprint) {
+              this.runtime.spectoda_js.eraseTngl()
             }
-            this.#setConnectionState(CONNECTION_STATUS.CONNECTED)
-            return connectedDeviceInfo
+
+            if (info.eventStoreFingerprint != eventStoreFingerprint) {
+              this.runtime.spectoda_js.eraseHistory()
+            }
+
+            // Then read from Controller
+            if (info.tnglFingerprint != tnglFingerprint) {
+              // "fetch" the TNGL from Controller to App localstorage
+              // ! do not await to avoid blocking the connection process and let the TNGL sync in the background
+              this.syncTngl().catch((e) => {
+                logging.error('TNGL sync after connection failed:', e)
+              })
+            }
+
+            if (info.eventStoreFingerprint != eventStoreFingerprint) {
+              // "fetch" the EventStore from Controller to App localstorage
+              // ! do not await to avoid blocking the connection process and let the EventStore sync in the background
+              this.syncEventHistory().catch((e) => {
+                logging.error('EventStore sync after connection failed:', e)
+              })
+            }
+
+            // ! For FW 0.12 on every connection, force sync timeline to day time
+            // ! do not await to avoid blocking the connection process and let the Timeline sync in the background
+            this.syncTimelineToDayTime().catch((e) => {
+              logging.error('Timeline sync after connection failed:', e)
+            })
+          }) //
+          .catch(async (e) => {
+            logging.error('Reading controller info after connection failed:', e)
+
+            // App connected to FW that does not support readControllerInfo(),
+            // so remove cashed TNGL and EventStore (EventHistory) from localstogare
+            // and read it from the Controller
+
+            // first clean all
+            this.runtime.spectoda_js.eraseTngl()
+            this.runtime.spectoda_js.eraseHistory()
+
+            // "fetch" the TNGL from Controller to App localstorage
+            await this.syncTngl().catch((e) => {
+              logging.error('TNGL sync after connection failed:', e)
+            })
+
+            // "fetch" the EventStore from Controller to App localstorage
+            await this.syncEventHistory().catch((e) => {
+              logging.error('EventStore sync after connection failed:', e)
+            })
+
+            // ! For FW 0.12 on every connection, force sync timeline to day time
+            await this.syncTimelineToDayTime().catch((e) => {
+              logging.error('Timeline sync after connection failed:', e)
+            })
+          }) //
+          .then(() => {
+            return { connected: this.runtime.connected(), criteria: connectedControllerCriteria }
           })
+      }) //
+      .then(({ connected, criteria }) => {
+        if (!connected) {
+          throw 'ConnectionFailed'
+        }
+        this.#setConnectionState(CONNECTION_STATUS.CONNECTED)
+        return criteria
       })
       .catch((error) => {
         logging.error('Error during connect():', error)
@@ -841,10 +865,10 @@ export class Spectoda implements SpectodaClass {
    * TODO REFACTOR to use only one criteria object instead of this param madness
    */
   connect(
-    criteria: SpectodaTypes['Criteria'],
+    criteria: Criteria,
     autoConnect = true,
-    ownerSignature: SpectodaTypes['NetworkSignature'] = '',
-    ownerKey: SpectodaTypes['NetworkKey'] = '',
+    ownerSignature: NetworkSignature = '',
+    ownerKey: NetworkKey = '',
     connectAny = false,
     fwVersion = '',
     autonomousReconnection = false,
@@ -957,7 +981,7 @@ export class Spectoda implements SpectodaClass {
      * @param rawValue The raw value as given in the event
      * @returns The correctly formatted TNGL-compatible string
      */
-    function formatValue(type: SpectodaTypes['ValueType'], rawValue: any) {
+    function formatValue(type: ValueType, rawValue: any) {
       switch (type) {
         case VALUE_TYPES.COLOR: {
           // Ensure a leading "#" and normalize to lowercase
@@ -1452,9 +1476,9 @@ export class Spectoda implements SpectodaClass {
      *   Each event is an object: { type, value, id, label, timestamp }
      * @returns The joined TNGL output (one chain per line)
      */
-    function convertEventsToTnglChains(sceneName: string, events: Event[]) {
+    function convertEventsToTnglChains(sceneName: string, events: EventState[]) {
       // Group events by ID while preserving their relative order
-      const eventsById: Record<number, Event[]> = {}
+      const eventsById: Record<number, EventState[]> = {}
 
       for (const evt of events) {
         if (!eventsById[evt.id]) {
@@ -1987,14 +2011,14 @@ export class Spectoda implements SpectodaClass {
    * Emits Spectoda Event with null value.
    */
   emitEvent(
-    event_label: SpectodaTypes['Label'],
+    event_label: ValueTypeLabel,
     // TODO rename to spectodaIds
-    device_ids: SpectodaTypes['IDs'] = 255,
+    device_ids: ValueTypeIDs = 255,
     force_delivery = true,
   ) {
     logging.verbose(`emitEvent(event_label=${event_label},device_ids=${device_ids},force_delivery=${force_delivery})`)
 
-    const func = async (id: SpectodaTypes['ID']) => {
+    const func = async (id: ValueTypeID) => {
       if (!(await this.runtime.emitNull(event_label, id))) {
         return Promise.reject('EventEmitFailed')
       }
@@ -2025,11 +2049,7 @@ export class Spectoda implements SpectodaClass {
    * Emits Spectoda Event with timestamp value.
    * Timestamp value range is (-86400000, 86400000)
    */
-  emitTimestamp(
-    event_label: SpectodaTypes['Label'],
-    event_value: SpectodaTypes['Timestamp'],
-    device_ids: SpectodaTypes['IDs'] = 255,
-  ) {
+  emitTimestamp(event_label: ValueTypeLabel, event_value: ValueTypeTimestamp, device_ids: ValueTypeIDs = 255) {
     logging.verbose(`emitTimestamp(label=${event_label},value=${event_value},id=${device_ids})`)
 
     if (event_value > 86400000) {
@@ -2042,7 +2062,7 @@ export class Spectoda implements SpectodaClass {
       event_value = -86400000
     }
 
-    const func = async (id: SpectodaTypes['ID']) => {
+    const func = async (id: ValueTypeID) => {
       if (!(await this.runtime.emitTimestamp(event_label, event_value, id))) {
         return Promise.reject('EventEmitFailed')
       }
@@ -2068,11 +2088,7 @@ export class Spectoda implements SpectodaClass {
    * Emits Spectoda Event with color value.
    * Color value must be a string in hex format with or without "#" prefix.
    */
-  emitColor(
-    event_label: SpectodaTypes['Label'],
-    event_value: SpectodaTypes['Color'],
-    device_ids: SpectodaTypes['IDs'] = 255,
-  ) {
+  emitColor(event_label: ValueTypeLabel, event_value: ValueTypeColor, device_ids: ValueTypeIDs = 255) {
     logging.verbose(`emitColor(label=${event_label},value=${event_value},id=${device_ids})`)
 
     event_value = cssColorToHex(event_value)
@@ -2082,7 +2098,7 @@ export class Spectoda implements SpectodaClass {
       event_value = '#000000'
     }
 
-    const func = async (id: SpectodaTypes['ID']) => {
+    const func = async (id: ValueTypeID) => {
       if (!(await this.runtime.emitColor(event_label, event_value, id))) {
         return Promise.reject('EventEmitFailed')
       }
@@ -2108,11 +2124,7 @@ export class Spectoda implements SpectodaClass {
    * Emits Spectoda Event with percentage value
    * value range is (-100,100)
    */
-  emitPercentage(
-    event_label: SpectodaTypes['Label'],
-    event_value: SpectodaTypes['Percentage'],
-    device_ids: SpectodaTypes['IDs'] = 255,
-  ) {
+  emitPercentage(event_label: ValueTypeLabel, event_value: ValueTypePercentage, device_ids: ValueTypeIDs = 255) {
     logging.verbose(`emitPercentage(label=${event_label},value=${event_value},id=${device_ids})`)
 
     if (event_value > 100) {
@@ -2125,7 +2137,7 @@ export class Spectoda implements SpectodaClass {
       event_value = -100
     }
 
-    const func = async (id: SpectodaTypes['ID']) => {
+    const func = async (id: ValueTypeID) => {
       if (!(await this.runtime.emitPercentage(event_label, event_value, id))) {
         return Promise.reject('EventEmitFailed')
       }
@@ -2149,11 +2161,7 @@ export class Spectoda implements SpectodaClass {
   /**
    * E.g. event "anima" to value "a_001"
    */
-  emitLabel(
-    event_label: SpectodaTypes['Label'],
-    event_value: SpectodaTypes['Label'],
-    device_ids: SpectodaTypes['IDs'] = 255,
-  ) {
+  emitLabel(event_label: ValueTypeLabel, event_value: ValueTypeLabel, device_ids: ValueTypeIDs = 255) {
     logging.verbose(`emitLabel(label=${event_label},value=${event_value},id=${device_ids})`)
 
     if (typeof event_value !== 'string') {
@@ -2166,7 +2174,7 @@ export class Spectoda implements SpectodaClass {
       event_value = event_value.slice(0, 5)
     }
 
-    const func = async (id: SpectodaTypes['ID']) => {
+    const func = async (id: ValueTypeID) => {
       if (!(await this.runtime.emitLabel(event_label, event_value, id))) {
         return Promise.reject('EventEmitFailed')
       }
@@ -2279,11 +2287,12 @@ export class Spectoda implements SpectodaClass {
 
   /**
    * Synchronizes timeline of the connected controller with the current time of the runtime.
+   * TODO! [0.13] move Timeline handling to WASM
    */
   syncTimeline(
-    timestamp: SpectodaTypes['Timestamp'] | null = null,
+    timestamp: ValueTypeTimestamp | null = null,
     paused: boolean | null = null,
-    date: SpectodaTypes['Date'] | null = null,
+    date: ValueTypeDate | null = null,
   ): Promise<unknown> {
     logging.verbose(`syncTimeline(timestamp=${timestamp}, paused=${paused})`)
 
@@ -2308,12 +2317,22 @@ export class Spectoda implements SpectodaClass {
     // from "DD-MM-YYYY" date erase "-" and convert to number YYYYMMDD:
     const date_number = parseInt(date.split('-').reverse().join(''))
 
-    const flags = paused ? 0b00010000 : 0b00000000 // flags: [reserved,reserved,reserved,timeline_paused,reserved,reserved,reserved,reserved]
+    // flags: [reserved,reserved,reserved,timeline_paused,reserved,reserved,write_rtc_flag,reserved]
+    const FLAG_PAUSED_BIT = 4
+    const FLAG_WRITE_RTC_BIT = 1
+
+    const ALWAYS_WRITE_RTC_FROM_APP_TIMELINE_WRITE_COMMAND = true
+
+    let timeline_flags = 0
+
+    timeline_flags |= paused ? 1 << FLAG_PAUSED_BIT : 0
+    timeline_flags |= ALWAYS_WRITE_RTC_FROM_APP_TIMELINE_WRITE_COMMAND ? 1 << FLAG_WRITE_RTC_BIT : 0
+
     const payload = [
       COMMAND_FLAGS.FLAG_TIMELINE_WRITE,
       ...numberToBytes(clock_timestamp, 6),
       ...numberToBytes(timestamp, 4),
-      flags,
+      timeline_flags,
       ...numberToBytes(date_number, 4),
     ]
 
@@ -2323,7 +2342,7 @@ export class Spectoda implements SpectodaClass {
   /**
    * Synchronizes TNGL variable state of given ID to all other IDs
    */
-  syncState(deviceId: SpectodaTypes['ID']) {
+  syncState(deviceId: ValueTypeID) {
     logging.info('> Synchronizing state...')
 
     const request_uuid = this.#getUUID()
@@ -2833,7 +2852,7 @@ export class Spectoda implements SpectodaClass {
    * ! Useful
    * Puts currently connected controller into the DEFAULT network. More info at the top of this file.
    */
-  removeOwner() {
+  removeOwner(rebootController = true) {
     logging.debug('> Removing owner...')
 
     const request_uuid = this.#getUUID()
@@ -2868,7 +2887,7 @@ export class Spectoda implements SpectodaClass {
 
       const removed_device_mac_bytes = reader.readBytes(6)
 
-      return this.rebootDevice().then(() => {
+      return (rebootController ? this.rebootDevice() : Promise.resolve()).then(() => {
         let removed_device_mac = '00:00:00:00:00:00'
 
         if (removed_device_mac_bytes.length >= 6) {
@@ -3235,16 +3254,28 @@ export class Spectoda implements SpectodaClass {
 
   /**
    * ! Useful
-   * ! TODO REFACTOR to eraseEventStore
-   * ! TODO currently erases event history but does not interact with event states
+   * ! TODO rename to eraseEventStore
+   * ! TODO refactor to use use spectoda_js.eraseEventStore(destination_connection)
    * Erases the event state history of ALL CONTROLLERS in the Spectoda network
-   * TODO This should be called `eraseEventStates`
    */
   eraseEventHistory() {
     logging.debug('> Erasing event history...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_ERASE_EVENT_HISTORY_REQUEST, ...numberToBytes(request_uuid, 4)]
+
+    return this.runtime.execute(bytes, undefined)
+  }
+
+  /**
+   * ! Useful
+   * Erases the timeline of the connected controller.
+   */
+  eraseTimeline() {
+    logging.debug('> Erasing timeline...')
+
+    const request_uuid = this.#getUUID()
+    const bytes = [COMMAND_FLAGS.FLAG_ERASE_TIMELINE_COMMAND_REQUEST, ...numberToBytes(request_uuid, 4)]
 
     return this.runtime.execute(bytes, undefined)
   }
@@ -3293,10 +3324,7 @@ export class Spectoda implements SpectodaClass {
    * ! Useful
    * Changes the network of the controller Spectoda.js is `connect`ed to.
    */
-  writeOwner(
-    ownerSignature: SpectodaTypes['NetworkSignature'] = NO_NETWORK_SIGNATURE,
-    ownerKey: SpectodaTypes['NetworkKey'] = NO_NETWORK_KEY,
-  ) {
+  writeOwner(ownerSignature: NetworkSignature = NO_NETWORK_SIGNATURE, ownerKey: NetworkKey = NO_NETWORK_KEY) {
     logging.debug(`writeOwner(ownerSignature=${ownerSignature}, ownerKey=${ownerKey})`)
 
     logging.info('> Writing owner to controller...')
@@ -3307,7 +3335,7 @@ export class Spectoda implements SpectodaClass {
 
     if (ownerSignature == NO_NETWORK_SIGNATURE && ownerKey == NO_NETWORK_KEY) {
       logging.warn('> Removing owner instead of writing all zero owner')
-      return this.removeOwner()
+      return this.removeOwner(false)
     }
 
     const owner_signature_bytes = hexStringToUint8Array(ownerSignature, 16)
@@ -3390,8 +3418,8 @@ export class Spectoda implements SpectodaClass {
    * Changes the network of ALL controllers in the network Spectoda.js is `connect`ed to.
    */
   writeNetworkOwner(
-    ownerSignature: SpectodaTypes['NetworkSignature'] = '00000000000000000000000000000000',
-    ownerKey: SpectodaTypes['NetworkKey'] = '00000000000000000000000000000000',
+    ownerSignature: NetworkSignature = '00000000000000000000000000000000',
+    ownerKey: NetworkKey = '00000000000000000000000000000000',
   ) {
     logging.debug(`writeNetworkOwner(ownerSignature=${ownerSignature}, ownerKey=${ownerKey})`)
 
@@ -3428,7 +3456,7 @@ export class Spectoda implements SpectodaClass {
   /**
    * ! Useful
    */
-  writeControllerName(label: SpectodaTypes['Label']) {
+  writeControllerName(label: ValueTypeLabel) {
     logging.debug('> Writing Controller Name...')
 
     const request_uuid = this.#getUUID()
@@ -3494,7 +3522,7 @@ export class Spectoda implements SpectodaClass {
    * @param ioLabel - 5 character IO label (e.g. "BTN_1")
    * @param variant - variant name (max 16 characters)
    */
-  writeControllerIoVariant(ioLabel: SpectodaTypes['Label'], variant: string | null) {
+  writeControllerIoVariant(ioLabel: ValueTypeLabel, variant: string | null) {
     logging.debug('> Writing Controller IO Variant...')
 
     const request_uuid = this.#getUUID()
@@ -3516,7 +3544,7 @@ export class Spectoda implements SpectodaClass {
    * @param ioLabel - 5 character IO label (e.g. "BTN_1")
    * @param variant - variant name (max 16 characters)
    */
-  writeNetworkIoVariant(ioLabel: SpectodaTypes['Label'], variant: string | null) {
+  writeNetworkIoVariant(ioLabel: ValueTypeLabel, variant: string | null) {
     logging.debug('> Writing Network IO Variant...')
 
     const request_uuid = this.#getUUID()
@@ -3538,7 +3566,7 @@ export class Spectoda implements SpectodaClass {
    * @param ioLabel - 5 character IO label (e.g. "BTN_1")
    * @returns The variant name for the specified IO label
    */
-  readControllerIoVariant(ioLabel: SpectodaTypes['Label']) {
+  readControllerIoVariant(ioLabel: ValueTypeLabel) {
     logging.debug('> Reading Controller IO Variant...')
 
     const request_uuid = this.#getUUID()
@@ -3586,7 +3614,7 @@ export class Spectoda implements SpectodaClass {
     })
   }
 
-  writeControllerIoMapping(ioLabel: SpectodaTypes['Label'], mapping: Array<SpectodaTypes['Pixels']> | null) {
+  writeControllerIoMapping(ioLabel: ValueTypeLabel, mapping: Array<ValueTypePixels> | null) {
     logging.debug('> Writing Controller IO Mapping...')
 
     const request_uuid = this.#getUUID()
@@ -3607,7 +3635,7 @@ export class Spectoda implements SpectodaClass {
    * @param ioLabel - 5 character IO label (e.g. "BTN_1")
    * @returns The mapping for the specified IO label
    */
-  readControllerIoMapping(ioLabel: SpectodaTypes['Label']): Promise<Array<SpectodaTypes['Pixels']>> {
+  readControllerIoMapping(ioLabel: ValueTypeLabel): Promise<Array<ValueTypePixels>> {
     logging.debug('> Reading Controller IO Mapping...')
 
     const request_uuid = this.#getUUID()
@@ -3675,7 +3703,7 @@ export class Spectoda implements SpectodaClass {
   }
 
   //* WIP
-  async WIP_writeIoVariant(ioLabel: SpectodaTypes['Label'], variant: string | null): Promise<void> {
+  async WIP_writeIoVariant(ioLabel: ValueTypeLabel, variant: string | null): Promise<void> {
     logging.verbose(`writeIoVariant(ioLabel=${ioLabel}, variant=${variant})`)
 
     logging.info('> Writing IO Variant...')
@@ -3695,7 +3723,7 @@ export class Spectoda implements SpectodaClass {
   }
 
   //* WIP
-  async WIP_writeIoMapping(ioLabel: SpectodaTypes['Label'], mapping: number[] | null): Promise<void> {
+  async WIP_writeIoMapping(ioLabel: ValueTypeLabel, mapping: number[] | null): Promise<void> {
     logging.verbose(`writeIoMapping(ioLabel=${ioLabel}, mapping=${mapping})`)
 
     logging.info('> Writing IO Mapping...')
@@ -3717,7 +3745,7 @@ export class Spectoda implements SpectodaClass {
   /**
    * Reads the TNGL variable on given ID from App's WASM
    */
-  readVariable(variable_name: string, id: SpectodaTypes['ID'] = 255) {
+  readVariable(variable_name: string, id: ValueTypeID = 255) {
     logging.debug('> Reading variable...')
 
     const variable_declarations = this.#parser.getVariableDeclarations()
@@ -3749,7 +3777,7 @@ export class Spectoda implements SpectodaClass {
   /**
    * For FW nerds
    */
-  readVariableAddress(variable_address: number, id: SpectodaTypes['ID'] = 255) {
+  readVariableAddress(variable_address: number, id: ValueTypeID = 255) {
     logging.debug('> Reading variable address...')
 
     const memory_stack = this.#parser.getMemoryStack()
@@ -3891,7 +3919,7 @@ export class Spectoda implements SpectodaClass {
    *
    * Product Code is a code of a specific product. A product is a defined, specific configuration of inputs and outputs that make up a whole product. E.g. NARA Lamp (two LED outputs of certain length and a touch button), Sunflow Lamp (three LED outputs, push button)
    */
-  writeControllerCodes(pcb_code: SpectodaTypes['PcbCode'], product_code: SpectodaTypes['ProductCode']) {
+  writeControllerCodes(pcb_code: PcbCode, product_code: ProductCode) {
     logging.debug('> Writing controller codes...')
 
     const request_uuid = this.#getUUID()
@@ -4045,8 +4073,9 @@ export class Spectoda implements SpectodaClass {
 
   /**
    * Save the current uploaded Tngl (via `writeTngl) to the bank in parameter
+   * TODO! [0.13] Move saveTnglBank to CPP class `Spectoda` and expose the function via WASM API
    */
-  saveTnglBank(tngl_bank: SpectodaTypes['TnglBank']) {
+  saveTnglBank(tngl_bank: TnglBank) {
     logging.debug(`> Saving TNGL to bank ${tngl_bank}...`)
 
     const request_uuid = this.#getUUID()
@@ -4054,6 +4083,7 @@ export class Spectoda implements SpectodaClass {
       COMMAND_FLAGS.FLAG_SAVE_TNGL_MEMORY_BANK_REQUEST,
       ...numberToBytes(request_uuid, 4),
       tngl_bank,
+      ...numberToBytes(this.runtime.clock.millis(), 6),
     ]
 
     return this.runtime.execute(command_bytes, undefined)
@@ -4061,8 +4091,9 @@ export class Spectoda implements SpectodaClass {
 
   /**
    * Load the Tngl from the bank in parameter
+   * TODO! [0.13] Move saveTnglBank to CPP class `Spectoda` and expose the function via WASM API
    */
-  loadTnglBank(tngl_bank: SpectodaTypes['TnglBank']) {
+  loadTnglBank(tngl_bank: TnglBank) {
     logging.debug(`> Loading TNGL from bank ${tngl_bank}...`)
 
     const request_uuid = this.#getUUID()
@@ -4078,8 +4109,9 @@ export class Spectoda implements SpectodaClass {
 
   /**
    * Erase the Tngl from the bank in parameter
+   * TODO! [0.13] Move saveTnglBank to CPP class `Spectoda` and expose the function via WASM API
    */
-  eraseTnglBank(tngl_bank: SpectodaTypes['TnglBank']) {
+  eraseTnglBank(tngl_bank: TnglBank) {
     logging.debug(`> Erasing TNGL bank ${tngl_bank}...`)
 
     const request_uuid = this.#getUUID()
@@ -4087,16 +4119,17 @@ export class Spectoda implements SpectodaClass {
       COMMAND_FLAGS.FLAG_ERASE_TNGL_MEMORY_BANK_REQUEST,
       ...numberToBytes(request_uuid, 4),
       tngl_bank,
+      ...numberToBytes(this.runtime.clock.millis(), 6),
     ]
 
     return this.runtime.execute(command_bytes, undefined)
   }
 
-  getEventStates(event_state_label: SpectodaTypes['Label'], event_state_ids: SpectodaTypes['IDs']) {
+  getEventStates(event_state_label: ValueTypeLabel, event_state_ids: ValueTypeIDs) {
     return this.runtime.getEventStates(event_state_label, event_state_ids)
   }
 
-  getEventState(event_state_label: SpectodaTypes['Label'], event_state_id: SpectodaTypes['ID']) {
+  getEventState(event_state_label: ValueTypeLabel, event_state_id: ValueTypeID) {
     return this.runtime.getEventState(event_state_label, event_state_id)
   }
 
@@ -4105,12 +4138,12 @@ export class Spectoda implements SpectodaClass {
   }
 
   /** Refactor suggestion by @mchlkucera registerIDContext */
-  registerDeviceContexts(ids: SpectodaTypes['IDs']) {
+  registerDeviceContexts(ids: ValueTypeIDs) {
     return this.runtime.registerDeviceContexts(ids)
   }
 
   /** Refactor suggestion by @mchlkucera registerIDContext */
-  registerDeviceContext(id: SpectodaTypes['ID']) {
+  registerDeviceContext(id: ValueTypeID) {
     return this.runtime.registerDeviceContext(id)
   }
 
@@ -4121,7 +4154,7 @@ export class Spectoda implements SpectodaClass {
    * @param ids - Single ID or array of device IDs to get events for
    * @returns Array of events representing the current scene state
    */
-  getEmittedEvents(ids: SpectodaTypes['IDs']) {
+  getEmittedEvents(ids: ValueTypeIDs) {
     logging.verbose('getEmittedEvents(ids=', ids, ')')
 
     logging.info('> Getting emitted events...')
@@ -4137,49 +4170,52 @@ export class Spectoda implements SpectodaClass {
       this.#__events[id] = {}
     }
 
-    const unregisterListenerEmittedevents = this.runtime.on(SpectodaAppEvents.EMITTED_EVENTS, (events: Event[]) => {
-      for (const event of events) {
-        if (event.id === 255) {
-          for (let id = 0; id < 256; id++) {
-            if (!this.#__events[id][event.label]) {
-              this.#__events[id][event.label] = {}
+    const unregisterListenerEmittedevents = this.runtime.on(
+      SpectodaAppEvents.EMITTED_EVENTS,
+      (events: EventState[]) => {
+        for (const event of events) {
+          if (event.id === 255) {
+            for (let id = 0; id < 256; id++) {
+              if (!this.#__events[id][event.label]) {
+                this.#__events[id][event.label] = {}
+              }
+
+              if (
+                !this.#__events[id][event.label] ||
+                !this.#__events[id][event.label].timestamp ||
+                event.timestamp >= this.#__events[id][event.label].timestamp
+              ) {
+                this.#__events[id][event.label].type = event.type
+                this.#__events[id][event.label].value = event.value
+                this.#__events[id][event.label].id = id
+                this.#__events[id][event.label].label = event.label
+                this.#__events[id][event.label].timestamp = event.timestamp
+              }
             }
 
-            if (
-              !this.#__events[id][event.label] ||
-              !this.#__events[id][event.label].timestamp ||
-              event.timestamp >= this.#__events[id][event.label].timestamp
-            ) {
-              this.#__events[id][event.label].type = event.type
-              this.#__events[id][event.label].value = event.value
-              this.#__events[id][event.label].id = id
-              this.#__events[id][event.label].label = event.label
-              this.#__events[id][event.label].timestamp = event.timestamp
-            }
+            continue
           }
 
-          continue
+          if (!this.#__events[event.id][event.label]) {
+            this.#__events[event.id][event.label] = {}
+          }
+
+          if (
+            !this.#__events[event.id][event.label] ||
+            !this.#__events[event.id][event.label].timestamp ||
+            event.timestamp >= this.#__events[event.id][event.label].timestamp
+          ) {
+            this.#__events[event.id][event.label].type = event.type
+            this.#__events[event.id][event.label].value = event.value
+            this.#__events[event.id][event.label].id = event.id
+            this.#__events[event.id][event.label].label = event.label
+            this.#__events[event.id][event.label].timestamp = event.timestamp
+          }
         }
 
-        if (!this.#__events[event.id][event.label]) {
-          this.#__events[event.id][event.label] = {}
-        }
-
-        if (
-          !this.#__events[event.id][event.label] ||
-          !this.#__events[event.id][event.label].timestamp ||
-          event.timestamp >= this.#__events[event.id][event.label].timestamp
-        ) {
-          this.#__events[event.id][event.label].type = event.type
-          this.#__events[event.id][event.label].value = event.value
-          this.#__events[event.id][event.label].id = event.id
-          this.#__events[event.id][event.label].label = event.label
-          this.#__events[event.id][event.label].timestamp = event.timestamp
-        }
-      }
-
-      logging.verbose('#__events', this.#__events)
-    })
+        logging.verbose('#__events', this.#__events)
+      },
+    )
 
     return this.syncEventHistory()
       .catch(() => {
@@ -4241,13 +4277,14 @@ export class Spectoda implements SpectodaClass {
    */
   emitEvents(
     events:
-      | Pick<Event, 'label' | 'type' | 'value' | 'id'>[]
+      | Pick<EventState, 'label' | 'type' | 'value' | 'id'>[]
       | {
           // TODO @immakermatty remove this generic event type, use only SpectodaEvent
-          label: SpectodaTypes['Label']
-          type: string | SpectodaTypes['ValueType']
+          label: ValueTypeLabel
+          // TODO Make this only ValueType, why string?
+          type: string | ValueType
           value: null | string | number | boolean
-          id: SpectodaTypes['ID']
+          id: ValueTypeID
           timestamp: number
         }[],
   ) {
@@ -4257,7 +4294,7 @@ export class Spectoda implements SpectodaClass {
 
     if (typeof events === 'string') {
       const parsed = JSON.parse(events)
-      const validated = EventSchema.array().safeParse(parsed)
+      const validated = EventStateSchema.array().safeParse(parsed)
 
       if (validated.success) {
         events = validated.data
@@ -4470,7 +4507,7 @@ export class Spectoda implements SpectodaClass {
           tnglFingerprint: tngl_fingerprint_hex,
           eventStoreFingerprint: event_store_fingerprint_hex,
           configFingerprint: config_fingerprint_hex,
-        } as SpectodaTypes['ControllerInfo']
+        } as ControllerInfo
 
         logging.info('> Controller Info:', info)
         return info

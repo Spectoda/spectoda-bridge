@@ -1,4 +1,4 @@
-import type { SpectodaTypes } from '../types/primitives'
+import type { NetworkSignature, MacAddress, NetworkKey } from '../types/primitives'
 
 export const BROADCAST_ID = 255
 export const LABEL_MAX_LENGTH = 5
@@ -31,16 +31,16 @@ export const DEFAULT_CONNECTOR = CONNECTORS.DEFAULT
  * No Network Signature
  * @deprecated Use criteria.commissionable = true instead
  */
-export const NO_NETWORK_SIGNATURE: SpectodaTypes['NetworkSignature'] = '00000000000000000000000000000000'
+export const NO_NETWORK_SIGNATURE: NetworkSignature = '00000000000000000000000000000000'
 
 /**
  * No Network Key
  * @deprecated Use criteria.commissionable = true instead
  */
-export const NO_NETWORK_KEY: SpectodaTypes['NetworkKey'] = '00000000000000000000000000000000'
+export const NO_NETWORK_KEY: NetworkKey = '00000000000000000000000000000000'
 
 /** Default MAC address for the app */
-export const APP_MAC_ADDRESS: SpectodaTypes['MacAddress'] = '00:00:12:34:56:78'
+export const APP_MAC_ADDRESS: MacAddress = '00:00:12:34:56:78'
 
 /** TODO: ADD description */
 export const USE_ALL_CONNECTIONS = ['*/ff:ff:ff:ff:ff:ff']
@@ -51,7 +51,7 @@ export const DEFAULT_TIMEOUT = null
 /** TODO: ADD description */
 export const TNGL_SIZE_CONSIDERED_BIG = 12288
 
-/** TODO: ADD description */
+// TODO! move to commandFlags.ts
 export const COMMAND_FLAGS = Object.freeze({
   FLAG_UNSUPPORTED_COMMND_RESPONSE: 255, // TODO change FLAG_OTA_BEGIN to not be 255.
 
@@ -89,6 +89,26 @@ export const COMMAND_FLAGS = Object.freeze({
   FLAG_EMIT_NORMALIZED_EVENT: 127,
 
   // Former CommandFlag end
+
+  // 0.12.9
+  FLAG_ERASE_TIMELINE_COMMAND_REQUEST: 153,
+  FLAG_PROCESS_EVENTS_REQUEST: 154,
+
+  FLAG_SYNC_TIMELINE_WITH_CONNECTION_REQUEST: 155,
+  FLAG_SYNC_TNGL_WITH_CONNECTION_REQUEST: 156,
+  FLAG_SYNC_EVENTSTORE_WITH_CONNECTION_REQUEST: 157,
+  FLAG_SYNC_FIRMWARE_WITH_CONNECTION_REQUEST: 158,
+
+  FLAG_WRITE_TIMELINE_TO_NETWORK_REQUEST: 159,
+
+  FLAG_SYNC_TIMELINE_REQUEST: 160,
+  FLAG_SYNC_TNGL_REQUEST: 162,
+  FLAG_SYNC_EVENTSTORE_REQUEST: 164,
+  FLAG_SYNC_FIRMWARE_REQUEST: 166,
+
+  // 0.12.5
+  FLAG_RELOAD_TNGL_REQUEST: 168,
+  FLAG_RELOAD_TNGL_RESPONSE: 169,
 
   // 0.12.4
   FLAG_WRITE_IO_MAPPING_REQUEST: 170,

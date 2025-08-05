@@ -27,6 +27,8 @@
  * - Generic information, ambiguity (e.g. "Something went wrong", "The item was moved, deleted, removed or archived")
  */
 
+// TODO Replace this file with proper error handling from `packages/errors`
+
 export type ErrorFormat = {
   title: string
   message: string

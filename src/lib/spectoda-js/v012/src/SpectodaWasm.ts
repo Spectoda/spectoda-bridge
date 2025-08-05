@@ -4,47 +4,117 @@ import { logging } from '../logging'
 
 import { MainModule, Uint8Vector } from './types/wasm'
 
-export const WASM_VERSION = 'DEBUG_UNIVERSAL_0.12.8_20250608'
+export const WASM_VERSION = 'DEBUG_UNIVERSAL_0.12.9_20250728'
 export const WEBASSEMBLY_BASE_URL = 'https://webassembly.spectoda.com'
+
+const IS_NODEJS =
+  typeof process == 'object' && typeof process.versions == 'object' && typeof process.versions.node == 'string'
 
 let moduleInitilizing = false
 let moduleInitilized = false
 
-export const loadWasmFromS3 = async (version: string): Promise<MainModule> => {
+declare global {
+  var __non_webpack_require__: NodeJS.Require
+}
+
+const r = globalThis?.__non_webpack_require__ ?? require
+
+export const downloadWasmFromS3 = async (version: string) => {
   const js_url = `${WEBASSEMBLY_BASE_URL}/${version}.js`
   const wasm_url = `${WEBASSEMBLY_BASE_URL}/${version}.wasm`
 
-  const [js_response, wasm_response] = await Promise.all([
-    fetch(js_url, {
-      method: 'GET',
-      cache: 'force-cache',
-      credentials: 'omit',
-      headers: {
-        Accept: 'text/javascript',
-      },
-    }),
-    fetch(wasm_url, {
-      method: 'GET',
-      cache: 'force-cache',
-      credentials: 'omit',
-      headers: {
-        Accept: 'application/wasm',
-      },
-    }),
-  ])
-
-  let js_blob_url: string | undefined
+  let js_content: string | null = null
+  let wasm_content: ArrayBuffer | null = null
+  let js_module_url: string | null = null
 
   try {
-    const [js_content, wasm_content] = await Promise.all([js_response.text(), wasm_response.arrayBuffer()])
+    const [js_response, wasm_response] = await Promise.all([
+      fetch(js_url, {
+        method: 'GET',
+        cache: 'force-cache',
+        credentials: 'omit',
+        headers: {
+          Accept: 'text/javascript',
+        },
+      }),
+      fetch(wasm_url, {
+        method: 'GET',
+        cache: 'force-cache',
+        credentials: 'omit',
+        headers: {
+          Accept: 'application/wasm',
+        },
+      }),
+    ])
 
-    const js_blob = new Blob([js_content], { type: 'text/javascript' })
+    js_content = await js_response.text()
+    wasm_content = await wasm_response.arrayBuffer()
+  } catch {
+    if (IS_NODEJS) {
+      const { readFile, readdir } = r(/* webpackIgnore: true */ /* @vite-ignore */ 'node:fs/promises')
+      const { cwd } = r(/* webpackIgnore: true */ /* @vite-ignore */ 'node:process')
 
-    js_blob_url = URL.createObjectURL(js_blob)
+      const files = await readdir(`${cwd()}/.webassembly`)
 
+      if (files.includes(`${version}.js`) && files.includes(`${version}.wasm`)) {
+        const wasm_buffer = await readFile(`${cwd()}/.webassembly/${version}.wasm`)
+
+        js_content = await readFile(`${cwd()}/.webassembly/${version}.js`, { encoding: 'utf-8' })
+        wasm_content = wasm_buffer.buffer.slice(
+          wasm_buffer.byteOffset,
+          wasm_buffer.byteOffset + wasm_buffer.byteLength,
+        ) as ArrayBuffer
+      } else {
+        throw Error(`${version}.{js|wasm} is missing`)
+      }
+
+      js_module_url = `${cwd()}/.webassembly/${version}.js`
+    }
+  }
+
+  if (js_content === null || wasm_content === null) {
+    throw Error(`Could not load ${version}.{js/wasm}`)
+  }
+
+  if (js_module_url === null) {
+    if (IS_NODEJS) {
+      const { writeFile, readdir, mkdir } = r(/* webpackIgnore: true */ /* @vite-ignore */ 'node:fs/promises')
+      const { cwd } = r(/* webpackIgnore: true */ /* @vite-ignore */ 'node:process')
+
+      try {
+        await readdir(`${cwd()}/.webassembly`)
+      } catch {
+        await mkdir(`${cwd()}/.webassembly`)
+      }
+
+      await Promise.all([
+        writeFile(`${cwd()}/.webassembly/${version}.js`, js_content),
+        writeFile(`${cwd()}/.webassembly/${version}.wasm`, new DataView(wasm_content)),
+      ])
+
+      js_module_url = `${cwd()}/.webassembly/${version}.js`
+    } else {
+      js_module_url = URL.createObjectURL(new Blob([js_content], { type: 'text/javascript' }))
+    }
+  }
+
+  if (js_module_url === null) {
+    throw Error('Could not load JS module')
+  }
+
+	return {
+	  wasm_content,
+	  js_module_url
+	}
+}
+
+export const loadWasmFromS3 = async (version: string): Promise<MainModule> => {
+	const { wasm_content, js_module_url } = await downloadWasmFromS3(version)
+
+  try {
     // Both Webpack and Vite try to resolve this dynamic import during build time
     // Since this is a runtime-only dynamic import we want them to ignore it
-    const imported_module = await import(/* webpackIgnore: true */ /* @vite-ignore */ js_blob_url)
+    const imported_module = await import(/* webpackIgnore: true */ /* @vite-ignore */ js_module_url)
 
     if (!imported_module.default || typeof imported_module.default !== 'function') {
       throw new Error(`JS file (${version}.js) did not export a default function as expected.`)
@@ -69,43 +139,11 @@ export const loadWasmFromS3 = async (version: string): Promise<MainModule> => {
       throw new Error(`Could not download ${version}`)
     }
   } finally {
-    if (js_blob_url) {
-      URL.revokeObjectURL(js_blob_url)
+    if (IS_NODEJS === false) {
+      URL.revokeObjectURL(js_module_url)
     }
   }
 }
-
-const loadWasmNode = async (version: string): Promise<MainModule> => {
-  const path = require('path')
-  const fs = require('fs')
-
-  // Path to the local “webassembly” folder (relative to this file)
-  const baseDir = path.join(__dirname, '../../../../webassembly')
-  const jsPath   = path.join(baseDir, `${version}.js`)
-  const wasmPath = path.join(baseDir, `${version}.wasm`)
-
-  const imported_module = require(jsPath)
-  if (!imported_module.default || typeof imported_module.default !== 'function') {
-    throw new Error(`JS file (${version}.js) did not export a default function as expected.`)
-  }
-
-  // Read the .wasm file from disk
-  const wasmBinary = fs.readFileSync(wasmPath)
-
-  const wasm_instance: MainModule = await imported_module.default({
-    wasmBinary,
-    locateFile: (filePath: string, prefix: string): string => {
-      // Tell Emscripten where the wasm file actually lives
-      if (filePath.endsWith('.wasm')) {
-        return wasmPath
-      }
-      return path.join(prefix, filePath)
-    },
-  })
-
-  return wasm_instance
-}
-
 
 class Wait {
   promise: Promise<void>
@@ -325,20 +363,9 @@ function onWasmLoad() {
 function loadWasm(wasmVersion: string) {
   logging.info('Loading spectoda-js WASM version ' + wasmVersion)
 
-  // NODE enviroment
-  if (!process.env.NEXT_PUBLIC_VERSION) {
-    loadWasmNode(wasmVersion).then((module_instance) => {
-      // @ts-ignore
-      globalThis.Module = module_instance
-      onWasmLoad()
-    })
-  }
-  // BROWSER enviroment
-  else {
-    loadWasmFromS3(wasmVersion).then((module_instance) => {
-      // @ts-ignore
-      globalThis.Module = module_instance
-      onWasmLoad()
-    })
-  }
+  loadWasmFromS3(wasmVersion).then((module_instance) => {
+    // @ts-ignore
+    globalThis.Module = module_instance
+    onWasmLoad()
+  })
 }

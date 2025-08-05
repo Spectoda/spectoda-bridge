@@ -5,7 +5,9 @@ import { SpectodaRuntime } from '../SpectodaRuntime'
 
 import { SpectodaAppEventMap } from './app-events'
 import { ConnectorType } from './connect'
-import { SpectodaTypes } from './primitives'
+import { ControllerInfo, Criteria, NetworkKey, NetworkSignature } from './primitives'
+import { ValueTypeColor, ValueTypeIDs, ValueTypeLabel, ValueTypePercentage, ValueTypeTimestamp } from './values'
+import { ValueTypeDate } from './values'
 
 export type SpectodaClass = {
   timeline: TimeTrack
@@ -16,7 +18,7 @@ export type SpectodaClass = {
   setConnector(connector_type: ConnectorType, connector_param?: any): void
   assignConnector(connector_type: ConnectorType, connector_param?: any): void
   connect(
-    criteria: SpectodaTypes['Criteria'],
+    criteria: Criteria,
     autoConnect?: boolean,
     ownerSignature?: string | null,
     ownerKey?: string | null,
@@ -29,10 +31,10 @@ export type SpectodaClass = {
   connected(): Promise<null> | ReturnType<SpectodaRuntime['connected']>
 
   // Network methods
-  assignOwnerSignature(ownerSignature: SpectodaTypes['NetworkSignature']): boolean
-  assignOwnerKey(ownerKey: SpectodaTypes['NetworkKey']): boolean
-  getOwnerSignature(): SpectodaTypes['NetworkSignature']
-  getOwnerKey(): SpectodaTypes['NetworkKey']
+  assignOwnerSignature(ownerSignature: NetworkSignature): boolean
+  assignOwnerKey(ownerKey: NetworkKey): boolean
+  getOwnerSignature(): NetworkSignature
+  getOwnerKey(): NetworkKey
 
   // Event handling
   addEventListener<K extends keyof SpectodaAppEventMap>(
@@ -47,31 +49,11 @@ export type SpectodaClass = {
   getTnglFingerprint(): Promise<Uint8Array>
 
   // Event emission methods
-  emitEvent(
-    event_label: SpectodaTypes['Label'],
-    device_ids?: SpectodaTypes['IDs'],
-    force_delivery?: boolean,
-  ): Promise<any>
-  emitTimestamp(
-    event_label: SpectodaTypes['Label'],
-    event_value: SpectodaTypes['Timestamp'],
-    device_ids?: SpectodaTypes['IDs'],
-  ): Promise<any>
-  emitColor(
-    event_label: SpectodaTypes['Label'],
-    event_value: SpectodaTypes['Color'],
-    device_ids?: SpectodaTypes['IDs'],
-  ): Promise<any>
-  emitPercentage(
-    event_label: SpectodaTypes['Label'],
-    event_value: SpectodaTypes['Percentage'],
-    device_ids?: SpectodaTypes['IDs'],
-  ): Promise<any>
-  emitLabel(
-    event_label: SpectodaTypes['Label'],
-    event_value: SpectodaTypes['Label'],
-    device_ids?: SpectodaTypes['IDs'],
-  ): Promise<any>
+  emitEvent(event_label: ValueTypeLabel, device_ids?: ValueTypeIDs, force_delivery?: boolean): Promise<any>
+  emitTimestamp(event_label: ValueTypeLabel, event_value: ValueTypeTimestamp, device_ids?: ValueTypeIDs): Promise<any>
+  emitColor(event_label: ValueTypeLabel, event_value: ValueTypeColor, device_ids?: ValueTypeIDs): Promise<any>
+  emitPercentage(event_label: ValueTypeLabel, event_value: ValueTypePercentage, device_ids?: ValueTypeIDs): Promise<any>
+  emitLabel(event_label: ValueTypeLabel, event_value: ValueTypeLabel, device_ids?: ValueTypeIDs): Promise<any>
 
   // Device/Network management
   updateDeviceFirmware(firmware: Uint8Array): Promise<any>
@@ -86,20 +68,17 @@ export type SpectodaClass = {
   networkSleep(): Promise<any>
 
   // Controller configuration
-  writeOwner(ownerSignature?: SpectodaTypes['NetworkSignature'], ownerKey?: SpectodaTypes['NetworkKey']): Promise<any>
-  writeNetworkOwner(
-    ownerSignature?: SpectodaTypes['NetworkSignature'],
-    ownerKey?: SpectodaTypes['NetworkKey'],
-  ): Promise<any>
-  writeControllerName(label: SpectodaTypes['Label']): Promise<any>
+  writeOwner(ownerSignature?: NetworkSignature, ownerKey?: NetworkKey): Promise<any>
+  writeNetworkOwner(ownerSignature?: NetworkSignature, ownerKey?: NetworkKey): Promise<any>
+  writeControllerName(label: ValueTypeLabel): Promise<any>
   readControllerName(): Promise<any>
 
   // Timeline methods
   syncTimelineToDayTime(): Promise<any>
   syncTimeline(
-    timestamp?: SpectodaTypes['Timestamp'] | null,
+    timestamp?: ValueTypeTimestamp | null,
     paused?: boolean | null,
-    date?: SpectodaTypes['Date'] | null,
+    date?: ValueTypeDate | null,
   ): Promise<any>
 
   // Utility methods
@@ -107,5 +86,5 @@ export type SpectodaClass = {
   requestWakeLock(prioritized?: boolean): Promise<void>
   releaseWakeLock(prioritized?: boolean): Promise<void>
 
-  readControllerInfo: () => Promise<SpectodaTypes['ControllerInfo']>
+  readControllerInfo: () => Promise<ControllerInfo>
 }

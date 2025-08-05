@@ -11,7 +11,7 @@ import { COMMAND_FLAGS, DEFAULT_TIMEOUT } from '../constants'
 import { SpectodaRuntime } from '../SpectodaRuntime'
 import { SpectodaWasm } from '../SpectodaWasm'
 import { SpectodaAppEvents } from '../types/app-events'
-import { SpectodaTypes } from '../types/primitives'
+import { Criteria, Criterium } from '../types/primitives'
 import { Connection, Synchronization } from '../types/wasm'
 
 // od 0.8.0 maji vsechny spectoda enabled BLE zarizeni jednotne SPECTODA_DEVICE_UUID.
@@ -22,6 +22,8 @@ import { Connection, Synchronization } from '../types/wasm'
 // jedním zařízením v jednu chvíli
 
 //////////////////////////////////////////////////////////////////////////
+
+const PACKET_SIZE_INDICATING_MULTIPACKET_MESSAGE = 512
 
 /*
     is renamed Transmitter. Helper class for WebBluetoothConnector.js
@@ -158,7 +160,7 @@ export class WebBLEConnection {
 
         let total_bytes = [...bytes]
 
-        while (bytes.length == 512) {
+        while (bytes.length == PACKET_SIZE_INDICATING_MULTIPACKET_MESSAGE) {
           bytes = new Uint8Array((await characteristic.readValue()).buffer)
           total_bytes = [...total_bytes, ...bytes]
         }
@@ -201,8 +203,6 @@ export class WebBLEConnection {
       this.#networkNotificationBuffer = newBuffer
     }
 
-    const PACKET_SIZE_INDICATING_MULTIPACKET_MESSAGE = 208
-
     if (payload.length == PACKET_SIZE_INDICATING_MULTIPACKET_MESSAGE) {
       // if the payload is equal to PACKET_SIZE_INDICATING_MULTIPACKET_MESSAGE, then another payload will be send that continues the overall message.
       return
@@ -224,7 +224,7 @@ export class WebBLEConnection {
         SpectodaWasm.connection_rssi_t.RSSI_MAX,
       )
 
-      this.#runtimeReference.spectoda_js.execute(commandBytes, DUMMY_WEBBLE_CONNECTION)
+      this.#runtimeReference.spectoda_js.request(commandBytes, DUMMY_WEBBLE_CONNECTION)
     }
   }
 
@@ -665,7 +665,7 @@ export class SpectodaWebBluetoothConnector {
   #webBTDevice: BluetoothDevice | null
   #connection: WebBLEConnection
   #reconection: boolean
-  #criteria: SpectodaTypes['Criteria']
+  #criteria: Criteria
   #connectedGuard: boolean
 
   type: string
@@ -710,9 +710,9 @@ export class SpectodaWebBluetoothConnector {
   // first bonds the BLE device with the PC/Phone/Tablet if it is needed.
   // Then selects the device
   userSelect(
-    criterium_array: Array<SpectodaTypes['Criterium']>,
+    criterium_array: Array<Criterium>,
     timeout_number: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
-  ): Promise<SpectodaTypes['Criterium'] | null> {
+  ): Promise<Criterium | null> {
     if (timeout_number === DEFAULT_TIMEOUT) {
       timeout_number = 60000
     }
@@ -923,10 +923,10 @@ export class SpectodaWebBluetoothConnector {
   // are eligible.
 
   autoSelect(
-    criterium_array: Array<SpectodaTypes['Criterium']>,
+    criterium_array: Array<Criterium>,
     scan_duration_number: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
     timeout_number: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
-  ): Promise<SpectodaTypes['Criterium'] | null> {
+  ): Promise<Criterium | null> {
     if (scan_duration_number === DEFAULT_TIMEOUT) {
       // ? 1200ms seems to be the minimum for the scan_duration if the controller is rebooted
       scan_duration_number = 1500
@@ -983,14 +983,14 @@ export class SpectodaWebBluetoothConnector {
     return this.#webBTDevice ? true : false
   }
 
-  selected(): Promise<SpectodaTypes['Criterium'] | null> {
+  selected(): Promise<Criterium | null> {
     return Promise.resolve(this.#selected() ? { connector: this.type } : null)
   }
 
   scan(
-    criterium_array: Array<SpectodaTypes['Criterium']>,
+    criterium_array: Array<Criterium>,
     scan_duration_number: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
-  ): Promise<Array<SpectodaTypes['Criterium']>> {
+  ): Promise<Array<Criterium>> {
     if (scan_duration_number === DEFAULT_TIMEOUT) {
       scan_duration_number = 7000
     }
@@ -1009,7 +1009,7 @@ export class SpectodaWebBluetoothConnector {
 
   // connect Connector to the selected Spectoda Device. Also can be used to reconnect.
   // Fails if no device is selected
-  connect(timeout: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT): Promise<SpectodaTypes['Criterium'] | null> {
+  connect(timeout: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT): Promise<Criterium | null> {
     if (timeout === DEFAULT_TIMEOUT) {
       timeout = 10000
     }
@@ -1094,7 +1094,7 @@ export class SpectodaWebBluetoothConnector {
     return this.#webBTDevice && this.#webBTDevice?.gatt?.connected
   }
 
-  connected(): Promise<SpectodaTypes['Criterium'] | null> {
+  connected(): Promise<Criterium | null> {
     logging.verbose('connected()')
     return Promise.resolve(this.#connected() ? { connector: this.type } : null)
   }

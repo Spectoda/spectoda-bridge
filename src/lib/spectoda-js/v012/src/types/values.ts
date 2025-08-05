@@ -1,8 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-types */
-// Because `Number` refers to our `NumberSchema` and
-// `Boolean` refers to our `BooleanSchema`, we need to
-// disable the ban on `Number` and `Boolean` types.
-
 import { z } from 'zod'
 
 import { VALUE_TYPES } from '../constants/values'
@@ -34,3 +29,6 @@ export type ValueTypeID = z.infer<typeof IDSchema>
 export type ValueTypeIDs = ValueTypeID | ValueTypeID[]
 
 export type ValueType = (typeof VALUE_TYPES)[keyof typeof VALUE_TYPES]
+
+/** @alias ValueTypeID */
+export type SpectodaIdType = ValueTypeID

@@ -1,7 +1,7 @@
-import { Event } from './event'
-
 /// === auto-generated from Emscripten build process === ///
-/// ========== DEBUG_DEV_0.12.5_20250209.d.ts ========== ///
+/// ========== DEBUG_UNIVERSAL_0.12.9_20250717.d.ts ========== ///
+
+import { EventState } from '../..'
 
 export type interface_error_tValue<T extends number> = {
   value: T
@@ -354,8 +354,8 @@ export type Spectoda_WASMImplementation = {
   // // __construct: function () {}
   // // __destruct: function () {}
   _onTnglLoad(tngl_bytes: Uint8Vector, used_ids: Uint8Vector): boolean
-  _onEvents(event_array: Event[]): boolean
-  _onEventStateUpdates(event_array: Event[]): boolean
+  _onEvents(event_array: EventState[]): boolean
+  _onEventStateUpdates(event_array: EventState[]): boolean
   _onExecute(execute_bytecode: Uint8Vector): boolean
   _onRequest(
     request_ticket_number: number,

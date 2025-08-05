@@ -1,13 +1,13 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 
+import { EventState } from '..'
 import { sleep } from '../functions'
 import { logging } from '../logging'
 
 import { SpectodaRuntime } from './SpectodaRuntime'
 import { SpectodaWasm } from './SpectodaWasm'
 import { SpectodaAppEvents } from './types/app-events'
-import { Event, EventState } from './types/event'
-import { SpectodaTypes } from './types/primitives'
+import { ValueTypeLabel } from './types/primitives'
 import {
   Connection,
   IConnector_WASM,
@@ -100,10 +100,14 @@ export class Spectoda_JS {
           logging.verbose('Spectoda_JS::_onTnglLoad', tngl_bytes_vector, used_ids_vector)
 
           {
-            // Save FS after TNGL upload
-            SpectodaWasm.saveFS().catch((e) => {
-              logging.error('SpectodaWasm::_onTnglLoad():', e)
-            })
+            const SAVE_FS_AFTER_MS = 1000
+
+            // Save FS 1s after TNGL upload
+            setTimeout(() => {
+              SpectodaWasm.saveFS().catch((e) => {
+                logging.error('SpectodaWasm::_onTnglLoad():', e)
+              })
+            }, SAVE_FS_AFTER_MS)
           }
 
           try {
@@ -122,12 +126,12 @@ export class Spectoda_JS {
           return true
         },
 
-        _onEvents: (event_array: Event[]) => {
+        _onEvents: (event_array: EventState[]) => {
           logging.verbose('Spectoda_JS::_onEvents', event_array)
 
           {
-            // Save FW after 11 seconds of Event Inactivity
-            const SAVE_FS_AFTER_MS = 11000
+            // Save FW after 2.5 seconds of Event Inactivity
+            const SAVE_FS_AFTER_MS = 2500
 
             // if event is called in the 11s window, then reset the timeout
             if (this.#eventSaveFsTimeoutHandle) {
@@ -168,7 +172,7 @@ export class Spectoda_JS {
           return true
         },
 
-        _onEventStateUpdates: (event_state_updates_array: Event[]) => {
+        _onEventStateUpdates: (event_state_updates_array: EventState[]) => {
           logging.verbose('Spectoda_JS::_onEventStateUpdates', event_state_updates_array)
 
           if (logging.level >= 3 && event_state_updates_array.length > 0) {
@@ -497,9 +501,10 @@ export class Spectoda_JS {
     this.#spectoda_wasm.delete() // delete (free) C++ object
     this.#spectoda_wasm = undefined // remove javascript reference
 
-    // for (let i = 0; i < this.#connectors.length; i++) {
-    //   this.#connectors[i].delete();
-    // }
+    for (let i = 0; i < this.#connectors.length; i++) {
+      this.#connectors[i].delete()
+      delete this.#connectors[i] // remove javascript reference
+    }
   }
 
   makePort(port_label: string, port_config: string): Uint32Array {
@@ -874,7 +879,7 @@ export class Spectoda_JS {
     connection: string,
     request: {
       args: {
-        label: SpectodaTypes['Label']
+        label: ValueTypeLabel
         variant: string
         remove_io_variant: boolean
       }
@@ -914,7 +919,7 @@ export class Spectoda_JS {
     connection: string,
     request: {
       args: {
-        label: SpectodaTypes['Label']
+        label: ValueTypeLabel
         mapping: Int16Array
         remove_io_mapping: boolean
       }

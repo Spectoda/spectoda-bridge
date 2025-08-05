@@ -1,7 +1,8 @@
+import { EventState } from '../..'
+
 import { CONNECTION_STATUS, ConnectionStatus, REMOTECONTROL_STATUS, RemoteControlConnectionStatus } from './connect'
 import { ControllerError, ControllerWarning } from './messages'
-import { Event } from './event'
-import { SpectodaTypes } from './primitives'
+import { TnglBytes, UsedIds } from './primitives'
 
 type RemoteControlConnectionStatusProps = {
   [K in RemoteControlConnectionStatus]: undefined
@@ -69,15 +70,15 @@ type PropsMap = RemoteControlConnectionStatusProps &
     [SpectodaAppEvents.OTA_TIMELEFT]: number
 
     [SpectodaAppEvents.TNGL_UPDATE]: {
-      tngl_bytes: SpectodaTypes['TnglBytes']
-      used_ids: SpectodaTypes['UsedIds']
+      tngl_bytes: TnglBytes
+      used_ids: UsedIds
     }
 
     // TODO for future payload key: `events`
-    [SpectodaAppEvents.EVENT_STATE_UPDATES]: Event[]
+    [SpectodaAppEvents.EVENT_STATE_UPDATES]: EventState[]
 
     // TODO for future payload key: `events`
-    [SpectodaAppEvents.EMITTED_EVENTS]: Event[]
+    [SpectodaAppEvents.EMITTED_EVENTS]: EventState[]
 
     [SpectodaAppEvents.NETWORK_ERROR]: ControllerError
     [SpectodaAppEvents.NETWORK_WARNING]: ControllerWarning
