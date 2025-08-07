@@ -4,7 +4,7 @@ import { logging } from '../logging'
 
 import { MainModule, Uint8Vector } from './types/wasm'
 
-export const WASM_VERSION = 'DEBUG_UNIVERSAL_0.12.9_20250728'
+export const WASM_VERSION = 'DEBUG_UNIVERSAL_0.12.10_20250807'
 export const WEBASSEMBLY_BASE_URL = 'https://webassembly.spectoda.com'
 
 const IS_NODEJS =
@@ -102,14 +102,14 @@ export const downloadWasmFromS3 = async (version: string) => {
     throw Error('Could not load JS module')
   }
 
-	return {
-	  wasm_content,
-	  js_module_url
-	}
+  return {
+    wasm_content,
+    js_module_url,
+  }
 }
 
 export const loadWasmFromS3 = async (version: string): Promise<MainModule> => {
-	const { wasm_content, js_module_url } = await downloadWasmFromS3(version)
+  const { wasm_content, js_module_url } = await downloadWasmFromS3(version)
 
   try {
     // Both Webpack and Vite try to resolve this dynamic import during build time
