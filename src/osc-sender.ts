@@ -17,6 +17,7 @@ const ROOM_ID_MAPPINGS = {
   211: 'K', // ID_MISTNOST_K
   212: 'L', // ID_MISTNOST_L
   213: 'M', // ID_MISTNOST_M
+  214: 'N', // ID_MISTNOST_N
 } as const;
 
 // Network configuration
