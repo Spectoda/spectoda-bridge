@@ -7,7 +7,8 @@ import { fetchPiInfo } from "./lib/utils/functions";
 import express from "express";
 import cors from "cors";
 import path from "path";
-import { SpectodaAppEvents } from "./lib/spectoda-js/v012";
+import { SpectodaAppEvents, EventState } from "./lib/spectoda-js/v012";
+import { oscSender } from "./osc-sender";
 
 // if not exists, create assets folder
 if (!fs.existsSync("assets")) {
@@ -150,6 +151,17 @@ async function main() {
       }
     }
   }
+
+
+  spectoda.on("emittedevents", async (events: EventState[]) => {
+    for (const event of events) {
+      // Send event via OSC to matching room
+      await oscSender.processEvent(event);
+    }
+  });
+
+
+
 }
 
 main();
