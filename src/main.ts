@@ -1,8 +1,9 @@
-import { logging, SpectodaAppEvents, sleep } from './lib/spectoda-js/v012'
+import { logging, SpectodaAppEvents, sleep, type EventState } from './lib/spectoda-js/v012'
 import { spectoda } from './communication'
 import './server'
 import fs from 'node:fs'
 import { fetchPiInfo } from './lib/utils/functions'
+import { oscSender } from './osc-sender'
 
 // if not exists, create assets folder
 if (!fs.existsSync('assets')) {
@@ -127,6 +128,17 @@ async function main() {
       }
     }
   }
+
+
+  spectoda.on('emittedevents', async (events: EventState[]) => {
+    for (const event of events) {
+      // Send event via OSC to matching room
+      await oscSender.processEvent(event)
+    }
+  })
+
+
+
 }
 
 main()
