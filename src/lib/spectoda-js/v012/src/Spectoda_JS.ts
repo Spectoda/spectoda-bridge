@@ -1,7 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 
-import { PrivateError, privateError } from '@spectoda/error'
-
 import { EventState } from '..'
 import { sleep } from '../functions'
 import { logging } from '../logging'
@@ -1050,20 +1048,16 @@ export class Spectoda_JS {
    * actual data, see {@link getNetworkStorageData}. For emitting or setting data, see {@link emitNetworkStorageData}
    * and {@link setNetworkStorageData}.
    *
-   * @returns {PrivateError<string> | NetworkStorageMetadata[]} An array of network storage metadata if successful, or a PrivateError if the operation fails.
    */
-  listNetworkStorageData():
-    | PrivateError<'CONTROLLER_WASM_INSTANCE_NOT_CONSTRUCTED'>
-    | PrivateError<'LIST_NETWORK_STORAGE_DATA_FAILED'>
-    | NetworkStorageMetadata[] {
+  listNetworkStorageData() {
     if (!this.#spectoda_wasm) {
-      return privateError('CONTROLLER_WASM_INSTANCE_NOT_CONSTRUCTED')
+      throw ('CONTROLLER_WASM_INSTANCE_NOT_CONSTRUCTED')
     }
 
     const metadata: NetworkStorageMetadata[] = []
 
     if (!this.#spectoda_wasm.listNetworkStorageData(metadata)) {
-      return privateError('LIST_NETWORK_STORAGE_DATA_FAILED')
+      throw ('LIST_NETWORK_STORAGE_DATA_FAILED')
     }
 
     return metadata
@@ -1086,20 +1080,17 @@ export class Spectoda_JS {
    * and {@link listNetworkStorageData}.
    *
    * @param data - The network storage data to emit across the network.
-   * @returns {PrivateError<string> | void} Returns a PrivateError if the operation fails, otherwise void.
    */
   emitNetworkStorageData(
     data: NetworkStorageData,
-  ):
-    | PrivateError<'CONTROLLER_WASM_INSTANCE_NOT_CONSTRUCTED'>
-    | PrivateError<'EMIT_NETWORK_STORAGE_DATA_FAILED'>
-    | undefined {
+  )
+    {
     if (!this.#spectoda_wasm) {
-      return privateError('CONTROLLER_WASM_INSTANCE_NOT_CONSTRUCTED')
+      throw ('CONTROLLER_WASM_INSTANCE_NOT_CONSTRUCTED')
     }
 
     if (!this.#spectoda_wasm.emitNetworkStorageData(data)) {
-      return privateError('EMIT_NETWORK_STORAGE_DATA_FAILED')
+      throw ('EMIT_NETWORK_STORAGE_DATA_FAILED')
     }
   }
 
@@ -1118,20 +1109,16 @@ export class Spectoda_JS {
    * between fingerprints, it is determined to be newer/preferred.
    *
    * @param data - The network storage data to set in the controller.
-   * @returns {PrivateError<string> | void} Returns a PrivateError if the operation fails, otherwise void.
    */
   setNetworkStorageData(
     data: NetworkStorageData,
-  ):
-    | PrivateError<'CONTROLLER_WASM_INSTANCE_NOT_CONSTRUCTED'>
-    | PrivateError<'SET_NETWORK_STORAGE_DATA_FAILED'>
-    | undefined {
+  ) {
     if (!this.#spectoda_wasm) {
-      return privateError('CONTROLLER_WASM_INSTANCE_NOT_CONSTRUCTED')
+      throw ('CONTROLLER_WASM_INSTANCE_NOT_CONSTRUCTED')
     }
 
     if (!this.#spectoda_wasm.setNetworkStorageData(data)) {
-      return privateError('SET_NETWORK_STORAGE_DATA_FAILED')
+      throw ('SET_NETWORK_STORAGE_DATA_FAILED')
     }
   }
 
@@ -1143,22 +1130,18 @@ export class Spectoda_JS {
    * {@link emitNetworkStorageData} and {@link setNetworkStorageData}.
    *
    * @param name - The name of the network storage data to retrieve.
-   * @returns {PrivateError<string> | NetworkStorageData} The network storage data if successful, or a PrivateError if the operation fails.
    */
   getNetworkStorageData(
     name: string,
-  ):
-    | PrivateError<'CONTROLLER_WASM_INSTANCE_NOT_CONSTRUCTED'>
-    | PrivateError<'GET_NETWORK_STORAGE_DATA_FAILED'>
-    | NetworkStorageData {
+  ) {
     if (!this.#spectoda_wasm) {
-      return privateError('CONTROLLER_WASM_INSTANCE_NOT_CONSTRUCTED')
+      throw ('CONTROLLER_WASM_INSTANCE_NOT_CONSTRUCTED')
     }
 
     const data: NetworkStorageData = { name, version: 0, bytes: new Uint8Array(0) }
 
     if (!this.#spectoda_wasm.getNetworkStorageData(name, data)) {
-      return privateError('GET_NETWORK_STORAGE_DATA_FAILED')
+      throw ('GET_NETWORK_STORAGE_DATA_FAILED')
     }
 
     return data

@@ -6,7 +6,6 @@
     "@types/serialport": "8.0.5"
   },
   "dependencies": {
-    "@spectoda/error": "*",
     "@spectoda/spectoda-utils": "*",
     "nanoevents": "9.1.0",
     "nanoid": "5.1.5",
