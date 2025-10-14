@@ -169,10 +169,7 @@ export class PreviewController {
           timeline_date: string,
         ): interface_error_t => {
           this.logging.verbose(
-            'PreviewController::_handleTimelineManipulation',
-            timeline_timestamp,
-            timeline_paused,
-            timeline_date,
+            `PreviewController::_handleTimelineManipulation(timeline_timestamp=${timeline_timestamp}, timeline_paused=${timeline_paused}, timeline_date=${timeline_date})`,
           )
 
           return SpectodaWasm.interface_error_t.SUCCESS
@@ -196,7 +193,7 @@ export class PreviewController {
               break
             }
             case 3: {
-              this.logging.info(`🖥️ $${name}: \t[I][${filename}]: ${message}`)
+              this.logging.debug(`🖥️ $${name}: \t[I][${filename}]: ${message}`)
               break
             }
             case 2: {
@@ -210,14 +207,14 @@ export class PreviewController {
               break
             }
             default: {
-              console.warn(`🖥️ $${name}: \t[?][${filename}]: ${message}`)
+              logging.log(`🖥️ $${name}: \t[?][${filename}]: ${message}`)
               break
             }
           }
         },
 
         _handleReboot: () => {
-          this.logging.debug('PreviewController::_handleReboot')
+          this.logging.verbose('PreviewController::_handleReboot')
 
           setTimeout(async () => {
             await sleep(1)
@@ -338,7 +335,9 @@ export class PreviewController {
 
   execute(execute_bytecode: Uint8Array, source_connection: Connection): void {
     logging.debug(
-      `PreviewController::execute(execute_bytecode=${execute_bytecode}, source_connection=${source_connection})`,
+      `PreviewController::execute(execute_bytecode=${execute_bytecode}, source_connection=${JSON.stringify(
+        source_connection,
+      )})`,
     )
 
     if (!this.#instance) {
@@ -354,7 +353,9 @@ export class PreviewController {
 
   request(request_bytecode: Uint8Array, source_connection: Connection) {
     logging.debug(
-      `PreviewController::request(request_bytecode=${request_bytecode}, source_connection=${source_connection})`,
+      `PreviewController::request(request_bytecode=${request_bytecode}, source_connection=${JSON.stringify(
+        source_connection,
+      )})`,
     )
 
     if (!this.#instance) {
@@ -385,11 +386,9 @@ export class PreviewController {
 
   synchronize(synchronization: Synchronization, source_connection: Connection) {
     logging.debug(
-      'PreviewController::synchronize(synchronization=',
-      synchronization,
-      'source_connection=',
-      source_connection,
-      ')',
+      `PreviewController::synchronize(synchronization=${JSON.stringify(
+        synchronization,
+      )}, source_connection=${JSON.stringify(source_connection)})`,
     )
 
     if (!this.#instance) {
@@ -413,7 +412,7 @@ export class PreviewController {
       skip_event_emittion: false,
     },
   ) {
-    logging.verbose('PreviewController::process()')
+    logging.debug('PreviewController::process()')
 
     if (!this.#instance) {
       throw 'NotConstructed'

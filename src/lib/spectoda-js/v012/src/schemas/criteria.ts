@@ -15,32 +15,30 @@ import {
 /**
  * Base criteria for connecting to a Spectoda device
  */
-export const BaseCriteriaSchema = z
-  .object({
-    /** Exact controller name match */
-    name: ControllerNameSchema.optional(),
+export const BaseCriteriaSchema = z.strictObject({
+  /** Exact controller name match */
+  name: ControllerNameSchema.optional(),
 
-    /** Matches controllers with names starting with this prefix
-     * @example "SCI_" will match "SCI_1", "SCI_2", "SCI_3", etc.
-     */
-    nameprefix: ControllerNameSchema.optional(),
+  /** Matches controllers with names starting with this prefix
+   * @example "SCI_" will match "SCI_1", "SCI_2", "SCI_3", etc.
+   */
+  nameprefix: ControllerNameSchema.optional(),
 
-    /** Exact MAC address match */
-    mac: MacAddressSchema.optional(),
+  /** Exact MAC address match */
+  mac: MacAddressSchema.optional(),
 
-    /** Exact network signature match */
-    network: NetworkSignatureSchema.optional(),
+  /** Exact network signature match */
+  network: NetworkSignatureSchema.optional(),
 
-    /** Exact firmware version match */
-    fw: FirmwareVersionSchema.optional(),
+  /** Exact firmware version match */
+  fw: FirmwareVersionSchema.optional(),
 
-    /** Exact product code match */
-    product: ProductCodeSchema.optional(),
+  /** Exact product code match */
+  product: ProductCodeSchema.optional(),
 
-    /** Whether device is commissionable */
-    commisionable: z.boolean().optional(),
-  })
-  .strict()
+  /** Whether device is commissionable */
+  commissionable: z.boolean().optional(),
+})
 
 /**
  * Serial-specific connection criteria

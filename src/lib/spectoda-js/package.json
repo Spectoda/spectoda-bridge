@@ -6,12 +6,15 @@
     "@types/serialport": "8.0.5"
   },
   "dependencies": {
+    "@spectoda/error": "*",
     "@spectoda/spectoda-utils": "*",
     "nanoevents": "9.1.0",
     "nanoid": "5.1.5",
     "node-ble": "1.13.0",
     "serialport": "13.0.0",
     "socket.io-client": "4.8.1",
-    "socket.io-msgpack-parser": "3.0.2"
+    "socket.io-msgpack-parser": "3.0.2",
+    "vite-plugin-node-polyfills": "0.24.0",
+    "zod": "4.1.11"
   }
 }

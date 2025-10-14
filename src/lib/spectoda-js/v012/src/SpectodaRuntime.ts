@@ -235,6 +235,8 @@ export class SpectodaRuntime {
   #chunkSize: number
 
   #selecting: boolean
+  #scanning: boolean
+
   #disconnectQuery: any | null
 
   #connectGuard: boolean
@@ -498,7 +500,7 @@ export class SpectodaRuntime {
    * @param connector_parameter WIP - still figuring out what is can be used for. Right now it is used for simulated connector to pass the parameters for the simulated network.
    */
   assignConnector(desired_connector: ConnectorType = 'default', connector_parameter: any = null) {
-    logging.verbose(`assignConnector(desired_connector=${desired_connector})`)
+    logging.debug(`SpectodaRuntime::assignConnector(desired_connector=${desired_connector})`)
 
     let choosen_connector = undefined
 
@@ -631,7 +633,7 @@ export class SpectodaRuntime {
     criteria: Criteria,
     timeout: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
   ): Promise<Criterium | null> {
-    logging.verbose(`userSelect(criteria=${JSON.stringify(criteria)}, timeout=${timeout}`)
+    logging.debug(`SpectodaRuntime::userSelect(criteria=${JSON.stringify(criteria)}, timeout=${timeout}`)
 
     if (this.#selecting) {
       return Promise.reject('SelectingInProgress')
@@ -665,7 +667,11 @@ export class SpectodaRuntime {
     scan_period: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
     timeout: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
   ): Promise<Criterium | null> {
-    logging.verbose(`autoSelect(criteria=${JSON.stringify(criteria)}, scan_period=${scan_period}, timeout=${timeout}`)
+    logging.debug(
+      `SpectodaRuntime::autoSelect(criteria=${JSON.stringify(
+        criteria,
+      )}, scan_period=${scan_period}, timeout=${timeout}`,
+    )
 
     if (this.#selecting) {
       return Promise.reject('SelectingInProgress')
@@ -699,7 +705,7 @@ export class SpectodaRuntime {
   }
 
   unselect(): Promise<null> {
-    logging.verbose('unselect()')
+    logging.debug('SpectodaRuntime::unselect()')
 
     const item = new Query(Query.TYPE_UNSELECT)
 
@@ -708,7 +714,7 @@ export class SpectodaRuntime {
   }
 
   selected(): Promise<Criterium | null> {
-    logging.verbose('selected()')
+    logging.debug('SpectodaRuntime::selected()')
 
     const item = new Query(Query.TYPE_SELECTED)
 
@@ -717,13 +723,17 @@ export class SpectodaRuntime {
   }
 
   scan(criteria: object, scan_period: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT): Promise<Array<Criterium>> {
-    logging.verbose(`scan(criteria=${JSON.stringify(criteria)}, scan_period=${scan_period}`)
+    logging.debug(`SpectodaRuntime::scan(criteria=${JSON.stringify(criteria)}, scan_period=${scan_period}`)
 
     if (this.#selecting) {
       return Promise.reject('SelectingInProgress')
     }
 
-    this.#selecting = true
+    if (this.#scanning) {
+      return Promise.reject('ScanningInProgress')
+    }
+
+    this.#scanning = true
 
     // ? makes sure that criteria is always an array of Criterium
     let criteria_array: Array<Criterium>
@@ -741,12 +751,12 @@ export class SpectodaRuntime {
 
     this.#process(item)
     return item.promise.finally(() => {
-      this.#selecting = false
+      this.#scanning = false
     })
   }
 
   connect(timeout: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT): Promise<Criterium | null> {
-    logging.verbose(`connect(timeout=${timeout})`)
+    logging.debug(`SpectodaRuntime::connect(timeout=${timeout})`)
 
     const connect_query: ConnectQuery = { timeout }
     const item = new Query(Query.TYPE_CONNECT, connect_query)
@@ -757,8 +767,7 @@ export class SpectodaRuntime {
 
   #onConnected = (event: any) => {
     if (this.#connectGuard) {
-      logging.error('Connecting logic error. #connected called when already connected?')
-      logging.warn('Ignoring the #connected event')
+      logging.info('Connecting logic error. #connected called when already connected. Ignoring the #connected event')
       return
     }
 
@@ -767,7 +776,7 @@ export class SpectodaRuntime {
   }
 
   disconnect(): Promise<null> {
-    logging.verbose('disconnect()')
+    logging.debug('SpectodaRuntime::disconnect()')
 
     const item = new Query(Query.TYPE_DISCONNECT)
 
@@ -777,8 +786,9 @@ export class SpectodaRuntime {
 
   #onDisconnected = (event: any) => {
     if (!this.#connectGuard) {
-      logging.error('Connecting logic error. #disconnected called when already disconnected?')
-      logging.warn('Ignoring the #disconnected event')
+      logging.info(
+        'Connecting logic error. #disconnected called when already disconnected. Ignoring the #disconnected event',
+      )
       return
     }
 
@@ -791,7 +801,7 @@ export class SpectodaRuntime {
   }
 
   connected(): Promise<Criterium | null> {
-    logging.verbose('connected()')
+    logging.debug('SpectodaRuntime::connected()')
 
     const item = new Query(Query.TYPE_CONNECTED)
 
@@ -799,17 +809,15 @@ export class SpectodaRuntime {
     return item.promise
   }
 
-  cancel(): Promise<unknown> {
+  cancel(): void {
     if (this.connector) {
       this.connector.cancel()
     }
-
-    return Promise.resolve(null)
   }
 
   // ! bytes_type is deprecated and will be removed in the future
   execute(bytecode: number[] | Uint8Array, bytes_type: string | undefined): Promise<unknown> {
-    logging.verbose('execute', { bytecode, bytes_type })
+    logging.debug('execute', { bytecode, bytes_type })
 
     const execute_query: ExecuteQuery = { bytecode: new Uint8Array(bytecode) }
 
@@ -840,7 +848,10 @@ export class SpectodaRuntime {
     read_response = true,
     timeout: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
   ): Promise<Uint8Array | null> {
-    logging.verbose('request', { bytecode, read_response, timeout })
+    logging.debug(
+      `SpectodaRuntime::request(bytecode.length=${bytecode.length}, read_response=${read_response}, timeout=${timeout})`,
+    )
+    logging.verbose('bytecode=', bytecode)
 
     const request_query: RequestQuery = {
       bytecode: new Uint8Array(bytecode),
@@ -855,7 +866,7 @@ export class SpectodaRuntime {
   }
 
   updateFW(firmware_bytes: Uint8Array) {
-    logging.verbose('updateFW()')
+    logging.debug(`SpectodaRuntime::updateFW(firmware_bytes.length=${firmware_bytes.length})`)
 
     const item = new Query(Query.TYPE_FIRMWARE_UPDATE, firmware_bytes)
 
@@ -872,7 +883,7 @@ export class SpectodaRuntime {
   }
 
   destroyConnector() {
-    logging.verbose('destroyConnector()')
+    logging.debug('SpectodaRuntime::destroyConnector()')
 
     const item = new Query(Query.TYPE_DESTROY)
 
@@ -1007,8 +1018,9 @@ export class SpectodaRuntime {
                   try {
                     await this.connector.connect(connect_query.timeout).then(async (result: any) => {
                       if (!this.#connectGuard) {
-                        logging.error('Connection logic error. #connected not called during successful connect()?')
-                        logging.warn('Emitting #connected')
+                        logging.info(
+                          'Connection logic error. #connected not called during successful connect(). Emitting #connected',
+                        )
                         this.#eventEmitter.emit(SpectodaAppEvents.PRIVATE_CONNECTED)
                       }
 
@@ -1336,7 +1348,7 @@ export class SpectodaRuntime {
   }
 
   readVariableAddress(variable_address: number, device_id: number) {
-    logging.verbose('readVariableAddress()', { variable_address, device_id })
+    logging.verbose(`readVariableAddress(variable_address=${variable_address}, device_id=${device_id})`)
 
     return this.spectoda_js.readVariableAddress(variable_address, device_id)
   }
@@ -1349,7 +1361,7 @@ export class SpectodaRuntime {
       controller_config = JSON.parse(controller_config) as any
     }
 
-    logging.verbose('controller_config=', controller_config)
+    logging.verbose(`controller_config=${JSON.stringify(controller_config)}`)
 
     const controller = new PreviewController(controller_mac_address)
 
@@ -1360,13 +1372,13 @@ export class SpectodaRuntime {
   }
 
   WIP_getPreviewController(controller_mac_address: string) {
-    logging.verbose(`> Getting PreviewController ${controller_mac_address}...`)
+    // logging.verbose(`> Getting PreviewController ${controller_mac_address}...`)
 
     return this.previewControllers[controller_mac_address]
   }
 
   WIP_getPreviewControllers() {
-    logging.verbose('> Getting PreviewControllers...')
+    // logging.verbose('> Getting PreviewControllers...')
 
     return this.previewControllers
   }
@@ -1755,7 +1767,7 @@ export class SpectodaRuntime {
   // ====================================================================================================
 
   // synchronize(synchronization: Synchronization, source_connection: Connection) {
-  //   logging.verbose(`synchronize(synchronization=${synchronization}, source_connection=${source_connection})`);
+  //   logging.debug(`synchronize(synchronization=${JSON.stringify(synchronization)}, source_connection=${JSON.stringify(source_connection)})`);
 
   //   const item = new Query(Query.TYPE_SYNCHRONIZE, synchronization, source_connection);
   //   this.#process(item);
@@ -1765,8 +1777,10 @@ export class SpectodaRuntime {
   // void _sendExecute(const std::vector<uint8_t>& command_bytes, const Connection& source_connection) = 0;
 
   sendExecute(command_bytes: Uint8Array, source_connection: Connection) {
-    logging.verbose(
-      `SpectodaRuntime::sendExecute(command_bytes=${command_bytes}, source_connection=${source_connection})`,
+    logging.debug(
+      `SpectodaRuntime::sendExecute(command_bytes=${command_bytes}, source_connection=${JSON.stringify(
+        source_connection,
+      )})`,
     )
 
     const send_execute_query: SendExecuteQuery = {
@@ -1783,9 +1797,10 @@ export class SpectodaRuntime {
   // bool _sendRequest(const int32_t request_ticket_number, std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
 
   sendRequest(request_ticket_number: number, request_bytecode: Uint8Array, destination_connection: Connection) {
-    logging.verbose(
-      `SpectodaRuntime::sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode=${request_bytecode}, destination_connection=${destination_connection})`,
+    logging.debug(
+      `SpectodaRuntime::sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode.length=${request_bytecode.length}, destination_connection=${destination_connection})`,
     )
+    logging.verbose('request_bytecode=', request_bytecode)
 
     const send_request_query: SendRequestQuery = {
       request_ticket_number,
@@ -1806,7 +1821,7 @@ export class SpectodaRuntime {
     response_bytecode: Uint8Array,
     destination_connection: Connection,
   ) {
-    logging.verbose(
+    logging.debug(
       `SpectodaRuntime::sendResponse(request_ticket_number=${request_ticket_number}, request_result=${request_result}, response_bytecode=${response_bytecode}, destination_connection=${destination_connection})`,
     )
 
@@ -1826,8 +1841,10 @@ export class SpectodaRuntime {
   // void _sendSynchronize(const Synchronization& synchronization, const Connection& source_connection) = 0;
 
   sendSynchronize(synchronization: Synchronization, source_connection: Connection) {
-    logging.verbose(
-      `SpectodaRuntime::sendSynchronize(synchronization=${synchronization}, source_connection=${source_connection})`,
+    logging.debug(
+      `SpectodaRuntime::sendSynchronize(synchronization=${JSON.stringify(
+        synchronization,
+      )}, source_connection=${JSON.stringify(source_connection)})`,
     )
 
     const send_synchronize_query: SendSynchronizeQuery = {

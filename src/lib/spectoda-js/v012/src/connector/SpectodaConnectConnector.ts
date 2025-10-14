@@ -68,7 +68,7 @@ class FlutterConnection {
         // @ts-ignore
         const value = e.detail.value
 
-        logging.debug(`Triggered #resolve: [${value}]`)
+        logging.verbose(`Triggered #resolve: [${value}]`)
 
         // @ts-ignore
         window.flutterConnection.resolve(value)
@@ -78,7 +78,7 @@ class FlutterConnection {
         // @ts-ignore
         const value = e.detail.value
 
-        logging.debug(`Triggered #reject: [${value}]`)
+        logging.verbose(`Triggered #reject: [${value}]`)
 
         // @ts-ignore
         window.flutterConnection.reject(value)
@@ -88,7 +88,7 @@ class FlutterConnection {
       // // window.addEventListener("#emit", e => {
       // //   // @ts-ignore
       // //   const event = e.detail.value;
-      // //   logging.info(`Triggered #emit: ${event}`, event);
+      // //   logging.verbose(`Triggered #emit: ${event}`, event);
 
       // //   if (event == "#connect" || event == "#disconnect") {
       // //     // ? reset #networkNotificationBuffer
@@ -103,7 +103,7 @@ class FlutterConnection {
         // @ts-ignore
         const value = e.detail.value
 
-        logging.info(`Triggered #connected: ${value}`, value)
+        logging.verbose(`Triggered #connected: ${value}`, value)
 
         // ? reset #networkNotificationBuffer on connect
         this.#networkNotificationBuffer = null
@@ -116,7 +116,7 @@ class FlutterConnection {
         // @ts-ignore
         const value = e.detail.value
 
-        logging.info(`Triggered #disconnected: ${value}`, value)
+        logging.verbose(`Triggered #disconnected: ${value}`, value)
 
         // ? reset #networkNotificationBuffer on disconnect
         this.#networkNotificationBuffer = null
@@ -130,7 +130,7 @@ class FlutterConnection {
         // @ts-ignore
         const payload = new Uint8Array(e.detail.value)
 
-        logging.info(`Triggered #network: [${payload}]`, payload)
+        logging.verbose(`Triggered #network: [${payload}]`, payload)
 
         if (this.#networkNotificationBuffer == null) {
           this.#networkNotificationBuffer = payload
@@ -170,7 +170,7 @@ class FlutterConnection {
         // @ts-ignore
         const bytes = new Uint8Array(e.detail.value)
 
-        logging.info(`Triggered #device: [${bytes}]`, bytes)
+        logging.verbose(`Triggered #device: [${bytes}]`, bytes)
 
         // ? NOP - device characteristics should not notify
       })
@@ -180,7 +180,7 @@ class FlutterConnection {
         // @ts-ignore
         const synchronizationBytes = new Uint8Array(e.detail.value)
 
-        logging.info(`Triggered #clock: [${synchronizationBytes}]`, synchronizationBytes)
+        logging.verbose(`Triggered #clock: [${synchronizationBytes}]`, synchronizationBytes)
 
         // uint64_t clock_timestamp;
         // uint64_t origin_address_handle;
@@ -206,13 +206,13 @@ class FlutterConnection {
         // @ts-ignore
         const json = e.detail.value
 
-        logging.debug(`> Triggered #scan: [${json}]`)
+        logging.verbose(`Triggered #scan: [${json}]`)
 
         // @ts-ignore
         window.flutterConnection.emit(SpectodaAppEvents.SCAN_RESULTS, json)
       })
 
-      logging.verbose('> FlutterConnection inited')
+      logging.debug('> FlutterConnection inited')
     } else {
       logging.debug('flutter_inappwebview in window NOT detected')
       logging.info('Simulating Flutter Functions')
@@ -552,7 +552,7 @@ class FlutterConnection {
   }
 
   available() {
-    return 'flutter_inappwebview' in window
+    return Object.keys(window).some((v) => v.includes('flutter'))
   }
 }
 
@@ -605,7 +605,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
 
     // @ts-ignore
     window.flutterConnection.synchronize = (synchronization: Synchronization) => {
-      logging.debug(`flutterConnection.synchronize(synchronization=${synchronization})`)
+      logging.debug(`flutterConnection.synchronize(synchronization=${JSON.stringify(synchronization)})`)
 
       const DUMMY_BLE_CONNECTION = SpectodaWasm.Connection.make(
         '11:11:11:11:11:11',
@@ -671,7 +671,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
 
     const criteria_json = JSON.stringify(criterium_array)
 
-    logging.debug(`userSelect(criteria=${criteria_json}, timeout=${timeout_number})`)
+    logging.debug(`SpectodaConnectConnector::userSelect(criteria=${criteria_json}, timeout=${timeout_number})`)
 
     /**
      * Creates an invisible overlay that blocks all user interactions.
@@ -778,7 +778,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
     const criteria_json = JSON.stringify(criterium_array)
 
     logging.debug(
-      `autoSelect(criteria=${criteria_json}, scan_duration=${scan_duration_number}, timeout=${timeout_number})`,
+      `SpectodaConnectConnector::autoSelect(criteria=${criteria_json}, scan_duration=${scan_duration_number}, timeout=${timeout_number})`,
     )
 
     this.#promise = new Promise((resolve, reject) => {
@@ -833,7 +833,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
   }
 
   selected(): Promise<Criterium | null> {
-    logging.debug('selected()')
+    logging.debug('SpectodaConnectConnector::selected()')
 
     this.#promise = new Promise((resolve, reject) => {
       // @ts-ignore
@@ -858,7 +858,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
   }
 
   unselect(): Promise<null> {
-    logging.debug('unselect()')
+    logging.debug('SpectodaConnectConnector::unselect()')
 
     this.#promise = new Promise((resolve, reject) => {
       // @ts-ignore
@@ -890,7 +890,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
 
     const criteria_json = JSON.stringify(criterium_array)
 
-    logging.debug(`scan(criteria=${criteria_json}, scan_duration=${scan_duration_number})`)
+    logging.debug(`SpectodaConnectConnector::scan(criteria=${criteria_json}, scan_duration=${scan_duration_number})`)
 
     this.#promise = new Promise((resolve, reject) => {
       // @ts-ignore
@@ -924,7 +924,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
     if (timeout_number === DEFAULT_TIMEOUT) {
       timeout_number = 20000
     }
-    logging.debug(`connect(timeout=${timeout_number})`)
+    logging.debug(`SpectodaConnectConnector::connect(timeout=${timeout_number})`)
 
     const MINIMAL_CONNECT_TIMEOUT = 5000
 
@@ -983,7 +983,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
 
   // disconnect Connector from the connected Spectoda Device. But keep it selected
   disconnect(): Promise<unknown> {
-    logging.verbose('disconnect()')
+    logging.debug('SpectodaConnectConnector::disconnect()')
 
     this.#promise = new Promise((resolve, reject) => {
       // @ts-ignore
@@ -1001,7 +1001,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
   }
 
   connected(): Promise<Criterium | null> {
-    logging.verbose('connected()')
+    logging.debug('SpectodaConnectConnector::connected()')
 
     this.#promise = new Promise((resolve, reject) => {
       // @ts-ignore
@@ -1037,7 +1037,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
     if (timeout_number === DEFAULT_TIMEOUT) {
       timeout_number = 5000
     }
-    logging.debug(`deliver(payload=[${payload_bytes}], timeout=${timeout_number})`)
+    logging.debug(`SpectodaConnectConnector::deliver(payload=[${payload_bytes}], timeout=${timeout_number})`)
 
     this.#promise = new Promise((resolve, reject) => {
       // @ts-ignore
@@ -1065,7 +1065,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
     if (timeout_number === DEFAULT_TIMEOUT) {
       timeout_number = 1000
     }
-    logging.debug(`transmit(payload=[${payload_bytes}], timeout=${timeout_number})`)
+    logging.debug(`SpectodaConnectConnector::transmit(payload=[${payload_bytes}], timeout=${timeout_number})`)
 
     this.#promise = new Promise((resolve, reject) => {
       // @ts-ignore
@@ -1093,7 +1093,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
       timeout_number = 5000
     }
     logging.debug(
-      `request(payload=[${payload_bytes}], read_response=${
+      `SpectodaConnectConnector::request(payload=[${payload_bytes}], read_response=${
         read_response ? 'true' : 'false'
       }, timeout=${timeout_number})`,
     )
@@ -1118,7 +1118,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
   // synchronizes the device internal clock with the provided TimeTrack clock
   // of the application as precisely as possible
   setClock(clock: TimeTrack): Promise<unknown> {
-    logging.info(`SpectodaConnectConnector::setClock(clock.millis=${clock.millis()})`)
+    logging.debug(`SpectodaConnectConnector::setClock(clock.millis=${clock.millis()})`)
 
     return new Promise(async (resolve, reject) => {
       for (let tries = 0; tries < 3; tries++) {
@@ -1149,11 +1149,11 @@ export class SpectodaConnectConnector extends FlutterConnection {
           resolve()
           return
         } catch (e) {
-          logging.warn('Clock write failed: ' + e)
+          logging.debug('Clock write failed: ' + e)
         }
       }
 
-      reject('Clock write failed')
+      reject('ClockWriteFailed')
       return
     })
   }
@@ -1161,7 +1161,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
   // returns a TimeTrack clock object that is synchronized with the internal clock
   // of the device as precisely as possible
   getClock(): Promise<TimeTrack> {
-    logging.debug('getClock()')
+    logging.debug('SpectodaConnectConnector::getClock()')
 
     return new Promise(async (resolve, reject) => {
       for (let tries = 0; tries < 3; tries++) {
@@ -1196,7 +1196,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
         }
       }
 
-      reject('Clock read failed')
+      reject('ClockReadFailed')
       return
     })
   }
@@ -1207,7 +1207,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
   // TODO - emit "ota_progress" events
 
   updateFW(firmware_bytes: Uint8Array): Promise<unknown> {
-    logging.debug(`updateFW(firmware_bytes.length=${firmware_bytes.length})`)
+    logging.debug(`SpectodaConnectConnector::updateFW(firmware_bytes.length=${firmware_bytes.length})`)
 
     this.#runtimeReference.spectodaReference.requestWakeLock()
 
@@ -1221,7 +1221,6 @@ export class SpectodaConnectConnector extends FlutterConnection {
       let written = 0
 
       logging.info('OTA UPDATE')
-      logging.verbose(firmware_bytes)
 
       const start_timestamp = Date.now()
 
@@ -1321,26 +1320,30 @@ export class SpectodaConnectConnector extends FlutterConnection {
   }
 
   cancel(): void {
-    logging.debug('cancel()')
+    logging.debug('SpectodaConnectConnector::cancel()')
 
     window.flutter_inappwebview.callHandler('cancel')
   }
 
-  destroy(): Promise<unknown> {
+  destroy(): unknown {
+    logging.debug('SpectodaConnectConnector::destroy()')
+
     //this.#runtimeReference = null; // dont know if I need to destroy this reference.. But I guess I dont need to?
-    return this.disconnect()
-      .catch(() => {})
-      .then(() => {
-        return this.unselect()
-      })
-      .catch(() => {})
+	try {
+	  this.cancel()
+	  return this.disconnect().catch()
+	} catch {
+	  return this.unselect().catch()
+	}
   }
 
   // void _sendExecute(const std::vector<uint8_t>& command_bytes, const Connection& source_connection) = 0;
 
   sendExecute(command_bytes: Uint8Array, source_connection: Connection) {
-    logging.verbose(
-      `SpectodaConnectConnector::sendExecute(command_bytes=${command_bytes}, source_connection=${source_connection})`,
+    logging.debug(
+      `SpectodaConnectConnector::sendExecute(command_bytes=${command_bytes}, source_connection=${JSON.stringify(
+        source_connection,
+      )})`,
     )
 
     if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_BLE) {
@@ -1353,7 +1356,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
   // bool _sendRequest(const int32_t request_ticket_number, std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
 
   sendRequest(request_ticket_number: number, request_bytecode: Uint8Array, destination_connection: Connection) {
-    logging.verbose(
+    logging.debug(
       `SpectodaConnectConnector::sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode=${request_bytecode}, destination_connection=${destination_connection})`,
     )
 
@@ -1367,7 +1370,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
     response_bytecode: Uint8Array,
     destination_connection: Connection,
   ) {
-    logging.verbose(
+    logging.debug(
       `SpectodaConnectConnector::sendResponse(request_ticket_number=${request_ticket_number}, request_result=${request_result}, response_bytecode=${response_bytecode}, destination_connection=${destination_connection})`,
     )
 
@@ -1377,8 +1380,10 @@ export class SpectodaConnectConnector extends FlutterConnection {
   // void _sendSynchronize(const Synchronization& synchronization, const Connection& source_connection) = 0;
 
   sendSynchronize(synchronization: Synchronization, source_connection: Connection) {
-    logging.verbose(
-      `SpectodaConnectConnector::sendSynchronize(synchronization=${synchronization}, source_connection=${source_connection})`,
+    logging.debug(
+      `SpectodaConnectConnector::sendSynchronize(synchronization=${JSON.stringify(
+        synchronization,
+      )}, source_connection=${JSON.stringify(source_connection)})`,
     )
 
     if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_BLE) {
@@ -1409,11 +1414,11 @@ export class SpectodaConnectConnector extends FlutterConnection {
           resolve()
           return
         } catch (e) {
-          logging.warn('Clock write failed: ' + e)
+          logging.debug('Synchronization write failed: ' + e)
         }
       }
 
-      reject('Clock write failed')
+      reject('SendSynchronizeFailed')
       return
     })
   }
