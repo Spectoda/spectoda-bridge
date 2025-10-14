@@ -130,7 +130,12 @@ async function main() {
   }
 
 
-  spectoda.on('emittedevents', async (events: EventState[]) => {
+  spectoda.on(SpectodaAppEvents.EMITTED_EVENTS, async (events: EventState[]) => {
+
+    events.sort((a, b) => (a.timestamp as number) - (b.timestamp as number));
+
+    console.log("events", events);
+
     for (const event of events) {
       // Send event via OSC to matching room
       await oscSender.processEvent(event)
