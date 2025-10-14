@@ -7,7 +7,6 @@
     "@types/w3c-web-serial": "^1.0.6"
   },
   "dependencies": {
-    "@spectoda/error": "*",
     "@spectoda/spectoda-utils": "*",
     "color": "^4.2.3",
     "nanoid": "5.1.6",
