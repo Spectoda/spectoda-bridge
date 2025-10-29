@@ -653,7 +653,7 @@ export class SpectodaWebSerialConnector {
 
                                 const DUMMY_NODESERIAL_CONNECTION = SpectodaWasm.Connection.make(
                                   '11:11:11:11:11:11',
-                                  SpectodaWasm.connector_type_t.CONNECTOR_SERIAL,
+                                  SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
                                   SpectodaWasm.connection_rssi_t.RSSI_MAX,
                                 )
 
@@ -671,7 +671,7 @@ export class SpectodaWebSerialConnector {
                                   SpectodaWasm.Synchronization.makeFromUint8Array(new Uint8Array(data_bytes))
                                 const DUMMY_NODESERIAL_CONNECTION = SpectodaWasm.Connection.make(
                                   '11:11:11:11:11:11',
-                                  SpectodaWasm.connector_type_t.CONNECTOR_SERIAL,
+                                  SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
                                   SpectodaWasm.connection_rssi_t.RSSI_MAX,
                                 )
 
@@ -687,7 +687,7 @@ export class SpectodaWebSerialConnector {
 
                                 const DUMMY_NODESERIAL_CONNECTION = SpectodaWasm.Connection.make(
                                   '11:11:11:11:11:11',
-                                  SpectodaWasm.connector_type_t.CONNECTOR_SERIAL,
+                                  SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
                                   SpectodaWasm.connection_rssi_t.RSSI_MAX,
                                 )
 
@@ -1368,7 +1368,7 @@ export class SpectodaWebSerialConnector {
       `SpectodaWebSerialConnector::sendExecute(command_bytes=${command_bytes}, source_connection=${JSON.stringify(source_connection)})`,
     )
 
-    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_SERIAL) {
+    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
       return Promise.resolve()
     }
 
@@ -1384,7 +1384,7 @@ export class SpectodaWebSerialConnector {
       `SpectodaWebSerialConnector::sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode=${request_bytecode}, destination_connection=${destination_connection})`,
     )
 
-    if (destination_connection.connector_type != SpectodaWasm.connector_type_t.CONNECTOR_SERIAL) {
+    if (destination_connection.connector_type != SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
       return Promise.resolve()
     }
 
@@ -1413,7 +1413,7 @@ export class SpectodaWebSerialConnector {
       `SpectodaWebSerialConnector::sendSynchronize(synchronization=${JSON.stringify(synchronization)}, source_connection=${JSON.stringify(source_connection)})`,
     )
 
-    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_SERIAL) {
+    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
       return Promise.resolve()
     }
 

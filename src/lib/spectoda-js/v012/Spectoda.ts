@@ -783,6 +783,9 @@ export class Spectoda implements SpectodaClass {
       .then((connectedControllerCriteria) => {
         logging.info('> Synchronizing $APP Controller State...')
 
+        // ! this whole section is a workaround to "allow" one spectoda-js instance to cache data of multiple Networks
+        // ! which will be removed in version 0.13, where each spectoda-js instance is equal to only one Network
+        // ! so please do not try to optimize or refactor this code, it will be removed
         return this.readControllerInfo()
           .then(async (info) => {
             // 0.12.4 and up implements readControllerInfo() which give a hash (fingerprint) of
@@ -813,8 +816,6 @@ export class Spectoda implements SpectodaClass {
             if (info.networkStorageFingerprint !== networkStorageFingerprint) {
               this.runtime.spectoda_js.eraseNetworkStorage()
             }
-
-            // TODO! [0.12.11] erase NETWORKSTORAGE if not equal
 
             // Then read from Controller
             if (info.tnglFingerprint !== tnglFingerprint) {
@@ -849,6 +850,7 @@ export class Spectoda implements SpectodaClass {
             // first clean all
             this.runtime.spectoda_js.eraseTngl()
             this.runtime.spectoda_js.eraseHistory()
+            this.runtime.spectoda_js.eraseNetworkStorage()
 
             // "fetch" the TNGL from Controller to App localstorage
             await this.syncTngl().catch((e) => {
@@ -866,7 +868,10 @@ export class Spectoda implements SpectodaClass {
             })
           }) //
           .then(() => {
-            return { connected: this.runtime.connected(), criteria: connectedControllerCriteria }
+            return this.runtime.connected()
+          })
+          .then((connected) => {
+            return { connected, criteria: connectedControllerCriteria }
           })
       }) //
       .then(({ connected, criteria }) => {
@@ -4389,6 +4394,8 @@ export class Spectoda implements SpectodaClass {
   }
 
   /**
+   * ! This function needs a refactor to extract the events directly from WASM via a API function call
+   *
    * Gets the current state of events for the specified IDs. The resulting JSON event array
    * represents a scene that can be later applied by calling emitEvents().
    *
@@ -4460,6 +4467,7 @@ export class Spectoda implements SpectodaClass {
 
     this.runtime.spectoda_js.eraseHistory()
 
+    // ! let the events to be synchronized via the CPP networking layer
     return sleep(10000)
       .then(() => {
         const events = []

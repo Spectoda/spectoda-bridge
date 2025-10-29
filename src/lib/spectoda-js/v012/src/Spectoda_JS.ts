@@ -538,7 +538,7 @@ export class Spectoda_JS {
 
       const connector = SpectodaWasm.IConnector_WASM.implement(WasmConnectorImplementation)
 
-      connector.init(SpectodaWasm.connector_type_t.CONNECTOR_BLE)
+      connector.init(SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME)
       this.registerConnector(connector)
 
       this.#connectors.push(connector)

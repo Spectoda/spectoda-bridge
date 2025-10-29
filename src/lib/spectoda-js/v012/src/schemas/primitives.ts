@@ -76,7 +76,7 @@ export const MacAddressSchema = z
  *
  * @example 32
  */
-export const PcbCodeSchema = z.number('PCB code must be an integer')
+export const PcbCodeSchema = z.int('PCB code must be an integer')
   .min(0, `PCB code must be between 0 and ${MAX_PCB_CODE}`)
   .max(MAX_PCB_CODE, `PCB code must be between 0 and ${MAX_PCB_CODE}`)
 
@@ -86,7 +86,7 @@ export const PcbCodeSchema = z.number('PCB code must be an integer')
  *
  * @example 24
  */
-export const ProductCodeSchema = z.number('Product code must be an integer')
+export const ProductCodeSchema = z.int('Product code must be an integer')
   .min(0, `Product code must be between 0 and ${MAX_PRODUCT_CODE}`)
   .max(MAX_PRODUCT_CODE, `Product code must be between 0 and ${MAX_PRODUCT_CODE}`)
 
@@ -144,7 +144,7 @@ export const FirmwareVersionFullSchema = z
  *
  * @example 1201
  */
-export const FirmwareVersionCodeSchema = z.number('Firmware version code must be a positive integer')
+export const FirmwareVersionCodeSchema = z.int('Firmware version code must be a positive integer')
   .min(0, 'Firmware version code must be a positive integer')
 
 /**
@@ -162,7 +162,7 @@ export const FingerprintSchema = z
  *
  * @example 42
  */
-export const TnglBankSchema = z.number('TNGL bank must be an integer')
+export const TnglBankSchema = z.int('TNGL bank must be an integer')
   .min(0, `TNGL bank must be between 0 and ${MAX_TNGL_BANK}`)
   .max(MAX_TNGL_BANK, `TNGL bank must be between 0 and ${MAX_TNGL_BANK}`)
 
@@ -172,7 +172,7 @@ export const TnglBankSchema = z.number('TNGL bank must be an integer')
  *
  * @example 115200
  */
-export const BaudrateSchema = z.number('Baudrate must be a positive integer')
+export const BaudrateSchema = z.int('Baudrate must be a positive integer')
   .positive('Baudrate must be a positive integer (e.g. 9600, 115200)')
 
 /**

@@ -583,7 +583,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
 
       const DUMMY_BLE_CONNECTION = SpectodaWasm.Connection.make(
         '11:11:11:11:11:11',
-        SpectodaWasm.connector_type_t.CONNECTOR_BLE,
+        SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
         SpectodaWasm.connection_rssi_t.RSSI_MAX,
       )
 
@@ -596,7 +596,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
 
       const DUMMY_BLE_CONNECTION = SpectodaWasm.Connection.make(
         '11:11:11:11:11:11',
-        SpectodaWasm.connector_type_t.CONNECTOR_BLE,
+        SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
         SpectodaWasm.connection_rssi_t.RSSI_MAX,
       )
 
@@ -609,7 +609,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
 
       const DUMMY_BLE_CONNECTION = SpectodaWasm.Connection.make(
         '11:11:11:11:11:11',
-        SpectodaWasm.connector_type_t.CONNECTOR_BLE,
+        SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
         SpectodaWasm.connection_rssi_t.RSSI_MAX,
       )
 
@@ -1329,12 +1329,12 @@ export class SpectodaConnectConnector extends FlutterConnection {
     logging.debug('SpectodaConnectConnector::destroy()')
 
     //this.#runtimeReference = null; // dont know if I need to destroy this reference.. But I guess I dont need to?
-	try {
-	  this.cancel()
-	  return this.disconnect().catch()
-	} catch {
-	  return this.unselect().catch()
-	}
+    try {
+      this.cancel()
+      return this.disconnect().catch()
+    } catch {
+      return this.unselect().catch()
+    }
   }
 
   // void _sendExecute(const std::vector<uint8_t>& command_bytes, const Connection& source_connection) = 0;
@@ -1346,7 +1346,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
       )})`,
     )
 
-    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_BLE) {
+    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
       return Promise.resolve()
     }
 
@@ -1386,7 +1386,7 @@ export class SpectodaConnectConnector extends FlutterConnection {
       )}, source_connection=${JSON.stringify(source_connection)})`,
     )
 
-    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_BLE) {
+    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
       return Promise.resolve()
     }
 

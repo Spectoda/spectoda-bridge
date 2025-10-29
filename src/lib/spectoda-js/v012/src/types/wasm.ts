@@ -1,8 +1,7 @@
 import { EventState } from '../..'
 
 /// === auto-generated from Emscripten build process === ///
-/// ========== DEBUG_UNIVERSAL_0.12.11_20251005.d.ts ========== ///
-
+/// ========== DEBUG_UNIVERSAL_0.12.11_20251024.d.ts ========== ///
 export type interface_error_tValue<T extends number> = {
   value: T
 }
@@ -20,6 +19,7 @@ export type connector_type_t =
   | connector_type_tValue<5>
   | connector_type_tValue<6>
   | connector_type_tValue<7>
+  | connector_type_tValue<8>
 
 export type connection_rssi_tValue<T extends number> = {
   value: T
@@ -215,7 +215,8 @@ export type MainModule = {
     CONNECTOR_WEBSOCKETS: connector_type_tValue<4>
     CONNECTOR_TWAI: connector_type_tValue<5>
     CONNECTOR_SIMULATED: connector_type_tValue<6>
-    CONNECTOR_MAX: connector_type_tValue<7>
+    CONNECTOR_LEGACY_JS_RUNTIME: connector_type_tValue<7>
+    CONNECTOR_MAX: connector_type_tValue<8>
   }
   connection_rssi_t: { RSSI_MAX: connection_rssi_tValue<127>; RSSI_MIN: connection_rssi_tValue<-128> }
   Connection: {
@@ -268,7 +269,7 @@ export type MainModule = {
   computeFingerprint32(_0: any): string
 }
 
-/// ========== DEBUG_UNIVERSAL_0.12.11_20251005.d.ts ========== ///
+/// ========== DEBUG_UNIVERSAL_0.12.11_20251024.d.ts ========== ///
 
 /// =================== MANUALLY DEFINED INTERFACES ================= ///
 

@@ -539,7 +539,7 @@ export class SpectodaNodeSerialConnector {
 
                           const DUMMY_NODESERIAL_CONNECTION = SpectodaWasm.Connection.make(
                             '11:11:11:11:11:11',
-                            SpectodaWasm.connector_type_t.CONNECTOR_SERIAL,
+                            SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
                             SpectodaWasm.connection_rssi_t.RSSI_MAX,
                           )
 
@@ -558,7 +558,7 @@ export class SpectodaNodeSerialConnector {
                           )
                           const DUMMY_NODESERIAL_CONNECTION = SpectodaWasm.Connection.make(
                             '11:11:11:11:11:11',
-                            SpectodaWasm.connector_type_t.CONNECTOR_SERIAL,
+                            SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
                             SpectodaWasm.connection_rssi_t.RSSI_MAX,
                           )
 
@@ -571,7 +571,7 @@ export class SpectodaNodeSerialConnector {
 
                           const DUMMY_NODESERIAL_CONNECTION = SpectodaWasm.Connection.make(
                             '11:11:11:11:11:11',
-                            SpectodaWasm.connector_type_t.CONNECTOR_SERIAL,
+                            SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
                             SpectodaWasm.connection_rssi_t.RSSI_MAX,
                           )
 
@@ -1252,7 +1252,7 @@ export class SpectodaNodeSerialConnector {
       `SpectodaNodeSerialConnector::sendExecute(command_bytes.length=${command_bytes.length}, source_connection=${JSON.stringify(source_connection)})`,
     )
 
-    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_SERIAL) {
+    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
       return Promise.resolve()
     }
 
@@ -1271,7 +1271,7 @@ export class SpectodaNodeSerialConnector {
     )
 
     // TODO if many connections can be opened, then look for the right one
-    if (destination_connection.connector_type != SpectodaWasm.connector_type_t.CONNECTOR_SERIAL) {
+    if (destination_connection.connector_type != SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
       return Promise.resolve()
     }
 
@@ -1303,7 +1303,7 @@ export class SpectodaNodeSerialConnector {
       `SpectodaNodeSerialConnector::sendSynchronize(synchronization=${JSON.stringify(synchronization)}, source_connection=${JSON.stringify(source_connection)})`,
     )
 
-    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_SERIAL) {
+    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
       return Promise.resolve()
     }
 

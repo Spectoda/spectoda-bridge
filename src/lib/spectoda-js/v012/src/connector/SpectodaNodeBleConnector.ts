@@ -423,7 +423,7 @@ export class NodeBLEConnection {
 
       const DUMMY_WEBBLE_CONNECTION = SpectodaWasm.Connection.make(
         '11:11:11:11:11:11',
-        SpectodaWasm.connector_type_t.CONNECTOR_BLE,
+        SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
         SpectodaWasm.connection_rssi_t.RSSI_MAX,
       )
 
@@ -456,7 +456,7 @@ export class NodeBLEConnection {
 
     const DUMMY_WEBBLE_CONNECTION = SpectodaWasm.Connection.make(
       '11:11:11:11:11:11',
-      SpectodaWasm.connector_type_t.CONNECTOR_BLE,
+      SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
       SpectodaWasm.connection_rssi_t.RSSI_MAX,
     )
 
@@ -1447,7 +1447,7 @@ export class SpectodaNodeBluetoothConnector {
       )})`,
     )
 
-    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_BLE) {
+    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
       return Promise.resolve()
     }
 
@@ -1491,7 +1491,7 @@ export class SpectodaNodeBluetoothConnector {
       )}, source_connection=${JSON.stringify(source_connection)})`,
     )
 
-    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_BLE) {
+    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
       return Promise.resolve()
     }
 
