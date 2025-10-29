@@ -30,6 +30,7 @@ export const SpectodaAppEvents = {
   OTA_TIMELEFT: 'ota_timeleft',
 
   TNGL_UPDATE: 'tngl_update',
+  NETWORK_STORAGE_DATA_UPDATE: 'networkstoragedataupdate',
 
   EMITTED_EVENTS: 'emittedevents',
   EVENT_STATE_UPDATES: 'eventstateupdates',
@@ -72,6 +73,13 @@ type PropsMap = RemoteControlConnectionStatusProps &
     [SpectodaAppEvents.TNGL_UPDATE]: {
       tngl_bytes: TnglBytes
       used_ids: UsedIds
+    }
+
+    [SpectodaAppEvents.NETWORK_STORAGE_DATA_UPDATE]: {
+      data_name: string
+      data_version: number
+      data_fingerprint: string
+      data_bytes: Uint8Array
     }
 
     // TODO for future payload key: `events`

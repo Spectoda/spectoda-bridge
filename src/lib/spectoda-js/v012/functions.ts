@@ -300,10 +300,8 @@ export function detectGW() {
   return detectNode() && !detectNext()
 }
 
-const spectodaConnectDetected = typeof window !== 'undefined' && 'flutter_inappwebview' in window
-
 export function detectSpectodaConnect() {
-  return spectodaConnectDetected
+  return typeof window !== 'undefined' && Object.keys(window).some((v) => v.includes("flutter"))
 }
 
 const navigatorUserAgent = typeof navigator === 'undefined' ? '' : navigator.userAgent.toLowerCase()
@@ -342,13 +340,13 @@ export function detectLinux() {
 const chromeDetected = navigatorUserAgent.includes('chrome')
 
 export function detectChrome() {
-  return chromeDetected && !spectodaConnectDetected
+  return chromeDetected && !detectSpectodaConnect()
 }
 
 const safariDetected = navigatorUserAgent.includes('safari') && !navigatorUserAgent.includes('chrome')
 
 export function detectSafari() {
-  return safariDetected && !spectodaConnectDetected
+  return safariDetected && !detectSpectodaConnect()
 }
 
 //////////////////////////////////////////////////////

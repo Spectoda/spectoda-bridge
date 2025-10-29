@@ -23,6 +23,7 @@ import {
 } from './functions'
 import { logging } from './logging'
 import { SpectodaWasm } from './src/SpectodaWasm'
+import { tnglDefinitionsFromJsonToTngl } from './src/Preprocessor'
 import {
   COMMAND_FLAGS,
   CONNECTORS,
@@ -54,6 +55,7 @@ import {
   ProductCode,
   TnglBank,
   ValueTypeLabel,
+  NetworkStorageData,
 } from './src/types/primitives'
 import { SpectodaClass } from './src/types/spectodaClass'
 import { fetchTnglFromApiById, sendTnglToApi } from './tnglapi'
@@ -68,12 +70,26 @@ import {
   ValueTypePixels,
   ValueTypeTimestamp,
 } from './src/types/values'
+import { MainModule } from './src/types/wasm'
 
 import { EventState } from '.'
 
 const MIN_FIRMWARE_LENGTH = 10000
 const DEFAULT_RECONNECTION_TIME = 2500
 const DEFAULT_RECONNECTION_INTERVAL = 10000
+
+const FW_VERSION_FULL_BYTES = 32
+const TNGL_FINGERPRINT_BYTES = 32
+const EVENT_STORE_FINGERPRINT_BYTES = 32
+const CONFIG_FINGERPRINT_BYTES = 32
+const NETWORK_SIGNATURE_BYTES = 16
+
+const ALL_METADATA_BYTES =
+  FW_VERSION_FULL_BYTES +
+  TNGL_FINGERPRINT_BYTES +
+  EVENT_STORE_FINGERPRINT_BYTES +
+  CONFIG_FINGERPRINT_BYTES +
+  NETWORK_SIGNATURE_BYTES
 
 // TODO - kdyz zavolam spectoda.connect(), kdyz jsem pripojeny, tak nechci aby se do interfacu poslal select
 // TODO - kdyz zavolam funkci connect a uz jsem pripojeny, tak vyslu event connected, pokud si myslim ze nejsem pripojeny.
@@ -308,7 +324,9 @@ export class Spectoda implements SpectodaClass {
    * TODO: Move to different file. Not a spectoda.js concern.
    */
   requestWakeLock(prioritized = false) {
-    logging.debug('> Activating wakeLock...')
+    logging.debug(`Spectoda::requestWakeLock(prioritized=${prioritized})`)
+
+    logging.info('> Activating wakeLock...')
 
     if (prioritized) {
       this.#isPrioritizedWakelock = true
@@ -341,7 +359,9 @@ export class Spectoda implements SpectodaClass {
    * TODO: Move to different file. Not a spectoda.js concern.
    */
   releaseWakeLock(prioritized = false) {
-    logging.debug('> Deactivating wakeLock...')
+    logging.debug(`Spectoda::releaseWakeLock(prioritized=${prioritized})`)
+
+    logging.info('> Deactivating wakeLock...')
 
     if (prioritized) {
       this.#isPrioritizedWakelock = false
@@ -458,7 +478,13 @@ export class Spectoda implements SpectodaClass {
     sessionOnly: boolean
     meta: object
   }) {
-    logging.debug('> Connecting to Remote Control')
+    logging.debug(
+      `Spectoda::enableRemoteControl(signature=${signature}, key=${key}, sessionOnly=${sessionOnly}, meta=${JSON.stringify(
+        meta,
+      )})`,
+    )
+
+    logging.info('> Enabling Remote Control Receiver...')
 
     // TODO refactor to async/await for less nesting
     //* Added by @immakermatty to automatically connect the sender app if the receiver is connected
@@ -588,13 +614,13 @@ export class Spectoda implements SpectodaClass {
 
     return await new Promise((resolve, reject) => {
       this.socket.on('disconnect', () => {
-        logging.log('> RC Receiver disconnected')
+        logging.info('> RC Receiver disconnected')
 
         this.#setRemoteControlConnectionState(REMOTECONTROL_STATUS.REMOTECONTROL_DISCONNECTED)
       })
 
       this.socket.on('connect', async () => {
-        logging.log('> RC Receiver connected')
+        logging.info('> RC Receiver connected')
 
         logging.setLogCallback((...e) => {
           console.log(...e)
@@ -636,7 +662,7 @@ export class Spectoda implements SpectodaClass {
           await this.socket
             .emitWithAck('join', { signature, key })
             .then(() => {
-              logging.log('> RC Receiver joined')
+              logging.info('> RC Receiver joined')
               this.#setRemoteControlConnectionState(REMOTECONTROL_STATUS.REMOTECONTROL_CONNECTED)
               postJoinActions()
 
@@ -663,7 +689,9 @@ export class Spectoda implements SpectodaClass {
     logging.setWarnCallback(console.warn)
     logging.setErrorCallback(console.error)
 
-    logging.debug('> Disconnecting from the Remote Control')
+    logging.debug('Spectoda::disableRemoteControl()')
+
+    logging.info('> Disableing Remote Control Receiver')
 
     this.releaseWakeLock(true)
     this.socket?.disconnect()
@@ -721,9 +749,9 @@ export class Spectoda implements SpectodaClass {
 
   */
   scan(scan_criteria: object[] = [{}], scan_period: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT) {
-    logging.verbose(`scan(scan_criteria=${scan_criteria}, scan_period=${scan_period})`)
+    logging.debug(`Spectoda::scan(scan_criteria=${JSON.stringify(scan_criteria)}, scan_period=${scan_period})`)
 
-    logging.debug('> Scanning Spectoda Controllers...')
+    logging.info('> Scanning for Controllers...')
     return this.runtime.scan(scan_criteria, scan_period)
   }
 
@@ -732,13 +760,12 @@ export class Spectoda implements SpectodaClass {
     scanPeriod: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
     scanTimeout: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT,
   ) {
-    logging.verbose(`#connect(autoConnect=${autoConnect})`)
-
-    logging.debug('> Connecting Spectoda Controller')
+    logging.debug(`Spectoda::#connect(autoConnect=${autoConnect})`)
 
     this.#setConnectionState(CONNECTION_STATUS.CONNECTING)
 
-    logging.debug('> Selecting controller...')
+    logging.info('> Selecting Controller...')
+
     return (
       autoConnect
         ? this.runtime.autoSelect(this.#criteria, scanPeriod, scanTimeout)
@@ -749,12 +776,12 @@ export class Spectoda implements SpectodaClass {
         return this.eraseTimeline()
       })
       .then(() => {
-        logging.debug('> Connecting controller...')
+        logging.info('> Connecting to the selected Controller...')
 
         return this.runtime.connect()
       })
       .then((connectedControllerCriteria) => {
-        logging.debug('> Synchronizing $APP Controller State...')
+        logging.info('> Synchronizing $APP Controller State...')
 
         return this.readControllerInfo()
           .then(async (info) => {
@@ -765,42 +792,51 @@ export class Spectoda implements SpectodaClass {
 
             const tnglFingerprint = this.runtime.spectoda_js.getTnglFingerprint()
             const eventStoreFingerprint = this.runtime.spectoda_js.getEventStoreFingerprint()
+            const networkStorageFingerprint = this.runtime.spectoda_js.getNetworkStorageFingerprint()
 
-            logging.info('APP tnglFingerprint', tnglFingerprint)
-            logging.info('ESP tnglFingerprint', info.tnglFingerprint)
-            logging.info('APP eventStoreFingerprint', eventStoreFingerprint)
-            logging.info('ESP eventStoreFingerprint', info.eventStoreFingerprint)
+            logging.debug('APP tnglFingerprint', tnglFingerprint)
+            logging.debug('ESP tnglFingerprint', info.tnglFingerprint)
+            logging.debug('APP eventStoreFingerprint', eventStoreFingerprint)
+            logging.debug('ESP eventStoreFingerprint', info.eventStoreFingerprint)
+            logging.debug('APP networkStorageFingerprint', networkStorageFingerprint)
+            logging.debug('ESP networkStorageFingerprint', info.networkStorageFingerprint)
 
             // First erase in localstorage
-            if (info.tnglFingerprint != tnglFingerprint) {
+            if (info.tnglFingerprint !== tnglFingerprint) {
               this.runtime.spectoda_js.eraseTngl()
             }
 
-            if (info.eventStoreFingerprint != eventStoreFingerprint) {
+            if (info.eventStoreFingerprint !== eventStoreFingerprint) {
               this.runtime.spectoda_js.eraseHistory()
             }
 
+            if (info.networkStorageFingerprint !== networkStorageFingerprint) {
+              this.runtime.spectoda_js.eraseNetworkStorage()
+            }
+
+            // TODO! [0.12.11] erase NETWORKSTORAGE if not equal
+
             // Then read from Controller
-            if (info.tnglFingerprint != tnglFingerprint) {
+            if (info.tnglFingerprint !== tnglFingerprint) {
               // "fetch" the TNGL from Controller to App localstorage
               // ! do not await to avoid blocking the connection process and let the TNGL sync in the background
               this.syncTngl().catch((e) => {
-                logging.error('TNGL sync after connection failed:', e)
+                logging.debug('TNGL sync after connection failed:', e)
               })
             }
 
-            if (info.eventStoreFingerprint != eventStoreFingerprint) {
+            if (info.eventStoreFingerprint !== eventStoreFingerprint) {
               // "fetch" the EventStore from Controller to App localstorage
               // ! do not await to avoid blocking the connection process and let the EventStore sync in the background
               this.syncEventHistory().catch((e) => {
-                logging.error('EventStore sync after connection failed:', e)
+                logging.debug('EventStore sync after connection failed:', e)
               })
             }
 
             // ! For FW 0.12 on every connection, force sync timeline to day time
             // ! do not await to avoid blocking the connection process and let the Timeline sync in the background
             this.syncTimelineToDayTime().catch((e) => {
-              logging.error('Timeline sync after connection failed:', e)
+              logging.debug('Timeline sync after connection failed:', e)
             })
           }) //
           .catch(async (e) => {
@@ -845,7 +881,7 @@ export class Spectoda implements SpectodaClass {
 
         this.#setConnectionState(CONNECTION_STATUS.DISCONNECTED)
 
-        if (typeof error == 'string') {
+        if (error) {
           throw error
         } else {
           throw 'ConnectionFailed'
@@ -874,8 +910,10 @@ export class Spectoda implements SpectodaClass {
     autonomousReconnection = false,
     overrideConnection = false,
   ) {
-    logging.verbose(
-      `connect(criteria=${criteria}, autoConnect=${autoConnect}, ownerSignature=${ownerSignature}, ownerKey=${ownerKey}, connectAny=${connectAny}, fwVersion=${fwVersion}, autonomousReconnection=${autonomousReconnection}, overrideConnection=${overrideConnection})`,
+    logging.debug(
+      `Spectoda::connect(criteria=${JSON.stringify(
+        criteria,
+      )}, autoConnect=${autoConnect}, ownerSignature=${ownerSignature}, ownerKey=${ownerKey}, connectAny=${connectAny}, fwVersion=${fwVersion}, autonomousReconnection=${autonomousReconnection}, overrideConnection=${overrideConnection})`,
     )
 
     this.#autonomousReconnection = autonomousReconnection
@@ -927,9 +965,11 @@ export class Spectoda implements SpectodaClass {
    * Disconnects from the connected controller.
    */
   disconnect() {
+    logging.debug('Spectoda::disconnect()')
+
     this.#autonomousReconnection = false
 
-    logging.debug('> Disconnecting controller...')
+    logging.info('> Disconnecting controller...')
 
     if (this.getConnectionState() === CONNECTION_STATUS.DISCONNECTED) {
       logging.warn('> Controller already disconnected')
@@ -955,7 +995,9 @@ export class Spectoda implements SpectodaClass {
    * Cancels the current connect or scan operation.
    */
   cancel() {
-    logging.verbose('cancel()')
+    logging.debug('Spectoda::cancel()')
+
+    logging.info('> Cancelling connect and scan operations...')
 
     return this.runtime.cancel()
   }
@@ -971,7 +1013,10 @@ export class Spectoda implements SpectodaClass {
    * @returns The preprocessed TNGL code.
    */
   async preprocessTngl(tngl_code: string) {
-    logging.verbose(`preprocessTngl(tngl_code=${tngl_code})`)
+    logging.debug(`Spectoda::preprocessTngl(tngl_code.length=${tngl_code.length})`)
+    logging.verbose('tngl_code', tngl_code)
+
+    logging.info('> Preprocessing TNGL code...')
 
     /**
      * Formats a value according to its type for TNGL usage.
@@ -1805,6 +1850,34 @@ export class Spectoda implements SpectodaClass {
       tngl_code = resultLines.join('\n')
     }
 
+    // Handle TNGL_DEFINITIONS_FROM_JSON
+    {
+      const tnglDefinitionsRegex = /TNGL_DEFINITIONS_FROM_JSON\s*\(\s*`([^`]*)`\s*\)\s*;?/g
+      let definitionsMatch
+
+      while ((definitionsMatch = tnglDefinitionsRegex.exec(tngl_code)) !== null) {
+        const fullMatch = definitionsMatch[0]
+        const jsonString = definitionsMatch[1]
+
+        try {
+          // Convert JSON to TNGL definitions
+          const tnglDefinitions = tnglDefinitionsFromJsonToTngl(jsonString)
+
+          // Replace the TNGL_DEFINITIONS_FROM_JSON call with the generated TNGL
+          tngl_code =
+            tngl_code.substring(0, definitionsMatch.index) +
+            tnglDefinitions +
+            tngl_code.substring(definitionsMatch.index + fullMatch.length)
+
+          // Reset lastIndex to account for potential length changes
+          tnglDefinitionsRegex.lastIndex = definitionsMatch.index + tnglDefinitions.length
+        } catch (error) {
+          logging.error(`Failed to process TNGL_DEFINITIONS_FROM_JSON: ${error}`)
+          throw new Error(`TNGL_DEFINITIONS_FROM_JSON processing failed: ${error}`)
+        }
+      }
+    }
+
     // Process BERRY code blocks after handling preprocessor directives
     {
       // Extract and process BERRY code segments
@@ -1907,9 +1980,9 @@ export class Spectoda implements SpectodaClass {
    * Gets the TNGL code from the controller to the WASM runtime.
    */
   syncTngl() {
-    logging.verbose('syncTngl()')
+    logging.debug('Spectoda::syncTngl()')
 
-    logging.info('> Requesting TNGL bytecode...')
+    logging.info('> Reading TNGL bytecode...')
 
     const request_uuid = this.#getUUID()
     const command_bytes = [COMMAND_FLAGS.FLAG_READ_TNGL_BYTECODE_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -1961,7 +2034,6 @@ export class Spectoda implements SpectodaClass {
         this.runtime.spectoda_js.request(new Uint8Array(tngl_bytecode), DUMMY_CONNECTION)
       } else {
         // maybe no TNGL in the controller
-        logging.error('ERROR asdf8079: Failed to synchronize TNGL')
         throw 'FailedToSynchronizeTngl'
       }
     })
@@ -1974,7 +2046,7 @@ export class Spectoda implements SpectodaClass {
    * @immakermatty refactor suggestion to `loadTngl` (???)
    */
   writeTngl(tngl_code: string | null, tngl_bytes: Uint8Array | null) {
-    logging.verbose(`writeTngl(tngl_code=${tngl_code}, tngl_bytes=${tngl_bytes})`)
+    logging.debug(`Spectoda::writeTngl(tngl_code=${tngl_code}, tngl_bytes=${tngl_bytes})`)
 
     logging.info('> Writing Tngl code...')
 
@@ -2016,7 +2088,9 @@ export class Spectoda implements SpectodaClass {
     device_ids: ValueTypeIDs = 255,
     force_delivery = true,
   ) {
-    logging.verbose(`emitEvent(event_label=${event_label},device_ids=${device_ids},force_delivery=${force_delivery})`)
+    logging.debug(
+      `Spectoda::emitEvent(event_label=${event_label},device_ids=${device_ids},force_delivery=${force_delivery})`,
+    )
 
     const func = async (id: ValueTypeID) => {
       if (!(await this.runtime.emitNull(event_label, id))) {
@@ -2228,7 +2302,9 @@ export class Spectoda implements SpectodaClass {
    * @returns {Promise<unknown>} Promise that resolves when timeline is synchronized
    */
   manipulateTimeline(timestamp: number, pause: boolean, date: string): Promise<unknown> {
-    logging.debug('> Manipulating timeline...')
+    logging.debug(`Spectoda::manipulateTimeline(timestamp=${timestamp}, pause=${pause}, date=${date})`)
+
+    logging.info('> Manipulating with Timeline...')
 
     if (pause) {
       this.timeline.pause()
@@ -2248,7 +2324,9 @@ export class Spectoda implements SpectodaClass {
    * @returns {Promise<unknown>} Promise that resolves when timeline is synchronized
    */
   rewindTimeline(pause = false): Promise<unknown> {
-    logging.debug('> Rewinding timeline...')
+    logging.debug(`Spectoda::rewindTimeline(pause=${pause})`)
+
+    logging.info('> Rewinding Timeline...')
 
     if (pause) {
       this.timeline.pause()
@@ -2266,7 +2344,9 @@ export class Spectoda implements SpectodaClass {
    * @returns {Promise<void>} Promise that resolves when timeline is synchronized
    */
   pauseTimeline(): Promise<unknown> {
-    logging.debug('> Pausing timeline...')
+    logging.debug('Spectoda::pauseTimeline()')
+
+    logging.info('> Pausing Timeline...')
 
     this.timeline.pause()
 
@@ -2278,7 +2358,9 @@ export class Spectoda implements SpectodaClass {
    * @returns {Promise<unknown>} Promise that resolves when timeline is synchronized
    */
   unpauseTimeline(): Promise<unknown> {
-    logging.debug('> Unpausing timeline...')
+    logging.debug('Spectoda::unpauseTimeline()')
+
+    logging.info('> Unpausing Timeline...')
 
     this.timeline.unpause()
 
@@ -2294,7 +2376,9 @@ export class Spectoda implements SpectodaClass {
     paused: boolean | null = null,
     date: ValueTypeDate | null = null,
   ): Promise<unknown> {
-    logging.verbose(`syncTimeline(timestamp=${timestamp}, paused=${paused})`)
+    logging.debug(`Spectoda::syncTimeline(timestamp=${timestamp}, paused=${paused}, date=${date})`)
+
+    logging.info('> Synchronizing Timeline...')
 
     if (timestamp === null || timestamp === undefined) {
       timestamp = this.timeline.millis()
@@ -2343,6 +2427,8 @@ export class Spectoda implements SpectodaClass {
    * Synchronizes TNGL variable state of given ID to all other IDs
    */
   syncState(deviceId: ValueTypeID) {
+    logging.debug(`Spectoda::syncState(deviceId=${deviceId})`)
+
     logging.info('> Synchronizing state...')
 
     const request_uuid = this.#getUUID()
@@ -2356,6 +2442,9 @@ export class Spectoda implements SpectodaClass {
    * @param {string} url - whole URL of the firmware file
    */
   async fetchAndUpdateDeviceFirmware(url: string) {
+    logging.debug(`Spectoda::fetchAndUpdateDeviceFirmware(url=${url})`)
+
+    logging.info('> Fetching and Updating Controller Firmware...')
     const fw = await fetchFirmware(url)
 
     return this.updateDeviceFirmware(fw)
@@ -2366,6 +2455,9 @@ export class Spectoda implements SpectodaClass {
    * @param {string} url - whole URL of the firmware file
    */
   async fetchAndUpdateNetworkFirmware(url: string) {
+    logging.debug(`Spectoda::fetchAndUpdateNetworkFirmware(url=${url})`)
+
+    logging.info('> Fetching and Updating Firmware of all Controllers...')
     const fw = await fetchFirmware(url)
 
     return this.updateNetworkFirmware(fw)
@@ -2378,9 +2470,9 @@ export class Spectoda implements SpectodaClass {
    */
   // todo rename to updateControllerFirmware
   updateDeviceFirmware(firmware: Uint8Array) {
-    logging.verbose(`updateDeviceFirmware(firmware.length=${firmware?.length})`)
+    logging.debug(`Spectoda::updateDeviceFirmware(firmware.length=${firmware?.length})`)
 
-    logging.debug('> Updating Controller FW...')
+    logging.info('> Updating Controller FW...')
 
     if (!firmware || firmware.length < MIN_FIRMWARE_LENGTH) {
       logging.error('Invalid firmware')
@@ -2411,9 +2503,9 @@ export class Spectoda implements SpectodaClass {
    * @param {Uint8Array} firmware - The firmware to update the controller with.
    */
   updateNetworkFirmware(firmware: Uint8Array) {
-    logging.verbose(`updateNetworkFirmware(firmware.length=${firmware?.length})`)
+    logging.debug(`Spectoda::updateNetworkFirmware(firmware.length=${firmware?.length})`)
 
-    logging.debug('> Updating Network FW...')
+    logging.info('> Updating Firmware of all Controllers...')
 
     if (!firmware || firmware.length < 10000) {
       logging.error('Invalid firmware')
@@ -2596,7 +2688,9 @@ export class Spectoda implements SpectodaClass {
    */
   // todo rename to readControllerConfig
   readDeviceConfig() {
-    logging.debug('> Reading device config...')
+    logging.debug('Spectoda::readDeviceConfig()')
+
+    logging.info('> Reading device config...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_DEVICE_CONFIG_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -2656,9 +2750,9 @@ export class Spectoda implements SpectodaClass {
    */
   // todo rename to updateControllerConfig
   updateDeviceConfig(config_string: string) {
-    logging.debug('> Updating config...')
+    logging.debug(`Spectoda::updateDeviceConfig(config_string=${config_string})`)
 
-    logging.verbose(`config_string=${config_string}`)
+    logging.info('> Writing Controller Config...')
 
     const condif_object = JSON.parse(config_string)
     const config = JSON.stringify(condif_object)
@@ -2702,10 +2796,7 @@ export class Spectoda implements SpectodaClass {
       logging.verbose(`error_code=${error_code}`)
 
       if (error_code === 0) {
-        logging.info('Write Config Success')
-
-        // todo rename to rebootController
-        // reboot device
+        logging.info('> Rebooting Controller...')
         const payload = [COMMAND_FLAGS.FLAG_DEVICE_REBOOT_REQUEST]
 
         return this.runtime.request(payload, false)
@@ -2719,7 +2810,9 @@ export class Spectoda implements SpectodaClass {
    * Updates the JSON config of ALL CONNECTED CONTROLLERS in the network.
    */
   updateNetworkConfig(config_string: string) {
-    logging.debug('> Updating config of whole network...')
+    logging.debug(`Spectoda::updateNetworkConfig(config_string=${config_string})`)
+
+    logging.info('> Writing Config to all Controllers...')
 
     const encoder = new TextEncoder()
     const config_bytes = encoder.encode(config_string)
@@ -2735,7 +2828,7 @@ export class Spectoda implements SpectodaClass {
     ]
 
     return this.runtime.execute(request_bytes, 'CONF').then(() => {
-      logging.debug('> Rebooting network...')
+      logging.info('> Rebooting all Controllers...')
       const command_bytecode = [COMMAND_FLAGS.FLAG_DEVICE_REBOOT_REQUEST]
 
       return this.runtime.execute(command_bytecode, undefined)
@@ -2746,9 +2839,9 @@ export class Spectoda implements SpectodaClass {
    * Gets the timeline from connected controller to the runtime.
    */
   requestTimeline() {
-    logging.verbose('requestTimeline()')
+    logging.debug('Spectoda::requestTimeline()')
 
-    logging.info('> Requesting timeline...')
+    logging.info('> Reading Timeline from Controller...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_TIMELINE_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -2813,7 +2906,9 @@ export class Spectoda implements SpectodaClass {
    * Reboots ALL CONNECTED CONTROLLERS in the network. This will temporarily disconnect the controller from the network. Spectoda.js will try to reconnect you back to the controller.
    */
   rebootNetwork() {
-    logging.debug('> Rebooting network...')
+    logging.debug('Spectoda::rebootNetwork()')
+
+    logging.info('> Rebooting all Controllers...')
 
     const payload = [COMMAND_FLAGS.FLAG_DEVICE_REBOOT_REQUEST]
 
@@ -2826,7 +2921,9 @@ export class Spectoda implements SpectodaClass {
    */
   // todo rename to rebootController
   rebootDevice() {
-    logging.debug('> Rebooting device...')
+    logging.debug('Spectoda::rebootDevice()')
+
+    logging.info('> Rebooting Controller...')
 
     const payload = [COMMAND_FLAGS.FLAG_DEVICE_REBOOT_REQUEST]
 
@@ -2839,7 +2936,9 @@ export class Spectoda implements SpectodaClass {
    */
   // todo rename to disconnectController
   rebootAndDisconnectDevice() {
-    logging.debug('> Rebooting and disconnecting device...')
+    logging.debug('Spectoda::rebootAndDisconnectDevice()')
+
+    logging.info('> Rebooting and disconnecting Controller...')
 
     const payload = [COMMAND_FLAGS.FLAG_DEVICE_REBOOT_REQUEST]
 
@@ -2853,7 +2952,9 @@ export class Spectoda implements SpectodaClass {
    * Puts currently connected controller into the DEFAULT network. More info at the top of this file.
    */
   removeOwner(rebootController = true) {
-    logging.debug('> Removing owner...')
+    logging.debug(`Spectoda::removeOwner(rebootController=${rebootController})`)
+
+    logging.info('> Removing Network Signature+Key from Controller...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_ERASE_NETWORK_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -2907,7 +3008,9 @@ export class Spectoda implements SpectodaClass {
    * Removes ALL CONTROLLERS from their current network. More info at the top of this file.
    */
   removeNetworkOwner() {
-    logging.debug('> Removing network owner...')
+    logging.debug('Spectoda::removeNetworkOwner()')
+
+    logging.info('> Removing Network Signature+Key from all Controllers...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_ERASE_NETWORK_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -2922,7 +3025,9 @@ export class Spectoda implements SpectodaClass {
    * Get the firmware version of the controller in string format
    */
   getFwVersion() {
-    logging.debug('> Requesting fw version...')
+    logging.debug('Spectoda::getFwVersion()')
+
+    logging.info('> Reading FW version from Controller...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_FW_VERSION_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -2971,7 +3076,9 @@ export class Spectoda implements SpectodaClass {
    * Tngl fingerprint is an identifier of the Tngl code that is currently running on the controller. It is used for checking if the controller has the correct Tngl code.
    */
   getTnglFingerprint() {
-    logging.debug('> Getting TNGL fingerprint...')
+    logging.debug('Spectoda::getTnglFingerprint()')
+
+    logging.info('> Reading TNGL fingerprint from Controller...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_TNGL_FINGERPRINT_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -3023,7 +3130,9 @@ export class Spectoda implements SpectodaClass {
    */
   // datarate in bits per second
   setNetworkDatarate(datarate: number) {
-    logging.debug(`> Setting network datarate to ${datarate} bsp...`)
+    logging.debug(`Spectoda::setNetworkDatarate(datarate=${datarate})`)
+
+    logging.info('> Writing ESPNOW datarate to Controller...')
 
     const request_uuid = this.#getUUID()
     const payload = [
@@ -3039,7 +3148,9 @@ export class Spectoda implements SpectodaClass {
    * @deprecated
    */
   readRomPhyVdd33() {
-    logging.debug('> Requesting rom_phy_vdd33...')
+    logging.debug('Spectoda::readRomPhyVdd33()')
+
+    logging.info('> Reading rom_phy_vdd33 from Controller...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_ROM_PHY_VDD33_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -3084,7 +3195,9 @@ export class Spectoda implements SpectodaClass {
    * @deprecated Will be replaced in 0.12 by IO operations
    */
   readPinVoltage(pin: number) {
-    logging.debug(`> Requesting pin ${pin} voltage ...`)
+    logging.debug(`Spectoda::readPinVoltage(pin=${pin})`)
+
+    logging.info(`> Reading pin ${pin} voltage from Controller...`)
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_VOLTAGE_ON_PIN_REQUEST, ...numberToBytes(request_uuid, 4), pin]
@@ -3138,7 +3251,9 @@ export class Spectoda implements SpectodaClass {
    * Returns the MAC addresses of all nodes connected in the current network in real-time
    */
   getConnectedPeersInfo() {
-    logging.debug('> Requesting connected peers info...')
+    logging.debug('Spectoda::getConnectedPeersInfo()')
+
+    logging.info('> Reading Controller connected peers info...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_CONNECTED_PEERS_INFO_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -3195,9 +3310,12 @@ export class Spectoda implements SpectodaClass {
 
   /**
    * Gets the EventHistory from the connected controller and loads it into the runtime.
+   * @deprecated
    */
   syncEventHistory() {
-    logging.info('> Requesting event history bytecode...')
+    logging.debug('Spectoda::syncEventHistory()')
+
+    logging.info('> Reading EventStore from Controller...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_EVENT_HISTORY_BC_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -3259,7 +3377,9 @@ export class Spectoda implements SpectodaClass {
    * Erases the event state history of ALL CONTROLLERS in the Spectoda network
    */
   eraseEventHistory() {
-    logging.debug('> Erasing event history...')
+    logging.debug('Spectoda::eraseEventHistory()')
+
+    logging.info('> Erasing EventStore from all Controllers...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_ERASE_EVENT_HISTORY_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -3272,7 +3392,9 @@ export class Spectoda implements SpectodaClass {
    * Erases the timeline of the connected controller.
    */
   eraseTimeline() {
-    logging.debug('> Erasing timeline...')
+    logging.debug('Spectoda::eraseTimeline()')
+
+    logging.info('> Erasing Timeline from all Controllers...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_ERASE_TIMELINE_COMMAND_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -3282,12 +3404,29 @@ export class Spectoda implements SpectodaClass {
 
   /**
    * ! Useful
+   * Erases the network data of the connected Network.
+   */
+  eraseNetworkStorage() {
+    logging.debug('Spectoda::eraseNetworkStorage()')
+
+    logging.info('> Erasing NetworkStorage from all Controllers...')
+
+    const request_uuid = this.#getUUID()
+    const command_bytes = [COMMAND_FLAGS.FLAG_ERASE_NETWORKSTORAGE_REQUEST, ...numberToBytes(request_uuid, 4)]
+
+    return this.runtime.execute(command_bytes, undefined)
+  }
+
+  /**
+   * ! Useful
    * Puts CONTROLLER Spectoda.js is `connect`ed to to sleep. To wake him up, power must be cycled by removing and reapplying it.
    
   * TODO rename to controllerSleep
    */
   deviceSleep() {
-    logging.debug('> Sleep device...')
+    logging.debug('Spectoda::deviceSleep()')
+
+    logging.info('> Sleeping Controller...')
 
     const request_uuid = this.#getUUID()
     const payload = [COMMAND_FLAGS.FLAG_SLEEP_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -3300,7 +3439,9 @@ export class Spectoda implements SpectodaClass {
    * Puts ALL CONTROLLERS in the network Spectoda.js is `connect`ed to to sleep. To wake them up, power must be cycled by removing and reapplying it.
    */
   networkSleep() {
-    logging.debug('> Sleep network...')
+    logging.debug('Spectoda::networkSleep()')
+
+    logging.info('> Sleeping all Controllers...')
 
     const request_uuid = this.#getUUID()
     const payload = [COMMAND_FLAGS.FLAG_SLEEP_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -3312,7 +3453,9 @@ export class Spectoda implements SpectodaClass {
    * Forces a TNGL variable state save on the connected controller. TNGL variable state is by default saved every 8 seconds atfer no event is emitted.
    */
   saveState() {
-    logging.debug('> Saving state...')
+    logging.debug('Spectoda::saveState()')
+
+    logging.info('> Forcing EventState values save in all Controllers...')
 
     const request_uuid = this.#getUUID()
     const payload = [COMMAND_FLAGS.FLAG_SAVE_STATE_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -3327,7 +3470,7 @@ export class Spectoda implements SpectodaClass {
   writeOwner(ownerSignature: NetworkSignature = NO_NETWORK_SIGNATURE, ownerKey: NetworkKey = NO_NETWORK_KEY) {
     logging.debug(`writeOwner(ownerSignature=${ownerSignature}, ownerKey=${ownerKey})`)
 
-    logging.info('> Writing owner to controller...')
+    logging.info('> Writing Network Signature+Key to Controller...')
 
     if (!ownerSignature || !ownerKey) {
       throw 'InvalidParameters'
@@ -3423,7 +3566,7 @@ export class Spectoda implements SpectodaClass {
   ) {
     logging.debug(`writeNetworkOwner(ownerSignature=${ownerSignature}, ownerKey=${ownerKey})`)
 
-    logging.info('> Writing owner to network...')
+    logging.info('> Writing Network Signature+Key to all Controllers...')
 
     if (!ownerSignature || !ownerKey) {
       throw 'InvalidParameters'
@@ -3457,7 +3600,9 @@ export class Spectoda implements SpectodaClass {
    * ! Useful
    */
   writeControllerName(label: ValueTypeLabel) {
-    logging.debug('> Writing Controller Name...')
+    logging.debug(`Spectoda::writeControllerName(label=${label})`)
+
+    logging.info('> Writing Controller Name...')
 
     const request_uuid = this.#getUUID()
     const payload = [
@@ -3473,7 +3618,9 @@ export class Spectoda implements SpectodaClass {
    * ! Useful
    */
   readControllerName() {
-    logging.debug('> Reading Controller Name...')
+    logging.debug('Spectoda::readControllerName()')
+
+    logging.info('> Reading Controller Name...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_READ_CONTROLLER_NAME_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -3510,7 +3657,7 @@ export class Spectoda implements SpectodaClass {
       }
 
       logging.verbose(`name=${name}`)
-      logging.debug(`> Controller Name: ${name}`)
+      logging.info(`> Controller Name: ${name}`)
 
       return name
     })
@@ -3523,7 +3670,9 @@ export class Spectoda implements SpectodaClass {
    * @param variant - variant name (max 16 characters)
    */
   writeControllerIoVariant(ioLabel: ValueTypeLabel, variant: string | null) {
-    logging.debug('> Writing Controller IO Variant...')
+    logging.debug(`Spectoda::writeControllerIoVariant(ioLabel=${ioLabel}, variant=${variant})`)
+
+    logging.info('> Writing Controller IO Variant...')
 
     const request_uuid = this.#getUUID()
     const remove_io_variant = variant == null
@@ -3545,7 +3694,9 @@ export class Spectoda implements SpectodaClass {
    * @param variant - variant name (max 16 characters)
    */
   writeNetworkIoVariant(ioLabel: ValueTypeLabel, variant: string | null) {
-    logging.debug('> Writing Network IO Variant...')
+    logging.debug(`Spectoda::writeNetworkIoVariant(ioLabel=${ioLabel}, variant=${variant})`)
+
+    logging.info('> Writing IO Variant for all Controllers...')
 
     const request_uuid = this.#getUUID()
     const remove_io_variant = variant == null
@@ -3567,7 +3718,9 @@ export class Spectoda implements SpectodaClass {
    * @returns The variant name for the specified IO label
    */
   readControllerIoVariant(ioLabel: ValueTypeLabel) {
-    logging.debug('> Reading Controller IO Variant...')
+    logging.debug(`Spectoda::readControllerIoVariant(ioLabel=${ioLabel})`)
+
+    logging.info('> Reading Controller IO Variant...')
 
     const request_uuid = this.#getUUID()
     const bytes = [
@@ -3608,14 +3761,16 @@ export class Spectoda implements SpectodaClass {
       }
 
       logging.verbose(`variant=${variant}`)
-      logging.debug(`> IO Variant for ${ioLabel}: ${variant}`)
+      logging.info(`> IO Variant of ${ioLabel}: ${variant}`)
 
       return variant
     })
   }
 
   writeControllerIoMapping(ioLabel: ValueTypeLabel, mapping: Array<ValueTypePixels> | null) {
-    logging.debug('> Writing Controller IO Mapping...')
+    logging.debug(`Spectoda::writeControllerIoMapping(ioLabel=${ioLabel}, mapping=${mapping})`)
+
+    logging.info('> Writing Controller IO Mapping...')
 
     const request_uuid = this.#getUUID()
     const bytes = [
@@ -3636,7 +3791,9 @@ export class Spectoda implements SpectodaClass {
    * @returns The mapping for the specified IO label
    */
   readControllerIoMapping(ioLabel: ValueTypeLabel): Promise<Array<ValueTypePixels>> {
-    logging.debug('> Reading Controller IO Mapping...')
+    logging.debug(`Spectoda::readControllerIoMapping(ioLabel=${ioLabel})`)
+
+    logging.info('> Reading Controller IO Mapping...')
 
     const request_uuid = this.#getUUID()
     const bytes = [
@@ -3683,14 +3840,16 @@ export class Spectoda implements SpectodaClass {
       }
 
       logging.verbose(`mapping=${mapping}`)
-      logging.debug(`> IO Mapping for ${ioLabel}: ${mapping}`)
+      logging.info(`> IO Mapping for ${ioLabel}: ${mapping}`)
 
       return mapping
     })
   }
 
   async WIP_emitTnglBytecode(bytecode: Uint8Array) {
-    logging.debug('> Emitting TNGL Bytecode...')
+    logging.debug(`Spectoda::WIP_emitTnglBytecode(bytecode.length=${bytecode?.length})`)
+
+    logging.info('> Emitting TNGL Bytecode...')
 
     const connection = '/'
     const request = {
@@ -3700,6 +3859,62 @@ export class Spectoda implements SpectodaClass {
     }
 
     return this.runtime.spectoda_js.requestEmitTnglBytecode(connection, request)
+  }
+
+  /**
+   * Lists all available network storage data present in the App Controller.
+   *
+   * See {@link Spectoda_JS.listNetworkStorageData} for implementation details.
+   */
+  listNetworkStorageData() {
+    return this.runtime.spectoda_js.listNetworkStorageData()
+  }
+
+  /**
+   * Emits (spreads) the provided network storage data through the Network using the execute command.
+   *
+   * See {@link Spectoda_JS.emitNetworkStorageData} for implementation details.
+   *
+   * @param data - The network storage data to emit across the network.
+   */
+  emitNetworkStorageData(data: NetworkStorageData) {
+    return this.runtime.spectoda_js.emitNetworkStorageData(data)
+  }
+
+  /**
+   * Sets (stores) the provided network storage data into the App Controller, which then synchronizes it to other
+   * Controllers in the Network as the Network bandwidth allows.
+   *
+   * See {@link Spectoda_JS.setNetworkStorageData} for implementation details.
+   *
+   * @param data - The network storage data to set in the controller.
+   */
+  setNetworkStorageData(data: NetworkStorageData) {
+    return this.runtime.spectoda_js.setNetworkStorageData(data)
+  }
+
+  /**
+   * Reads the specified network storage data from the App Controller. May take a while to sycnhronize all
+   * data from Network after connection. The data is cached in localstorage between reconnections.
+   *
+   * See {@link Spectoda_JS.getNetworkStorageData} for implementation details.
+   *
+   * @param name - The name of the network storage data to retrieve.
+   */
+  getNetworkStorageData(name: string) {
+    return this.runtime.spectoda_js.getNetworkStorageData(name)
+  }
+
+  /**
+   * Computes the fingerprint (hash) of the provided network storage data bytes.
+   *
+   * This function generates a unique fingerprint for the given network data, which can be used
+   * to identify and compare different versions of the data for synchronization and validation purposes.
+   *
+   * @param bytes - The network storage data as a Uint8Array.
+   */
+  static computeNetworkStorageDataFingerprint(bytes: Uint8Array) {
+    return (SpectodaWasm as unknown as MainModule).computeFingerprint32(bytes)
   }
 
   //* WIP
@@ -3746,7 +3961,9 @@ export class Spectoda implements SpectodaClass {
    * Reads the TNGL variable on given ID from App's WASM
    */
   readVariable(variable_name: string, id: ValueTypeID = 255) {
-    logging.debug('> Reading variable...')
+    logging.debug(`Spectoda::readVariable(variable_name=${variable_name}, id=${id})`)
+
+    logging.info('> Reading Variable by its Name...')
 
     const variable_declarations = this.#parser.getVariableDeclarations()
 
@@ -3778,7 +3995,9 @@ export class Spectoda implements SpectodaClass {
    * For FW nerds
    */
   readVariableAddress(variable_address: number, id: ValueTypeID = 255) {
-    logging.debug('> Reading variable address...')
+    logging.debug(`Spectoda::readVariableAddress(variable_address=${variable_address}, id=${id})`)
+
+    logging.info('> Reading Variable by its Address...')
 
     const memory_stack = this.#parser.getMemoryStack()
 
@@ -3812,7 +4031,9 @@ export class Spectoda implements SpectodaClass {
    * TODO: This is not really a "FW communication feature", should be moved to another file ("FlutterBridge?""). Spectoda.JS should take care only of the communication with the device.
    */
   setHomeVisible(visible: boolean) {
-    logging.debug('> Hiding home button...')
+    logging.debug(`Spectoda::setHomeVisible(visible=${visible})`)
+
+    logging.info('> Hiding SpectodaConnect home button...')
 
     if (!detectSpectodaConnect()) {
       return Promise.reject('PlatformNotSupported')
@@ -3826,7 +4047,9 @@ export class Spectoda implements SpectodaClass {
    * TODO: This is not really a "FW communication feature", should be moved to another file ("FlutterBridge?""). Spectoda.JS should take care only of the communication with the device.
    */
   goHome() {
-    logging.debug('> Going home...')
+    logging.debug('Spectoda::goHome()')
+
+    logging.info('> Going home in SpectodaConnect...')
 
     if (!detectSpectodaConnect()) {
       return Promise.reject('PlatformNotSupported')
@@ -3841,7 +4064,9 @@ export class Spectoda implements SpectodaClass {
    * TODO: This is not really a "FW communication feature", should be moved to another file ("FlutterBridge?""). Spectoda.JS should take care only of the communication with the device.
    */
   setOrientation(option: number) {
-    logging.debug('> Setting orientation...')
+    logging.debug(`Spectoda::setOrientation(option=${option})`)
+
+    logging.info('> Setting orientation of SpectodaConnect...')
 
     if (!detectSpectodaConnect()) {
       return Promise.reject('PlatformNotSupported')
@@ -3866,7 +4091,9 @@ export class Spectoda implements SpectodaClass {
    * Reads the network signature of the controller Spectoda.js is `connect`ed to.
    */
   readNetworkSignature() {
-    logging.debug('> Reading network signature...')
+    logging.debug('Spectoda::readNetworkSignature()')
+
+    logging.info('> Reading Network Signature from the Controller...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_READ_OWNER_SIGNATURE_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -3920,7 +4147,9 @@ export class Spectoda implements SpectodaClass {
    * Product Code is a code of a specific product. A product is a defined, specific configuration of inputs and outputs that make up a whole product. E.g. NARA Lamp (two LED outputs of certain length and a touch button), Sunflow Lamp (three LED outputs, push button)
    */
   writeControllerCodes(pcb_code: PcbCode, product_code: ProductCode) {
-    logging.debug('> Writing controller codes...')
+    logging.debug(`Spectoda::writeControllerCodes(pcb_code=${pcb_code}, product_code=${product_code})`)
+
+    logging.info('> Writing Controller PCB+Product Codes...')
 
     const request_uuid = this.#getUUID()
     const bytes = [
@@ -3964,7 +4193,9 @@ export class Spectoda implements SpectodaClass {
    * Get PCB Code and Product Code. For more information see `writeControllerCodes`
    */
   readControllerCodes() {
-    logging.debug('> Requesting controller codes ...')
+    logging.debug('Spectoda::readControllerCodes()')
+
+    logging.info('> Reading Controller PCB+Product Codes ...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_READ_CONTROLLER_CODES_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -4002,7 +4233,7 @@ export class Spectoda implements SpectodaClass {
       logging.debug(`pcb_code=${pcb_code}`)
       logging.debug(`product_code=${product_code}`)
 
-      logging.info(`> Controller Codes: pcb_code=${pcb_code}, product_code=${product_code}`)
+      logging.info(`> Controller Codes: ${pcb_code}, ${product_code}`)
 
       return { pcb_code: pcb_code, product_code: product_code }
     })
@@ -4050,7 +4281,9 @@ export class Spectoda implements SpectodaClass {
    * ! TODO refator: Does not work correctly for now because it cannot edit eventStateStore in core. Implementation needs to be fixed by @immakermatty
    */
   reloadTngl() {
-    logging.debug('> Reloading TNGL...')
+    logging.debug('Spectoda::reloadTngl()')
+
+    logging.info('> Reloading TNGL of the APP Controller...')
 
     return this.runtime.spectoda_js.requestReloadTngl('/')
   }
@@ -4059,7 +4292,9 @@ export class Spectoda implements SpectodaClass {
    * Erase current TNGL of the whole network
    */
   eraseTngl() {
-    logging.debug('> Erasing TNGL...')
+    logging.debug('Spectoda::eraseTngl()')
+
+    logging.info('> Erasing TNGL from all Controllers...')
 
     const request_uuid = this.#getUUID()
     const command_bytes = [COMMAND_FLAGS.FLAG_ERASE_TNGL_BYTECODE_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -4076,7 +4311,9 @@ export class Spectoda implements SpectodaClass {
    * TODO! [0.13] Move saveTnglBank to CPP class `Spectoda` and expose the function via WASM API
    */
   saveTnglBank(tngl_bank: TnglBank) {
-    logging.debug(`> Saving TNGL to bank ${tngl_bank}...`)
+    logging.debug(`Spectoda::saveTnglBank(tngl_bank=${tngl_bank})`)
+
+    logging.info(`> Saving TNGL to bank ${tngl_bank}...`)
 
     const request_uuid = this.#getUUID()
     const command_bytes = [
@@ -4094,7 +4331,9 @@ export class Spectoda implements SpectodaClass {
    * TODO! [0.13] Move saveTnglBank to CPP class `Spectoda` and expose the function via WASM API
    */
   loadTnglBank(tngl_bank: TnglBank) {
-    logging.debug(`> Loading TNGL from bank ${tngl_bank}...`)
+    logging.debug(`Spectoda::loadTnglBank(tngl_bank=${tngl_bank})`)
+
+    logging.info(`> Loading TNGL from bank ${tngl_bank}...`)
 
     const request_uuid = this.#getUUID()
     const command_bytes = [
@@ -4112,7 +4351,9 @@ export class Spectoda implements SpectodaClass {
    * TODO! [0.13] Move saveTnglBank to CPP class `Spectoda` and expose the function via WASM API
    */
   eraseTnglBank(tngl_bank: TnglBank) {
-    logging.debug(`> Erasing TNGL bank ${tngl_bank}...`)
+    logging.debug(`Spectoda::eraseTnglBank(tngl_bank=${tngl_bank})`)
+
+    logging.info(`> Erasing TNGL bank ${tngl_bank} from all Controllers...`)
 
     const request_uuid = this.#getUUID()
     const command_bytes = [
@@ -4155,7 +4396,7 @@ export class Spectoda implements SpectodaClass {
    * @returns Array of events representing the current scene state
    */
   getEmittedEvents(ids: ValueTypeIDs) {
-    logging.verbose('getEmittedEvents(ids=', ids, ')')
+    logging.debug(`Spectoda::getEmittedEvents(ids=${Array.isArray(ids) ? '[' + ids.join(',') + ']' : ids})`)
 
     logging.info('> Getting emitted events...')
 
@@ -4217,13 +4458,9 @@ export class Spectoda implements SpectodaClass {
       },
     )
 
-    return this.syncEventHistory()
-      .catch(() => {
-        logging.warn('Failed to read event history')
-      })
-      .then(() => {
-        return sleep(500)
-      })
+    this.runtime.spectoda_js.eraseHistory()
+
+    return sleep(10000)
       .then(() => {
         const events = []
 
@@ -4288,9 +4525,9 @@ export class Spectoda implements SpectodaClass {
           timestamp: number
         }[],
   ) {
-    logging.verbose('emitEvents(events=', events, ')')
+    logging.debug('Spectoda::emitEvents()')
 
-    logging.info('> Emitting events...')
+    logging.info('> Emitting Events...')
 
     if (typeof events === 'string') {
       const parsed = JSON.parse(events)
@@ -4386,10 +4623,12 @@ export class Spectoda implements SpectodaClass {
   /**
    * Returns information object about the connected controller
    *
-   * Implemented in FW 0.12.4
+   * Implemented in FW 0.12.4, extended in FW 0.12.11
    */
-  async readControllerInfo() {
-    logging.info('> Requesting controller info...')
+  async readControllerInfo(): Promise<ControllerInfo> {
+    logging.debug('Spectoda::readControllerInfo()')
+
+    logging.info('> Reading Controller info...')
 
     const request_uuid = this.#getUUID()
     const bytes = [COMMAND_FLAGS.FLAG_READ_CONTROLLER_INFO_REQUEST, ...numberToBytes(request_uuid, 4)]
@@ -4428,21 +4667,30 @@ export class Spectoda implements SpectodaClass {
         const label = reader.readString(6).trim() // 5 chars + null terminator
         const mac_bytes = reader.readBytes(6) // MAC_SIZE
         const controller_flags = reader.readUint8()
+        const __reserved1 = reader.readUint8() // reserved for potential flags increase
 
-        reader.readUint8() // reserved for flags increase
         const pcb_code = reader.readUint16()
         const product_code = reader.readUint16()
         const fw_version_code = reader.readUint16()
+        const fw_platform_code = reader.readUint16() // added in FW 0.12.11
 
-        reader.readUint16() // reserved for another code
         const fw_compilation_unix_timestamp = reader.readUint64()
+        const __reserved2 = reader.readUint64() // reserved
 
-        reader.readUint64() // reserved
-        const fw_version_full = reader.readString(32).trim() // FW_VERSION_STRING_MAX_SIZE
-        const tngl_fingerprint = reader.readBytes(32) // TNGL_FINGERPRINT_SIZE
-        const event_store_fingerprint = reader.readBytes(32) // HISTORY_FINGERPRINT_SIZE
-        const config_fingerprint = reader.readBytes(32) // CONFIG_FINGERPRINT_SIZE
-        const network_signature = reader.readBytes(16) // NETWORK_SIGNATURE_SIZE
+        const fw_version_full = reader.readString(FW_VERSION_FULL_BYTES).trim() // FW_VERSION_STRING_MAX_SIZE
+        const tngl_fingerprint = reader.readBytes(TNGL_FINGERPRINT_BYTES) // TNGL_FINGERPRINT_SIZE
+        const event_store_fingerprint = reader.readBytes(EVENT_STORE_FINGERPRINT_BYTES) // HISTORY_FINGERPRINT_SIZE
+        const config_fingerprint = reader.readBytes(CONFIG_FINGERPRINT_BYTES) // CONFIG_FINGERPRINT_SIZE
+        const network_signature = reader.readBytes(NETWORK_SIGNATURE_BYTES) // NETWORK_SIGNATURE_SIZE
+
+        const is_extended = reader.available >= ALL_METADATA_BYTES // added in FW 0.12.11
+
+        const __reserved3 = is_extended ? reader.readBytes(16) : new Uint8Array(16) // reserved for potential network signature growth to 32 bytes in 0.13.0
+        const networkstorage_fingerprint = is_extended ? reader.readBytes(32) : new Uint8Array(32) // NETWORKSTORAGE_FINGERPRINT_SIZE
+        const controllerstore_fingerprint = is_extended ? reader.readBytes(32) : new Uint8Array(32) // CONTROLLERSTORE_FINGERPRINT_SIZE
+        const notificationstore_fingerprint = is_extended ? reader.readBytes(32) : new Uint8Array(32) // NOTIFICATIONSTORE_FINGERPRINT_SIZE
+        const __reserved4 = is_extended ? reader.readBytes(32) : new Uint8Array(32) // reserved for another fingerprint
+        const __reserved5 = is_extended ? reader.readBytes(32) : new Uint8Array(32) // reserved for another fingerprint
 
         // fw version string from code
         const fw_version_short = `${Math.floor(fw_version_code / 10000)}.${Math.floor(
@@ -4461,6 +4709,9 @@ export class Spectoda implements SpectodaClass {
         const tngl_fingerprint_hex = uint8ArrayToHexString(tngl_fingerprint)
         const event_store_fingerprint_hex = uint8ArrayToHexString(event_store_fingerprint)
         const config_fingerprint_hex = uint8ArrayToHexString(config_fingerprint)
+        const networkstorage_fingerprint_hex = uint8ArrayToHexString(networkstorage_fingerprint)
+        const controllerstore_fingerprint_hex = uint8ArrayToHexString(controllerstore_fingerprint)
+        const notificationstore_fingerprint_hex = uint8ArrayToHexString(notificationstore_fingerprint)
 
         // Mock data:
         // TODO @immakermatty move mock data to __mocks__ directory
@@ -4482,11 +4733,15 @@ export class Spectoda implements SpectodaClass {
          *   fwVersionFull: string = "FW_0.12.1_20241117",
          *   fwVersion: : string = "0.12.1",
          *   fwVersionCode: number = 1201,
+         *   fwPlatformCode: number = 1,
          *   fwCompilationUnixTimestamp: number = 1743879238912,
          *   networkSignature: string = "14fe7f8214fe7f8214fe7f8214fe7f82",
-         *   tnglFingerprint: string = "839dfa03839dfa03839dfa03839dfa03",
-         *   eventStoreFingerprint: string = "4629fade4629fade4629fade4629fade",
-         *   configFingerprint: string = "27390fa027390fa027390fa027390fa0"
+         *   tnglFingerprint: string = "ba5a56fbe0fc8c3e2b545130e43499a6d2e8debb11bf09a280dce1623a0a7039",
+         *   eventStoreFingerprint: string = "ba5a56fbe0fc8c3e2b545130e43499a6d2e8debb11bf09a280dce1623a0a7039",
+         *   configFingerprint: string = "ba5a56fbe0fc8c3e2b545130e43499a6d2e8debb11bf09a280dce1623a0a7039"
+         *   networkStorageFingerprint: string = "ba5a56fbe0fc8c3e2b545130e43499a6d2e8debb11bf09a280dce1623a0a7039",
+         *   controllerstoreFingerprint: string = "ba5a56fbe0fc8c3e2b545130e43499a6d2e8debb11bf09a280dce1623a0a7039",
+         *   notificationstoreFingerprint: string = "ba5a56fbe0fc8c3e2b545130e43499a6d2e8debb11bf09a280dce1623a0a7039"
          * }
          */
 
@@ -4503,10 +4758,14 @@ export class Spectoda implements SpectodaClass {
           pcbCode: pcb_code,
           fwVersionFull: fw_version_full,
           fwVersionCode: fw_version_code,
+          fwPlatformCode: fw_platform_code,
           fwCompilationUnixTimestamp: fw_compilation_unix_timestamp,
           tnglFingerprint: tngl_fingerprint_hex,
           eventStoreFingerprint: event_store_fingerprint_hex,
           configFingerprint: config_fingerprint_hex,
+          networkStorageFingerprint: networkstorage_fingerprint_hex,
+          controllerstoreFingerprint: controllerstore_fingerprint_hex,
+          notificationstoreFingerprint: notificationstore_fingerprint_hex,
         } as ControllerInfo
 
         logging.info('> Controller Info:', info)

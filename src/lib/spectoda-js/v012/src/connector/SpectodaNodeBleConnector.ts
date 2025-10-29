@@ -1369,7 +1369,7 @@ export class SpectodaNodeBluetoothConnector {
           resolve(undefined)
           return
         } catch {
-          logging.warn('Clock write failed')
+          logging.debug('Clock write failed')
           await sleep(1000)
         }
       }
@@ -1442,7 +1442,9 @@ export class SpectodaNodeBluetoothConnector {
 
   sendExecute(command_bytes: Uint8Array, source_connection: Connection) {
     logging.verbose(
-      `SpectodaWebBluetoothConnector::sendExecute(command_bytes=${command_bytes}, source_connection=${source_connection})`,
+      `SpectodaWebBluetoothConnector::sendExecute(command_bytes=${command_bytes}, source_connection=${JSON.stringify(
+        source_connection,
+      )})`,
     )
 
     if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_BLE) {
@@ -1484,7 +1486,9 @@ export class SpectodaNodeBluetoothConnector {
 
   sendSynchronize(synchronization: Synchronization, source_connection: Connection) {
     logging.verbose(
-      `SpectodaWebBluetoothConnector::sendSynchronize(synchronization=${synchronization}, source_connection=${source_connection})`,
+      `SpectodaWebBluetoothConnector::sendSynchronize(synchronization=${JSON.stringify(
+        synchronization,
+      )}, source_connection=${JSON.stringify(source_connection)})`,
     )
 
     if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_BLE) {

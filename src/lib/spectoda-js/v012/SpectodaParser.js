@@ -644,7 +644,7 @@ export class TnglCompiler {
     logging.verbose(`#reserveAddress(${description})`)
     const address = this.#memory_stack.length
 
-    logging.debug(`Reserving address ${address} for '${description}'`)
+    logging.verbose(`reserving address ${address} for '${description}'`)
     this.#memory_stack.push(description)
     return address
   }
@@ -654,7 +654,7 @@ export class TnglCompiler {
     // TODO @immakermatty #const_declarations_stack is not used anymore? So rename #var_declarations to something else?
     const address = this.#reserveAddress(`const ${name}`)
 
-    logging.debug(`Declared const ${name} at address ${address}`)
+    logging.verbose(`declared const ${name} at address ${address}`)
     this.#const_declarations_stack.push({ name: name, address: address })
     return address
   }
@@ -664,7 +664,7 @@ export class TnglCompiler {
     logging.verbose(`#declareLet(${name})`)
     const address = this.#reserveAddress(`let ${name}`)
 
-    logging.debug(`Declared let ${name} at address ${address}`)
+    logging.verbose(`declared let ${name} at address ${address}`)
     this.#let_declarations_stack.push({ name: name, address: address })
     return address
   }
@@ -673,7 +673,7 @@ export class TnglCompiler {
     logging.verbose(`#declareVar(${name})`)
     const address = this.#reserveAddress(`var ${name}`)
 
-    logging.debug(`Declared var ${name} at address ${address}`)
+    logging.verbose(`declared var ${name} at address ${address}`)
     this.#var_declarations.push({ name: name, address: address })
     return address
   }
@@ -1117,7 +1117,7 @@ export class TnglCompiler {
     }
     const code = berryMatch[1]
 
-    logging.debug('matched script:', code)
+    logging.verbose('matched script:', code)
 
     const bytes = new TextEncoder().encode(code)
 
@@ -1288,7 +1288,8 @@ export class TnglCodeParser {
   }
 
   parseTnglCode(tngl_code) {
-    logging.verbose(tngl_code)
+    logging.debug(`parseTnglCode(tngl_code.length=${tngl_code.length})`)
+    logging.verbose('tngl_code=', tngl_code)
 
     this.#compiler.reset()
     this.#compiler.parseAndCompileCode(tngl_code)
@@ -1296,10 +1297,11 @@ export class TnglCodeParser {
 
     let tnglBytes = this.#compiler.tnglBytes
 
-    logging.verbose(tnglBytes)
+    logging.verbose('tnglBytes=', tnglBytes)
     logging.debug('TNGL_BYTECODE:')
     logging.debug(uint8ArrayToHexString(tnglBytes))
-    logging.info('Compiled tnglbytes length:', tnglBytes.length)
+
+    logging.info('> Parsed TNGL Bytes length:', tnglBytes.length)
 
     return tnglBytes
   }

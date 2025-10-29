@@ -1,7 +1,7 @@
-/// === auto-generated from Emscripten build process === ///
-/// ========== DEBUG_UNIVERSAL_0.12.9_20250717.d.ts ========== ///
-
 import { EventState } from '../..'
+
+/// === auto-generated from Emscripten build process === ///
+/// ========== DEBUG_UNIVERSAL_0.12.11_20251005.d.ts ========== ///
 
 export type interface_error_tValue<T extends number> = {
   value: T
@@ -71,7 +71,7 @@ export type Synchronization = {
   clock_timestamp: number
   timeline_clock_timestamp: number
   tngl_clock_timestamp: number
-  fw_compilation_timestamp: number
+  fw_compilation_unix_timestamp: number
   origin_address: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string
   toUint8Array(): any
   delete(): void
@@ -122,6 +122,7 @@ export type Spectoda_WASM = {
   _onExecute(_0: Uint8Vector): boolean
   _onSynchronize(_0: Synchronization): boolean
   process(_0: boolean, _1: boolean, _2: boolean, _3: boolean): void
+  eraseNetworkStorage(): boolean
   render(_0: number): void
   registerDeviceContext(_0: number): boolean
   _onRequest(_0: number, _1: Uint8Vector, _2: Connection): boolean
@@ -130,6 +131,12 @@ export type Spectoda_WASM = {
   getIdentifier(): number
   setClockTimestamp(_0: number): void
   getClockTimestamp(): number
+  _onNetworkStorageDataUpdate(
+    _0: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
+    _1: number,
+    _2: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
+    _3: Uint8Vector,
+  ): boolean
   _handlePeerConnected(_0: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string): interface_error_t
   _handlePeerDisconnected(_0: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string): interface_error_t
   _handleTimelineManipulation(
@@ -161,6 +168,7 @@ export type Spectoda_WASM = {
   ): boolean
   getTnglFingerprint(): string
   getEventStoreFingerprint(): string
+  getNetworkStorageFingerprint(): string
   requestReloadTngl(_0: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string): boolean
   requestEmitTnglBytecode(_0: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string, _1: number): boolean
   requestWriteIoVariant(
@@ -185,6 +193,10 @@ export type Spectoda_WASM = {
   readVariableAddress(_0: number, _1: number): any
   getEventState(_0: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string, _1: number): any
   getDateTime(): any
+  listNetworkStorageData(_0: any): boolean
+  emitNetworkStorageData(_0: any): boolean
+  setNetworkStorageData(_0: any): boolean
+  getNetworkStorageData(_0: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string, _1: any): boolean
   delete(): void
 }
 
@@ -234,6 +246,11 @@ export type MainModule = {
       _4: number,
       _5: number,
       _6: number,
+      _7: number,
+      _8: number,
+      _9: number,
+      _10: number,
+      _11: number,
     ): any
     makeFromUint8Array(_0: any): any
   }
@@ -248,9 +265,10 @@ export type MainModule = {
     extend(_0: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string, _1: any): any
   }
   ImplementedSpectoda_WASM: {}
+  computeFingerprint32(_0: any): string
 }
 
-/// ========== DEBUG_DEV_0.12.5_20250209.d.ts ========== ///
+/// ========== DEBUG_UNIVERSAL_0.12.11_20251005.d.ts ========== ///
 
 /// =================== MANUALLY DEFINED INTERFACES ================= ///
 
@@ -263,7 +281,7 @@ export type MainModule = {
 //   // internal
 //   timestamp_t __timeline_time = TIMESTAMP(0);
 //   date_t __timeline_date = DATE::DATE_UNDEFINED;
-//   clock_ms __clock_timestamp = clock_ms(0);
+//   clockms_t __clock_timestamp = clockms_t(0);
 // };
 
 export type ProcessOptions = {
@@ -294,6 +312,11 @@ export type Spectoda_WASMImplementation = {
   // bool _onTnglLoad(const std::vector<uint8_t>& tngl_bytes, const std::vector<uint8_t>& used_ids) override
   // {
   //     return call<bool>("_onTnglLoad", tngl_bytes, used_ids);
+  // }
+
+  // bool _onNetworkStorageDataUpdate(const std::string& data_name, const double data_version, std::string data_fingerprint, const std::vector<uint8_t>& data_bytes) override
+  // {
+  //     return call<bool>("_onNetworkStorageDataUpdate", data_name, data_version, data_fingerprint, data_bytes);
   // }
 
   // bool _onEvents(val&& event_array) override
@@ -336,9 +359,9 @@ export type Spectoda_WASMImplementation = {
   //     return call<interface_error_t>("_handlePeerDisconnected", peer_mac);
   // }
 
-  // interface_error_t _handleTimelineManipulation(const timeline_ms timeline_timestamp, const bool timeline_paused, const std::string& timeline_date) override
+  // interface_error_t _handleTimelineManipulation(const double timeline_timestamp, const bool timeline_paused, const std::string& timeline_date) override
   // {
-  //     return call<interface_error_t>("_handleTimelineManipulation", timeline_timestamp, timeline_paused, timeline_date);
+  //     return call<interface_error_t>("_handleTimelineManipulation", double(timeline_timestamp), timeline_paused, timeline_date);
   // }
 
   // interface_error_t _handleReboot() override
@@ -354,6 +377,12 @@ export type Spectoda_WASMImplementation = {
   // // __construct: function () {}
   // // __destruct: function () {}
   _onTnglLoad(tngl_bytes: Uint8Vector, used_ids: Uint8Vector): boolean
+  _onNetworkStorageDataUpdate(
+    data_name: string,
+    data_version: number,
+    data_fingerprint: string,
+    data_bytes: Uint8Vector,
+  ): boolean
   _onEvents(event_array: EventState[]): boolean
   _onEventStateUpdates(event_array: EventState[]): boolean
   _onExecute(execute_bytecode: Uint8Vector): boolean

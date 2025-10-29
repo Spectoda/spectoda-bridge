@@ -28,7 +28,7 @@ export class TnglWriter {
       size = bytes.length
     }
 
-    logging.debug('writeBytes', bytes, size)
+    logging.verbose('writeBytes', bytes, size)
 
     if (this.#index + size <= this.#dataView.byteLength) {
       for (let i = 0; i < size; i++) {

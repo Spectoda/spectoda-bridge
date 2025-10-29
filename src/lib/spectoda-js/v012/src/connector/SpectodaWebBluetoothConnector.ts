@@ -272,7 +272,7 @@ export class WebBLEConnection {
   ) {
     this.#service = service
 
-    logging.info('> Getting Network Characteristics...')
+    logging.debug('Getting Network Characteristics...')
     return this.#service
       .getCharacteristic(networkUUID)
       .then((characteristic) => {
@@ -281,7 +281,7 @@ export class WebBLEConnection {
         return this.#networkChar
           .startNotifications()
           .then(() => {
-            logging.info('> Network notifications started')
+            logging.debug('Network notifications started')
             if (!this.#networkChar) {
               throw 'NetworkCharactristicsNull'
             }
@@ -298,7 +298,7 @@ export class WebBLEConnection {
         throw 'ConnectionFailed'
       })
       .then(() => {
-        logging.info('> Getting Clock Characteristics...')
+        logging.debug('Getting Clock Characteristics...')
         if (!this.#service) {
           throw 'ServiceNull'
         }
@@ -310,7 +310,7 @@ export class WebBLEConnection {
         return this.#clockChar
           .startNotifications()
           .then(() => {
-            logging.info('> Clock notifications started')
+            logging.debug('Clock notifications started')
             if (!this.#clockChar) {
               throw 'ClockCharactristicsNull'
             }
@@ -327,7 +327,7 @@ export class WebBLEConnection {
         throw 'ConnectionFailed'
       })
       .then(() => {
-        logging.info('> Getting Device Characteristics...')
+        logging.debug('Getting Device Characteristics...')
         if (!this.#service) {
           throw 'ServiceNull'
         }
@@ -507,7 +507,7 @@ export class WebBLEConnection {
       return Promise.reject('UpdateFailed')
     }
 
-    logging.info('> Writing firmware to controller...')
+    logging.info('> Writing Firmware to Controller...')
 
     this.#writing = true
 
@@ -520,7 +520,6 @@ export class WebBLEConnection {
       let written = 0
 
       logging.debug('OTA UPDATE')
-      logging.debug(firmware_bytes)
 
       const start_timestamp = Date.now()
 
@@ -574,7 +573,7 @@ export class WebBLEConnection {
 
             const percentage = Math.floor((written * 10000) / firmware_bytes.length) / 100
 
-            logging.debug(percentage + '%')
+            logging.info(percentage + '%')
 
             this.#runtimeReference.emit(SpectodaAppEvents.OTA_PROGRESS, percentage)
 
@@ -716,7 +715,11 @@ export class SpectodaWebBluetoothConnector {
     if (timeout_number === DEFAULT_TIMEOUT) {
       timeout_number = 60000
     }
-    logging.debug(`userSelect(criteria=${criterium_array}, timeout=${timeout_number})`)
+    logging.debug(
+      `SpectodaWebBluetoothConnector::userSelect(criteria=${JSON.stringify(
+        criterium_array,
+      )}, timeout=${timeout_number})`,
+    )
 
     if (this.#connected()) {
       return this.disconnect()
@@ -757,7 +760,7 @@ export class SpectodaWebBluetoothConnector {
         }
 
         // if any of these criteria are required, then we need to build a manufacturer data filter.
-        if (criterium.fw || criterium.network || criterium.product || criterium.commisionable) {
+        if (criterium.fw || criterium.network || criterium.product || criterium.commissionable) {
           const company_identifier = 0x02e5 // Bluetooth SIG company identifier of Espressif
 
           delete filter.services
@@ -793,13 +796,13 @@ export class SpectodaWebBluetoothConnector {
             }
           }
 
-          if (criterium.commisionable) {
+          if (criterium.commissionable) {
             const other_flags_offset = 20
 
             let flags_prefix = 0b00000000
             const flags_mask = 0b11111111
 
-            if (criterium.commisionable === true) {
+            if (criterium.commissionable === true) {
               const adoption_flag_bit_pos = 0
 
               flags_prefix |= 1 << adoption_flag_bit_pos
@@ -935,6 +938,12 @@ export class SpectodaWebBluetoothConnector {
       timeout_number = 5000
     }
 
+    logging.debug(
+      `SpectodaWebBluetoothConnector::autoSelect(criteria=${JSON.stringify(
+        criterium_array,
+      )}, scan_duration=${scan_duration_number}, timeout=${timeout_number})`,
+    )
+
     // step 1. for the scan_period scan the surroundings for BLE devices.
     // step 2. if some devices matching the criteria are found, then select the one with
     //         the greatest signal strength. If no device is found until the timeout,
@@ -971,6 +980,7 @@ export class SpectodaWebBluetoothConnector {
 
   // if device is conneced, then disconnect it
   unselect(): Promise<null> {
+    logging.debug('SpectodaWebBluetoothConnector::unselect()')
     return (this.#connected() ? this.disconnect() : Promise.resolve()).then(() => {
       this.#webBTDevice = null
       this.#connection.reset()
@@ -984,6 +994,7 @@ export class SpectodaWebBluetoothConnector {
   }
 
   selected(): Promise<Criterium | null> {
+    logging.debug('SpectodaWebBluetoothConnector::selected()')
     return Promise.resolve(this.#selected() ? { connector: this.type } : null)
   }
 
@@ -995,12 +1006,10 @@ export class SpectodaWebBluetoothConnector {
       scan_duration_number = 7000
     }
 
-    logging.verbose(
-      'scan(criterium_array=' +
-        JSON.stringify(criterium_array) +
-        ', scan_duration_number=' +
-        scan_duration_number +
-        ')',
+    logging.debug(
+      `SpectodaWebBluetoothConnector::scan(criteria=${JSON.stringify(
+        criterium_array,
+      )}, scan_duration=${scan_duration_number})`,
     )
 
     // returns devices like autoSelect scan() function
@@ -1013,10 +1022,11 @@ export class SpectodaWebBluetoothConnector {
     if (timeout === DEFAULT_TIMEOUT) {
       timeout = 10000
     }
+    logging.debug(`SpectodaWebBluetoothConnector::connect(timeout=${timeout})`)
     logging.verbose(`connect(timeout=${timeout})`)
 
     if (timeout <= 0) {
-      logging.debug('> Connect timeout has expired')
+      logging.debug('Connect timeout has expired')
       return Promise.reject('ConnectionTimeout')
     }
 
@@ -1041,7 +1051,7 @@ export class SpectodaWebBluetoothConnector {
     // Create the connection promise
     const connectionPromise = (async () => {
       try {
-        logging.debug('> Connecting to Bluetooth device...')
+        logging.debug('Connecting to Bluetooth device...')
         const server = await this.#webBTDevice?.gatt?.connect()
 
         if (!server) {
@@ -1049,13 +1059,13 @@ export class SpectodaWebBluetoothConnector {
         }
 
         this.#connection.reset()
-        logging.debug('> Getting the Bluetooth Service...')
+        logging.debug('Getting the Bluetooth Service...')
         const service = await server.getPrimaryService(this.SPECTODA_SERVICE_UUID)
 
-        logging.debug('> Getting the Service Characteristic...')
+        logging.debug('Getting the Service Characteristic...')
         await this.#connection.attach(service, this.NETWORK_CHAR_UUID, this.CLOCK_CHAR_UUID, this.DEVICE_CHAR_UUID)
 
-        logging.debug('> Bluetooth Device Connected')
+        logging.debug('Bluetooth Device Connected')
         if (!this.#connectedGuard) {
           this.#runtimeReference.emit(SpectodaAppEvents.PRIVATE_CONNECTED)
         }
@@ -1105,18 +1115,14 @@ export class SpectodaWebBluetoothConnector {
 
   // disconnect Connector from the connected Spectoda Device. But keep it selected
   disconnect(): Promise<unknown> {
-    logging.verbose('disconnect()')
+    logging.debug('SpectodaWebBluetoothConnector::disconnect()')
 
     this.#reconection = false
-
-    logging.info('> Disconnecting from Bluetooth Device...')
 
     this.#connection.reset()
 
     if (this.#connected()) {
       this.#disconnect()
-    } else {
-      logging.debug('Bluetooth Device is already disconnected')
     }
 
     return Promise.resolve()
@@ -1128,7 +1134,6 @@ export class SpectodaWebBluetoothConnector {
   // synchronously. So that only after all event handlers (one after the other) are done,
   // only then start this.connect() to reconnect to the bluetooth device
   #onDisconnected = (event: any) => {
-    logging.info('> Bluetooth Device disconnected')
     this.#connection.reset()
     if (this.#connectedGuard) {
       logging.verbose('emitting #disconnected')
@@ -1145,7 +1150,10 @@ export class SpectodaWebBluetoothConnector {
     if (timeout_number === DEFAULT_TIMEOUT) {
       timeout_number = 5000
     }
-    logging.verbose(`deliver(payload=${payload_bytes}, timeout=${timeout_number})`)
+    logging.debug(
+      `SpectodaWebBluetoothConnector::deliver(payload.length=${payload_bytes.length}, timeout=${timeout_number})`,
+    )
+    logging.verbose('payload_bytes=', payload_bytes)
 
     if (!this.#connected()) {
       return Promise.reject('DeviceDisconnected')
@@ -1163,7 +1171,10 @@ export class SpectodaWebBluetoothConnector {
     if (timeout_number === DEFAULT_TIMEOUT) {
       timeout_number = 1000
     }
-    logging.verbose(`transmit(payload=${payload_bytes}, timeout=${timeout_number})`)
+    logging.debug(
+      `SpectodaWebBluetoothConnector::transmit(payload.length=${payload_bytes.length}, timeout=${timeout_number})`,
+    )
+    logging.verbose('payload_bytes=', payload_bytes)
 
     if (!this.#connected()) {
       return Promise.reject('DeviceDisconnected')
@@ -1182,7 +1193,12 @@ export class SpectodaWebBluetoothConnector {
     if (timeout_number === DEFAULT_TIMEOUT) {
       timeout_number = 5000
     }
-    logging.verbose(`request(payload=${payload_bytes}, read_response=${read_response}, timeout=${timeout_number})`)
+    logging.debug(
+      `SpectodaWebBluetoothConnector::request(payload.length=${payload_bytes.length}, read_response=${
+        read_response ? 'true' : 'false'
+      }, timeout=${timeout_number})`,
+    )
+    logging.verbose('payload_bytes=', payload_bytes)
 
     if (!this.#connected()) {
       return Promise.reject('DeviceDisconnected')
@@ -1194,7 +1210,7 @@ export class SpectodaWebBluetoothConnector {
   // synchronizes the device internal clock with the provided TimeTrack clock
   // of the application as precisely as possible
   setClock(clock: TimeTrack): Promise<unknown> {
-    logging.verbose('setClock()')
+    logging.debug(`SpectodaWebBluetoothConnector::setClock(clock.millis=${clock.millis()})`)
 
     if (!this.#connected()) {
       return Promise.reject('DeviceDisconnected')
@@ -1208,7 +1224,7 @@ export class SpectodaWebBluetoothConnector {
           resolve(null)
           return
         } catch {
-          logging.warn('Clock write failed')
+          logging.debug('Clock write failed')
           await sleep(100)
         }
       }
@@ -1221,7 +1237,7 @@ export class SpectodaWebBluetoothConnector {
   // returns a TimeTrack clock object that is synchronized with the internal clock
   // of the device as precisely as possible
   getClock(): Promise<TimeTrack> {
-    logging.verbose('getClock()')
+    logging.debug('SpectodaWebBluetoothConnector::getClock()')
 
     if (!this.#connected()) {
       return Promise.reject('DeviceDisconnected')
@@ -1249,7 +1265,7 @@ export class SpectodaWebBluetoothConnector {
   // handles the firmware updating. Sends "ota" events
   // to all handlers
   updateFW(firmware_bytes: Uint8Array): Promise<unknown> {
-    logging.debug('updateFW()', firmware_bytes)
+    logging.debug(`SpectodaWebBluetoothConnector::updateFW(firmware_bytes.length=${firmware_bytes.length})`)
 
     if (!this.#connected()) {
       return Promise.reject('DeviceDisconnected')
@@ -1259,10 +1275,12 @@ export class SpectodaWebBluetoothConnector {
   }
 
   cancel(): void {
+    logging.debug('SpectodaWebBluetoothConnector::cancel()')
     // TODO implement
   }
 
   destroy(): Promise<unknown> {
+    logging.debug('SpectodaWebBluetoothConnector::destroy()')
     //this.#runtimeReference = null; // dont know if I need to destroy this reference.. But I guess I dont need to?
     return this.disconnect()
       .catch(() => {})
@@ -1275,9 +1293,12 @@ export class SpectodaWebBluetoothConnector {
   // void _sendExecute(const std::vector<uint8_t>& command_bytes, const Connection& source_connection) = 0;
 
   sendExecute(command_bytes: Uint8Array, source_connection: Connection) {
-    logging.verbose(
-      `SpectodaWebBluetoothConnector::sendExecute(command_bytes=${command_bytes}, source_connection=${source_connection})`,
+    logging.debug(
+      `SpectodaWebBluetoothConnector::sendExecute(command_bytes.length=${
+        command_bytes.length
+      }, source_connection=${JSON.stringify(source_connection)})`,
     )
+    logging.verbose('command_bytes=', command_bytes)
 
     if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_BLE) {
       return Promise.resolve()
@@ -1293,9 +1314,10 @@ export class SpectodaWebBluetoothConnector {
   // bool _sendRequest(const int32_t request_ticket_number, std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
 
   sendRequest(request_ticket_number: number, request_bytecode: Uint8Array, destination_connection: Connection) {
-    logging.verbose(
-      `SpectodaWebBluetoothConnector::sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode=${request_bytecode}, destination_connection=${destination_connection})`,
+    logging.debug(
+      `SpectodaWebBluetoothConnector::sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode.length=${request_bytecode.length}, destination_connection=${destination_connection})`,
     )
+    logging.verbose('request_bytecode=', request_bytecode)
 
     return this.request(request_bytecode, false, 10000)
   }
@@ -1307,9 +1329,10 @@ export class SpectodaWebBluetoothConnector {
     response_bytecode: Uint8Array,
     destination_connection: Connection,
   ) {
-    logging.verbose(
-      `SpectodaWebBluetoothConnector::sendResponse(request_ticket_number=${request_ticket_number}, request_result=${request_result}, response_bytecode=${response_bytecode}, destination_connection=${destination_connection})`,
+    logging.debug(
+      `SpectodaWebBluetoothConnector::sendResponse(request_ticket_number=${request_ticket_number}, request_result=${request_result}, response_bytecode.length=${response_bytecode.length}, destination_connection=${destination_connection})`,
     )
+    logging.verbose('response_bytecode=', response_bytecode)
 
     return Promise.reject('NotImplemented')
   }
@@ -1317,8 +1340,10 @@ export class SpectodaWebBluetoothConnector {
   // void _sendSynchronize(const Synchronization& synchronization, const Connection& source_connection) = 0;
 
   sendSynchronize(synchronization: Synchronization, source_connection: Connection) {
-    logging.verbose(
-      `SpectodaWebBluetoothConnector::sendSynchronize(synchronization=${synchronization}, source_connection=${source_connection})`,
+    logging.debug(
+      `SpectodaWebBluetoothConnector::sendSynchronize(synchronization=${JSON.stringify(
+        synchronization,
+      )}, source_connection=${JSON.stringify(source_connection)})`,
     )
 
     if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_BLE) {

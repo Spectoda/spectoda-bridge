@@ -1,0 +1,7 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["**/*", "../../apps/spectoda-app/src/stores/network/useNetworkDataAdapter.ts", "../spectoda-core/src/js/networkStore/allDevicesItem.ts"],
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  }
+}

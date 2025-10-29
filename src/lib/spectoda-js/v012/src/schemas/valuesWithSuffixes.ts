@@ -17,10 +17,10 @@ export const PercentageSchemaWithSuffix = z
     const result = PercentageSchema.safeParse(parsed)
 
     if (!result.success) {
-      const msg = result.error.errors[0]?.message || 'Invalid percentage'
+      const msg = result.error.issues[0]?.message || 'Invalid percentage'
 
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: msg,
       })
     }
@@ -62,7 +62,7 @@ export const TimeStampSchemaWithSuffix = z
 
     if (!match) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: 'Invalid timestamp format',
       })
       return
@@ -72,7 +72,7 @@ export const TimeStampSchemaWithSuffix = z
 
     if (ms === null) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: 'Invalid timestamp format',
       })
       return
@@ -81,10 +81,10 @@ export const TimeStampSchemaWithSuffix = z
     const result = TimestampSchema.safeParse(ms)
 
     if (!result.success) {
-      const msg = result.error.errors[0]?.message || 'Invalid timestamp value'
+      const msg = result.error.issues[0]?.message || 'Invalid timestamp value'
 
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: msg,
       })
     }

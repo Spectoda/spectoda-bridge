@@ -77,12 +77,20 @@ type ControllerMoreData = {
   pcbCode: PcbCode
   fwVersionFull: FirmwareVersionFull
   fwVersionCode: FirmwareVersionCode
+  fwPlatformCode: PcbCode
   fwCompilationUnixTimestamp: ValueTypeTimestamp
   tnglFingerprint: Fingerprint
   eventStoreFingerprint: Fingerprint
   configFingerprint: Fingerprint
+  networkStorageFingerprint: Fingerprint
+  controllerstoreFingerprint: Fingerprint
+  notificationstoreFingerprint: Fingerprint
 }
 type ControllerInfo = ControllerConnectionCriteria & ControllerMoreData
+
+type NetworkStorageData = { name: string; version: number; bytes: Uint8Array }
+
+type NetworkStorageMetadata = { name: string; version: number; fingerprint: string }
 
 export type {
   BaseCriteria,
@@ -121,4 +129,6 @@ export type {
   FirmwareVersionCode,
   Fingerprint,
   TnglBank,
+  NetworkStorageData,
+  NetworkStorageMetadata,
 }

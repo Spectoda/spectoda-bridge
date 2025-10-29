@@ -1,0 +1,13 @@
+{
+    "name": "@spectoda/error",
+    "version": "0.0.1",
+    "main": "index.ts",
+    "private": true,
+    "dependencies": {
+        "neverthrow": "8.2.0",
+        "rollbar": "2.26.4",
+        "zod": "4.1.11",
+        "@spectoda/schemas": "*",
+		"@spectoda/spectoda-utils": "*"
+    }
+}

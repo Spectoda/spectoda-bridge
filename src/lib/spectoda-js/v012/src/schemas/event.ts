@@ -14,15 +14,13 @@ import {
   UndefinedSchema,
 } from './values'
 
-const EventBaseSchema = z
-  .object({
+const EventBaseSchema = z.strictObject({
     /** Readonly string with more information about the event value */
     debug: z.string(),
     label: LabelSchema,
     timestamp: z.number(),
     id: IDSchema,
   })
-  .strict()
 
 export type NumberEvent = z.infer<typeof NumberEventSchema>
 export const NumberEventSchema = EventBaseSchema.extend({
@@ -107,7 +105,7 @@ export const AnyEventValueSchema = z.union([
 
 export type AnyEvent = z.infer<typeof AnyEventSchema>
 export const AnyEventSchema = EventBaseSchema.extend({
-  type: z.nativeEnum(VALUE_TYPES),
+  type: z.enum(VALUE_TYPES),
   value: AnyEventValueSchema,
 })
 
