@@ -1218,7 +1218,7 @@ export class SpectodaNodeBluetoothConnector {
           if (!this.#connectedGuard) {
             this.#runtimeReference.emit(SpectodaAppEvents.PRIVATE_CONNECTED)
           }
-          return { connector: this.type }
+          resolve({ connector: this.type })
         })
         .catch((error) => {
           logging.error(error)
