@@ -4748,8 +4748,8 @@ export class Spectoda implements SpectodaClass {
          *   eventStoreFingerprint: string = "ba5a56fbe0fc8c3e2b545130e43499a6d2e8debb11bf09a280dce1623a0a7039",
          *   configFingerprint: string = "ba5a56fbe0fc8c3e2b545130e43499a6d2e8debb11bf09a280dce1623a0a7039"
          *   networkStorageFingerprint: string = "ba5a56fbe0fc8c3e2b545130e43499a6d2e8debb11bf09a280dce1623a0a7039",
-         *   controllerstoreFingerprint: string = "ba5a56fbe0fc8c3e2b545130e43499a6d2e8debb11bf09a280dce1623a0a7039",
-         *   notificationstoreFingerprint: string = "ba5a56fbe0fc8c3e2b545130e43499a6d2e8debb11bf09a280dce1623a0a7039"
+         *   controllerStoreFingerprint: string = "ba5a56fbe0fc8c3e2b545130e43499a6d2e8debb11bf09a280dce1623a0a7039",
+         *   notificationStoreFingerprint: string = "ba5a56fbe0fc8c3e2b545130e43499a6d2e8debb11bf09a280dce1623a0a7039"
          * }
          */
 
@@ -4772,8 +4772,8 @@ export class Spectoda implements SpectodaClass {
           eventStoreFingerprint: event_store_fingerprint_hex,
           configFingerprint: config_fingerprint_hex,
           networkStorageFingerprint: networkstorage_fingerprint_hex,
-          controllerstoreFingerprint: controllerstore_fingerprint_hex,
-          notificationstoreFingerprint: notificationstore_fingerprint_hex,
+          controllerStoreFingerprint: controllerstore_fingerprint_hex,
+          notificationStoreFingerprint: notificationstore_fingerprint_hex,
         } as ControllerInfo
 
         logging.info('> Controller Info:', info)

@@ -83,8 +83,8 @@ type ControllerMoreData = {
   eventStoreFingerprint: Fingerprint
   configFingerprint: Fingerprint
   networkStorageFingerprint: Fingerprint
-  controllerstoreFingerprint: Fingerprint
-  notificationstoreFingerprint: Fingerprint
+  controllerStoreFingerprint: Fingerprint
+  notificationStoreFingerprint: Fingerprint
 }
 type ControllerInfo = ControllerConnectionCriteria & ControllerMoreData
 

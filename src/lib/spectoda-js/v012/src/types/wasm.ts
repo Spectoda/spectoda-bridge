@@ -1,7 +1,7 @@
 import { EventState } from '../..'
 
 /// === auto-generated from Emscripten build process === ///
-/// ========== DEBUG_UNIVERSAL_0.12.11_20251024.d.ts ========== ///
+/// ========== DEBUG_UNIVERSAL_0.12.11_20251102.d.ts ========== ///
 export type interface_error_tValue<T extends number> = {
   value: T
 }
@@ -269,7 +269,7 @@ export type MainModule = {
   computeFingerprint32(_0: any): string
 }
 
-/// ========== DEBUG_UNIVERSAL_0.12.11_20251024.d.ts ========== ///
+/// ========== DEBUG_UNIVERSAL_0.12.11_20251102.d.ts ========== ///
 
 /// =================== MANUALLY DEFINED INTERFACES ================= ///
 
