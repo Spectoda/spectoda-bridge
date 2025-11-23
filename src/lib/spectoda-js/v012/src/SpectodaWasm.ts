@@ -4,7 +4,7 @@ import { logging } from '../logging'
 
 import { MainModule, Uint8Vector } from './types/wasm'
 
-export const WASM_VERSION = 'DEBUG_UNIVERSAL_0.12.11_20251102'
+export const WASM_VERSION = 'DEBUG_UNIVERSAL_0.12.11_20251123'
 export const WEBASSEMBLY_BASE_URL = 'https://webassembly.spectoda.com'
 
 const IS_NODEJS =
