@@ -2,7 +2,7 @@
 
 import { PrivateError, privateError } from '../../../error/index'
 
-import { EventState } from './schemas/event'
+import { EventState } from '..'
 import { sleep } from '../functions'
 import { logging } from '../logging'
 
@@ -269,16 +269,12 @@ export class Spectoda_JS {
 
         // ! TODO NEXT
         // ! for now only version that does not
-        _onRequest: (
-          request_ticket_number: number,
-          request_bytecode_vector: Uint8Vector,
-          destination_connection: Connection,
-        ) => {
-          logging.debug(`Spectoda_JS::_onRequest(request_ticket_number=${request_ticket_number})`)
+        _onRequest: (request_bytecode_vector: Uint8Vector, destination_connection: Connection) => {
+          logging.debug('Spectoda_JS::_onRequest()')
 
           // try {
           //   const request_bytecode = SpectodaWasm.convertUint8VectorUint8Array(request_bytecode_vector);
-          //   this.#runtimeReference.sendRequest(request_ticket_number, request_bytecode, destination_connection).catch(e => {
+          //   this.#runtimeReference.sendRequest(request_bytecode, destination_connection).catch(e => {
           //     logging.error(e);
           //     return false;
           //   });
@@ -297,7 +293,7 @@ export class Spectoda_JS {
             this.#runtimeReference.emit(SpectodaAppEvents.PRIVATE_WASM_CLOCK, synchronization.clock_timestamp)
 
             if (Math.abs(this.#runtimeReference.clock.millis() - synchronization.clock_timestamp) > 10) {
-              this.#runtimeReference.clock.setMillisWithoutEvent(synchronization.clock_timestamp)
+              this.#runtimeReference.clock.setMillis(synchronization.clock_timestamp)
             }
           } catch (e) {
             logging.error(e)
@@ -376,7 +372,8 @@ export class Spectoda_JS {
             `Spectoda_JS::_handleTimelineManipulation(timeline_timestamp=${timeline_timestamp}, timeline_paused=${timeline_paused}, timeline_date=${timeline_date})`,
           )
 
-          // TODO! Refactor timeline mechanics to inclute date
+          // Update timeline state without emitting local events to prevent duplicate reactions
+          // (TIMELINE_UPDATE event will be emitted instead for unified handling)
           this.#runtimeReference.spectodaReference.timeline.setMillis(timeline_timestamp)
           if (timeline_paused) {
             this.#runtimeReference.spectodaReference.timeline.pause()
@@ -384,6 +381,13 @@ export class Spectoda_JS {
             this.#runtimeReference.spectodaReference.timeline.unpause()
           }
           this.#runtimeReference.spectodaReference.timeline.setDate(timeline_date)
+
+          // Emit timeline update event for UI synchronization (both local and remote control)
+          this.#runtimeReference.emit(SpectodaAppEvents.TIMELINE_UPDATE, {
+            millis: timeline_timestamp,
+            paused: timeline_paused,
+            date: timeline_date,
+          })
 
           return SpectodaWasm.interface_error_t.SUCCESS
         },
@@ -454,41 +458,25 @@ export class Spectoda_JS {
           }
         },
 
-        // _sendRequest: (request_ticket_number: number, request_bytecode: Uint8Vector, destination_connection: Connection) => boolean;
-        _sendRequest: (
-          request_ticket_number: number,
-          request_bytecode: Uint8Vector,
-          destination_connection: Connection,
-        ) => {
+        // _sendRequest: (request_bytecode: Uint8Vector, destination_connection: Connection) => boolean;
+        _sendRequest: (request_bytecode: Uint8Vector, destination_connection: Connection) => {
           logging.debug(
-            `Spectoda_JS::_sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode=${request_bytecode}, destination_connection=${destination_connection}`,
+            `Spectoda_JS::_sendRequest(request_bytecode=${request_bytecode}, destination_connection=${destination_connection}`,
           )
 
           try {
             const request_bytecode_array = SpectodaWasm.convertUint8VectorUint8Array(request_bytecode)
 
-            this.#runtimeReference
-              .sendRequest(request_ticket_number, request_bytecode_array, destination_connection)
-              .catch((e) => {
-                logging.error(e)
-                return false
-              })
+            this.#runtimeReference.sendRequest(request_bytecode_array, destination_connection).catch((e) => {
+              logging.error(e)
+              return false
+            })
           } catch (e) {
             logging.error(e)
             return false
           }
 
           return true
-        },
-
-        // _sendResponse: (request_ticket_number: number, request_result: number, response_bytecode: Uint8Vector, destination_connection: Connection) => boolean;
-        _sendResponse: (
-          request_ticket_number: number,
-          request_result: number,
-          response_bytecode: Uint8Vector,
-          destination_connection: Connection,
-        ) => {
-          return false
         },
 
         // _sendSynchronize: (synchronization: Synchronization, source_connection: Connection) => void;

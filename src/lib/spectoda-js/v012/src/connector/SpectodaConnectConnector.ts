@@ -1206,8 +1206,12 @@ export class SpectodaConnectConnector extends FlutterConnection {
 
   // TODO - emit "ota_progress" events
 
-  updateFW(firmware_bytes: Uint8Array): Promise<unknown> {
-    logging.debug(`SpectodaConnectConnector::updateFW(firmware_bytes.length=${firmware_bytes.length})`)
+  updateFW(firmware_bytes: Uint8Array, options?: { skipReboot?: boolean }): Promise<unknown> {
+    const skipReboot = options?.skipReboot ?? false
+
+    logging.debug(
+      `SpectodaConnectConnector::updateFW(firmware_bytes.length=${firmware_bytes.length}, skipReboot=${skipReboot})`,
+    )
 
     this.#runtimeReference.spectodaReference.requestWakeLock()
 
@@ -1294,11 +1298,15 @@ export class SpectodaConnectConnector extends FlutterConnection {
 
         await sleep(100)
 
-        logging.info('Rebooting device...')
+        if (!skipReboot) {
+          logging.info('Rebooting device...')
 
-        const device_bytes = [COMMAND_FLAGS.FLAG_DEVICE_REBOOT_REQUEST]
+          const device_bytes = [COMMAND_FLAGS.FLAG_DEVICE_REBOOT_REQUEST]
 
-        await this.request(new Uint8Array(device_bytes), false)
+          await this.request(new Uint8Array(device_bytes), false)
+        } else {
+          logging.info('Firmware written, skipping reboot as requested')
+        }
 
         logging.debug('Firmware written in ' + (Date.now() - start_timestamp) / 1000 + ' seconds')
 
@@ -1312,7 +1320,10 @@ export class SpectodaConnectConnector extends FlutterConnection {
       }
     })
       .then(() => {
-        return this.disconnect()
+        if (!skipReboot) {
+          return this.disconnect()
+        }
+        return Promise.resolve()
       })
       .finally(() => {
         this.#runtimeReference.spectodaReference.releaseWakeLock()
@@ -1351,30 +1362,6 @@ export class SpectodaConnectConnector extends FlutterConnection {
     }
 
     return this.deliver(command_bytes, 1000)
-  }
-
-  // bool _sendRequest(const int32_t request_ticket_number, std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
-
-  sendRequest(request_ticket_number: number, request_bytecode: Uint8Array, destination_connection: Connection) {
-    logging.debug(
-      `SpectodaConnectConnector::sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode=${request_bytecode}, destination_connection=${destination_connection})`,
-    )
-
-    return this.request(request_bytecode, false, 10000)
-  }
-  // bool _sendResponse(const int32_t request_ticket_number, const int32_t request_result, std::vector<uint8_t>& response_bytecode, const Connection& destination_connection) = 0;
-
-  sendResponse(
-    request_ticket_number: number,
-    request_result: number,
-    response_bytecode: Uint8Array,
-    destination_connection: Connection,
-  ) {
-    logging.debug(
-      `SpectodaConnectConnector::sendResponse(request_ticket_number=${request_ticket_number}, request_result=${request_result}, response_bytecode=${response_bytecode}, destination_connection=${destination_connection})`,
-    )
-
-    return Promise.reject('NotImplemented')
   }
 
   // void _sendSynchronize(const Synchronization& synchronization, const Connection& source_connection) = 0;

@@ -80,6 +80,16 @@ export type SpectodaClass = {
     paused?: boolean | null,
     date?: ValueTypeDate | null,
   ): Promise<any>
+  getTimelineState(): Promise<{ millis: number; paused: boolean; date: string }>
+  getTimelineMillis(): Promise<number>
+  getTimelinePaused(): Promise<boolean>
+  getTimelineDate(): Promise<string>
+  setTimelineMillis(millis: number): Promise<any>
+  setTimelineDate(date: string): Promise<any>
+  pauseTimeline(): Promise<any>
+  unpauseTimeline(): Promise<any>
+  rewindTimeline(pause?: boolean): Promise<any>
+  manipulateTimeline(timestamp: number, pause: boolean, date: string): Promise<any>
 
   // Utility methods
   setDebugLevel(level: number): void

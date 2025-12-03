@@ -1115,8 +1115,9 @@ export class SpectodaNodeSerialConnector {
 
   // handles the firmware updating. Sends "ota" events
   // to all handlers
-  updateFW(firmware_bytes: Uint8Array): Promise<unknown> {
-    logging.debug(`SpectodaNodeSerialConnector::updateFW(firmware_bytes.length=${firmware_bytes.length})`)
+  updateFW(firmware_bytes: Uint8Array, options?: { skipReboot?: boolean }): Promise<unknown> {
+    const skipReboot = options?.skipReboot ?? false
+    logging.debug(`SpectodaNodeSerialConnector::updateFW(firmware_bytes.length=${firmware_bytes.length}, skipReboot=${skipReboot})`)
 
     if (!this.#serialPort) {
       logging.warn('Serial Port is null')
@@ -1211,9 +1212,13 @@ export class SpectodaNodeSerialConnector {
 
         await sleep(2000)
 
-        const bytes = new Uint8Array([COMMAND_FLAGS.FLAG_DEVICE_REBOOT_REQUEST])
+        if (!skipReboot) {
+          const bytes = new Uint8Array([COMMAND_FLAGS.FLAG_DEVICE_REBOOT_REQUEST])
 
-        await this.#write(CHANNEL_DEVICE, bytes, 10000)
+          await this.#write(CHANNEL_DEVICE, bytes, 10000)
+        } else {
+          logging.info('Firmware written, skipping reboot as requested')
+        }
 
         this.#runtimeReference.emit(SpectodaAppEvents.OTA_STATUS, 'success')
         resolve(null)
@@ -1263,11 +1268,11 @@ export class SpectodaNodeSerialConnector {
     return this.#write(CHANNEL_NETWORK, command_bytes, 1000)
   }
 
-  // bool _sendRequest(const int32_t request_ticket_number, std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
+  // bool // bool _sendRequest(std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
 
-  sendRequest(request_ticket_number: number, request_bytecode: Uint8Array, destination_connection: Connection) {
+  sendRequest(request_bytecode: Uint8Array, destination_connection: Connection) {
     logging.debug(
-      `SpectodaNodeSerialConnector::sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode.length=${request_bytecode.length}, destination_connection=${destination_connection})`,
+      `SpectodaNodeSerialConnector::sendRequest(request_bytecode.length=${request_bytecode.length}, destination_connection=${destination_connection})`,
     )
 
     // TODO if many connections can be opened, then look for the right one
@@ -1281,21 +1286,7 @@ export class SpectodaNodeSerialConnector {
 
     return this.#write(CHANNEL_DEVICE, request_bytecode, 1000)
   }
-  // bool _sendResponse(const int32_t request_ticket_number, const int32_t request_result, std::vector<uint8_t>& response_bytecode, const Connection& destination_connection) = 0;
-
-  sendResponse(
-    request_ticket_number: number,
-    request_result: number,
-    response_bytecode: Uint8Array,
-    destination_connection: Connection,
-  ) {
-    logging.debug(
-      `SpectodaNodeSerialConnector::sendResponse(request_ticket_number=${request_ticket_number}, request_result=${request_result}, response_bytecode=${response_bytecode}, destination_connection=${destination_connection})`,
-    )
-
-    return Promise.reject('NotImplemented')
-  }
-
+ 
   // void _sendSynchronize(const Synchronization& synchronization, const Connection& source_connection) = 0;
 
   sendSynchronize(synchronization: Synchronization, source_connection: Connection) {

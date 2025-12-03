@@ -32,6 +32,11 @@ export class SpectodaSimulatedConnector {
   #ups
   #fps
 
+  #scanIntervalHandle: NodeJS.Timeout | null
+  #scanCancelled: boolean
+  #scanResolve: ((value: Array<Criterium>) => void) | null
+  #currentScanResults: Array<Criterium & { connector: string; rssi: number; product: number }> | null
+
   type: string
   controllers: PreviewController[]
 
@@ -48,6 +53,11 @@ export class SpectodaSimulatedConnector {
 
     this.#selected = false
     this.#connected = false
+
+    this.#scanIntervalHandle = null
+    this.#scanCancelled = false
+    this.#scanResolve = null
+    this.#currentScanResults = null
 
     this.#clock = new TimeTrack(0, false)
     this.controllers = []
@@ -82,26 +92,33 @@ export class SpectodaSimulatedConnector {
       const SimulatedControllerConfig = {
         controller: { name: 'SIMULATED' },
         console: { debug: 3 },
-
-        io: {
-          PIX1: { type: 'NEOPIXEL', variant: 'WS2812B' },
-          PIX2: { type: 'NEOPIXEL', variant: 'WS2811', order: 'RGB' },
-          PWM: { type: 'PWM', order: 'W' },
-          DALI: { type: 'DALI' },
-        },
       }
 
       const SimulatedConnectorImplementation = {
         _scan: (criteria_json: string, scan_period: number, result_out: any) => {
+          logging.verbose(
+            `SpectodaSimulatedConnector::_scan(criteria_json=${criteria_json}, scan_period=${scan_period}, result_out=${result_out})`,
+          )
+
           return false
         },
         _autoConnect: (criteria_json: string, scan_period: number, timeout: number, result_out: any) => {
+          logging.verbose(
+            `SpectodaSimulatedConnector::_autoConnect(criteria_json=${criteria_json}, scan_period=${scan_period}, timeout=${timeout}, result_out=${result_out})`,
+          )
+
           return false
         },
         _userConnect: (criteria_json: string, timeout: number, result_out: any) => {
+          logging.verbose(
+            `SpectodaSimulatedConnector::_userConnect(criteria_json=${criteria_json}, timeout=${timeout}, result_out=${result_out})`,
+          )
+
           return false
         },
         _disconnect: (connection: Connection) => {
+          logging.verbose(`SpectodaSimulatedConnector::_disconnect(connection=${connection.address_string})`)
+
           return false
         },
         _sendExecute: (command_bytecode: Uint8Vector, source_connection: Connection) => {
@@ -111,99 +128,113 @@ export class SpectodaSimulatedConnector {
 
           const command_bytecode_array = SpectodaWasm.convertUint8VectorUint8Array(command_bytecode)
 
-          if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_SIMULATED) {
-            logging.debug('SpectodaSimulatedConnector::_sendExecute() - source_connection is CONNECTOR_SIMULATED')
+          if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
+            logging.debug(
+              'SpectodaSimulatedConnector::_sendExecute() - source_connection is CONNECTOR_LEGACY_JS_RUNTIME',
+            )
             return true
           }
 
           // TODO! figure out what to do when the simulated controller is not connected
           if (!this.#connected) {
-            return Promise.resolve()
+            return true
           }
 
           // TODO! SOURCE_CONNECTION_THIS_CONTROLLER should have the actual mac address of the controller. Not 00:00:00:00:00:00
 
           try {
             if (source_connection.address_string == '00:00:00:00:00:00') {
-              source_connection.connector_type = SpectodaWasm.connector_type_t.CONNECTOR_SIMULATED
+              source_connection.connector_type = SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME
               source_connection.address_string = SimulatedControllerMacAddress
 
-              this.#runtimeReference.spectoda_js.execute(command_bytecode_array, source_connection)
+              return this.#runtimeReference.spectoda_js.execute(command_bytecode_array, source_connection)
             } else {
-              source_connection.connector_type = SpectodaWasm.connector_type_t.CONNECTOR_SIMULATED
+              source_connection.connector_type = SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME
               this.#runtimeReference.sendExecute(command_bytecode_array, source_connection).catch((e) => {
                 logging.error(e)
-                return false
               })
+              return true
             }
           } catch (e) {
             logging.error(e)
             return false
           }
         },
-        _sendRequest: (
-          request_ticket_number: number,
-          request_bytecode: Uint8Vector,
-          destination_connection: Connection,
-        ) => {
+        _sendRequest: (request_bytecode: Uint8Vector, destination_connection: Connection) => {
           logging.verbose(
             `SpectodaSimulatedConnector::_sendRequest(destination_connection: ${destination_connection.address_string})`,
           )
 
-          return true
-        },
-        _sendResponse: (
-          request_ticket_number: number,
-          request_result: number,
-          response_bytecode: Uint8Vector,
-          destination_connection: Connection,
-        ) => {
-          logging.verbose(
-            `SpectodaSimulatedConnector::_sendResponse(destination_connection: ${destination_connection.address_string})`,
-          )
+          // TODO! figure out what to do when the simulated controller is not connected
+          if (!this.#connected) {
+            return true
+          }
 
-          return true
+          // TODO! SOURCE_CONNECTION_THIS_CONTROLLER should have the actual mac address of the controller. Not 00:00:00:00:00:00
+
+          try {
+            destination_connection.connector_type = SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME
+            destination_connection.address_string = SimulatedControllerMacAddress
+
+            return this.#runtimeReference.spectoda_js.request(
+              SpectodaWasm.convertUint8VectorUint8Array(request_bytecode),
+              destination_connection,
+            )
+          } catch (e) {
+            logging.error(e)
+            return false
+          }
         },
         _sendSynchronize: (synchronization: Synchronization, source_connection: Connection) => {
           logging.verbose(
             `SpectodaSimulatedConnector::_sendSynchronize(synchronization:${synchronization}, source_connection=${source_connection.address_string})`,
           )
 
-          if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_SIMULATED) {
-            logging.debug('SpectodaSimulatedConnector::_sendSynchronize() - source_connection is CONNECTOR_SIMULATED')
+          if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
+            logging.debug(
+              'SpectodaSimulatedConnector::_sendSynchronize() - source_connection is CONNECTOR_LEGACY_JS_RUNTIME',
+            )
             return true
           }
 
           // TODO! figure out what to do when the simulated controller is not connected
           if (!this.#connected) {
-            return Promise.resolve()
+            return true
           }
 
           try {
             // TODO! SOURCE_CONNECTION_THIS_CONTROLLER should have the actual mac address of the controller. Not 00:00:00:00:00:00
             if (source_connection.address_string == '00:00:00:00:00:00') {
               source_connection.address_string = SimulatedControllerMacAddress
-              source_connection.connector_type = SpectodaWasm.connector_type_t.CONNECTOR_SIMULATED
+              source_connection.connector_type = SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME
 
-              this.#runtimeReference.spectoda_js.synchronize(synchronization, source_connection)
+              return this.#runtimeReference.spectoda_js.synchronize(synchronization, source_connection)
             } else {
-              source_connection.connector_type = SpectodaWasm.connector_type_t.CONNECTOR_SIMULATED
+              source_connection.connector_type = SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME
               this.#runtimeReference.sendSynchronize(synchronization, source_connection).catch((e) => {
                 logging.error(e)
-                return false
               })
+              return true
             }
           } catch (e) {
             logging.error(e)
             return false
           }
         },
-        _process: () => {},
+        _process: () => {
+          return true
+        },
+        _render: () => {
+          return true
+        },
       }
 
       const connector = new IConnector_JS()
 
-      await connector.construct(SimulatedConnectorImplementation, SpectodaWasm.connector_type_t.CONNECTOR_SIMULATED)
+      await connector.construct(
+        SimulatedConnectorImplementation,
+        SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
+      )
       const controller = new PreviewController(SimulatedControllerMacAddress)
 
       await controller.construct(SimulatedControllerConfig, connector)
@@ -386,9 +417,278 @@ export class SpectodaSimulatedConnector {
         ')',
     )
 
-    // TODO scan logic based on the controllers contructed and criteria
+    return new Promise(async (resolve) => {
+      // Reset cancellation flag
+      this.#scanCancelled = false
+      this.#scanResolve = resolve
 
-    return Promise.resolve([])
+      // @ts-ignore TODO: @immakermatty fix missing connector, rssi, product in Criterium type
+      const matchingControllers: Array<Criterium & { connector: string; rssi: number; product: number }> = []
+      // @ts-ignore TODO: @immakermatty fix missing connector, rssi, product in Criterium type
+      const scanResults: Array<Criterium & { connector: string; rssi: number; product: number }> = []
+
+      // Store reference to current results so cancel() can access them
+      this.#currentScanResults = matchingControllers
+
+      // Helper function to check if controller matches criteria
+      const controllerMatchesCriteria = (controller: PreviewController, criterium: Criterium): boolean => {
+        const controllerName = controller.label || controller.mac
+
+        // Check MAC address match
+        if (criterium.mac !== undefined && controller.mac !== criterium.mac) {
+          return false
+        }
+
+        // Check name match
+        if (criterium.name !== undefined && controllerName !== criterium.name) {
+          return false
+        }
+
+        // Check name prefix match
+        if (criterium.nameprefix !== undefined && !controllerName.startsWith(criterium.nameprefix)) {
+          return false
+        }
+
+        // Check product code match if specified
+        if (criterium.product !== undefined) {
+          // For simulated controllers, we use default product code 0
+          const simulatedProductCode = 0
+
+          if (simulatedProductCode !== criterium.product) {
+            return false
+          }
+        }
+
+        // Note: network, fw, and commissionable are not available
+        // from PreviewController, so we skip those checks for simulated controllers
+
+        return true
+      }
+
+      // Helper function to create controller result
+      const createControllerResult = (controller: PreviewController) => {
+        // Simulate RSSI between -80 and -30 dBm
+        const RSSI_MIN = -80
+        const RSSI_MAX = -30
+        const rssi = Math.floor(Math.random() * (RSSI_MAX - RSSI_MIN + 1)) + RSSI_MIN
+
+        // Default product code for simulated controllers
+        // TODO add a way how to define the product code for the simulated controllers in the network definition
+        const productCode = 0
+
+        return {
+          connector: this.type,
+          mac: controller.mac,
+          name: controller.label || controller.mac,
+          rssi: rssi,
+          product: productCode,
+        }
+      }
+
+      // Helper function to slightly fluctuate RSSI values (simulates real-world signal variation)
+      const fluctuateRSSI = (currentRSSI: number): number => {
+        const RSSI_MIN = -80
+        const RSSI_MAX = -30
+        const RSSI_VARIATION = 3 // Maximum variation in dBm per update
+        const VARIATION_MULTIPLIER = 2 // Used to calculate ±variation range
+
+        // Add small random variation (±3 dBm)
+        const variation = Math.floor(Math.random() * (RSSI_VARIATION * VARIATION_MULTIPLIER + 1)) - RSSI_VARIATION
+        const newRSSI = currentRSSI + variation
+
+        // Clamp to valid range
+        return Math.max(RSSI_MIN, Math.min(RSSI_MAX, newRSSI))
+      }
+
+      // Simulate scanning process - emit scan events during the scan duration
+      const scanStartTime = Date.now()
+      const SCAN_EVENT_INTERVAL = 500 // Emit scan events every 500ms
+
+      // Emit initial empty array to simulate scan starting with no results
+      this.#runtimeReference.emit(SpectodaAppEvents.SCAN_RESULTS, JSON.stringify([]))
+
+      this.#scanIntervalHandle = setInterval(() => {
+        // Check if scan was cancelled
+        if (this.#scanCancelled) {
+          if (this.#scanIntervalHandle) {
+            clearInterval(this.#scanIntervalHandle)
+            this.#scanIntervalHandle = null
+          }
+          return
+        }
+
+        const elapsed = Date.now() - scanStartTime
+
+        if (elapsed >= scan_duration_number) {
+          if (this.#scanIntervalHandle) {
+            clearInterval(this.#scanIntervalHandle)
+            this.#scanIntervalHandle = null
+          }
+          return
+        }
+
+        // Update RSSI values slightly for each controller (simulates signal fluctuation)
+        for (const result of scanResults) {
+          result.rssi = fluctuateRSSI(result.rssi)
+        }
+
+        // Emit current scan results as JSON string (may be empty if no controllers found yet)
+        const currentResults = scanResults.map((result) => ({
+          connector: result.connector,
+          mac: result.mac,
+          name: result.name,
+          rssi: result.rssi,
+          product: result.product,
+        }))
+
+        this.#runtimeReference.emit(SpectodaAppEvents.SCAN_RESULTS, JSON.stringify(currentResults))
+      }, SCAN_EVENT_INTERVAL)
+
+      // Simulate initial delay before discovering controllers (scan doesn't catch them instantly)
+      const INITIAL_DISCOVERY_DELAY = 300 // Wait 300ms before first controller appears
+
+      await sleep(INITIAL_DISCOVERY_DELAY)
+
+      // Check if scan was cancelled during initial delay
+      if (this.#scanCancelled) {
+        if (this.#scanIntervalHandle) {
+          clearInterval(this.#scanIntervalHandle)
+          this.#scanIntervalHandle = null
+        }
+        // Only resolve if cancel() hasn't already resolved
+        if (this.#scanResolve !== null) {
+          this.#scanResolve = null
+          this.#currentScanResults = null
+          resolve(matchingControllers)
+        }
+        return
+      }
+
+      // Emit empty array again after initial delay (still no results)
+      this.#runtimeReference.emit(SpectodaAppEvents.SCAN_RESULTS, JSON.stringify([]))
+
+      // Simulate progressive discovery - discover controllers quickly (early in scan)
+      const controllersToDiscover =
+        criterium_array.length === 0
+          ? this.controllers
+          : this.controllers.filter((controller) =>
+              criterium_array.some((criterium) => controllerMatchesCriteria(controller, criterium)),
+            )
+
+      // Discover controllers quickly with short delays (100-200ms between each)
+      const DISCOVERY_DELAY = 150 // Fast discovery delay
+      const DISCOVERY_TIME_PERCENTAGE = 0.3 // Discover within first 30% of scan duration
+      const MAX_DISCOVERY_TIME_MS = 2000 // Maximum discovery time in milliseconds
+      const MAX_DISCOVERY_TIME = Math.min(scan_duration_number * DISCOVERY_TIME_PERCENTAGE, MAX_DISCOVERY_TIME_MS)
+
+      for (let i = 0; i < controllersToDiscover.length; i++) {
+        // Check if scan was cancelled
+        if (this.#scanCancelled) {
+          break
+        }
+
+        // Stop discovering if we've exceeded the max discovery time
+        const elapsed = Date.now() - scanStartTime
+
+        if (elapsed >= MAX_DISCOVERY_TIME) {
+          break
+        }
+
+        await sleep(DISCOVERY_DELAY)
+
+        // Check again after sleep in case cancellation happened during sleep
+        if (this.#scanCancelled) {
+          break
+        }
+
+        const controller = controllersToDiscover[i]
+        const controllerResult = createControllerResult(controller)
+
+        matchingControllers.push(controllerResult)
+        scanResults.push(controllerResult)
+
+        // Update RSSI values slightly for all previously discovered controllers
+        for (let j = 0; j < scanResults.length - 1; j++) {
+          scanResults[j].rssi = fluctuateRSSI(scanResults[j].rssi)
+        }
+
+        // Emit scan event for this discovery
+        const currentResults = scanResults.map((result) => ({
+          connector: result.connector,
+          mac: result.mac,
+          name: result.name,
+          rssi: result.rssi,
+          product: result.product,
+        }))
+
+        this.#runtimeReference.emit(SpectodaAppEvents.SCAN_RESULTS, JSON.stringify(currentResults))
+      }
+
+      // Check if scan was cancelled before waiting for remaining duration
+      if (this.#scanCancelled) {
+        if (this.#scanIntervalHandle) {
+          clearInterval(this.#scanIntervalHandle)
+          this.#scanIntervalHandle = null
+        }
+        // Only resolve if cancel() hasn't already resolved
+        if (this.#scanResolve !== null) {
+          this.#scanResolve = null
+          this.#currentScanResults = null
+          resolve(matchingControllers)
+        }
+        return
+      }
+
+      // Wait for remaining scan duration
+      const elapsed = Date.now() - scanStartTime
+
+      if (elapsed < scan_duration_number) {
+        await sleep(scan_duration_number - elapsed)
+      }
+
+      // Final check if scan was cancelled during wait
+      if (this.#scanCancelled) {
+        if (this.#scanIntervalHandle) {
+          clearInterval(this.#scanIntervalHandle)
+          this.#scanIntervalHandle = null
+        }
+        // Only resolve if cancel() hasn't already resolved
+        if (this.#scanResolve !== null) {
+          this.#scanResolve = null
+          this.#currentScanResults = null
+          resolve(matchingControllers)
+        }
+        return
+      }
+
+      if (this.#scanIntervalHandle) {
+        clearInterval(this.#scanIntervalHandle)
+        this.#scanIntervalHandle = null
+      }
+
+      // Update RSSI values slightly one more time before final emission
+      for (const result of scanResults) {
+        result.rssi = fluctuateRSSI(result.rssi)
+      }
+
+      // Emit final scan results
+      const finalResults = matchingControllers.map((result) => ({
+        connector: result.connector,
+        mac: result.mac,
+        name: result.name,
+        rssi: result.rssi,
+        product: result.product,
+      }))
+
+      this.#runtimeReference.emit(SpectodaAppEvents.SCAN_RESULTS, JSON.stringify(finalResults))
+
+      // Only resolve if not already resolved by cancel()
+      if (this.#scanResolve !== null) {
+        this.#scanResolve = null
+        this.#currentScanResults = null
+        resolve(matchingControllers)
+      }
+    })
   }
 
   connect(timeout_number: number | typeof DEFAULT_TIMEOUT = DEFAULT_TIMEOUT): Promise<Criterium> {
@@ -463,7 +763,7 @@ export class SpectodaSimulatedConnector {
           payload_bytes,
           SpectodaWasm.Connection.make(
             APP_MAC_ADDRESS,
-            SpectodaWasm.connector_type_t.CONNECTOR_SIMULATED,
+            SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
             SpectodaWasm.connection_rssi_t.RSSI_MAX,
           ),
         )
@@ -497,7 +797,7 @@ export class SpectodaSimulatedConnector {
           payload_bytes,
           SpectodaWasm.Connection.make(
             APP_MAC_ADDRESS,
-            SpectodaWasm.connector_type_t.CONNECTOR_UNDEFINED,
+            SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
             SpectodaWasm.connection_rssi_t.RSSI_MAX,
           ),
         )
@@ -536,7 +836,7 @@ export class SpectodaSimulatedConnector {
               payload_bytes,
               SpectodaWasm.Connection.make(
                 APP_MAC_ADDRESS,
-                SpectodaWasm.connector_type_t.CONNECTOR_UNDEFINED,
+                SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME,
                 SpectodaWasm.connection_rssi_t.RSSI_MAX,
               ),
             )
@@ -603,8 +903,10 @@ export class SpectodaSimulatedConnector {
 
   // handles the firmware updating. Sends "ota" events
   // to all handlers
-  updateFW(firmware_bytes: Uint8Array): Promise<unknown> {
-    logging.debug('updateFW()', firmware_bytes)
+  updateFW(firmware_bytes: Uint8Array, options?: { skipReboot?: boolean }): Promise<unknown> {
+    const skipReboot = options?.skipReboot ?? false
+
+    logging.debug('updateFW()', firmware_bytes, { skipReboot })
 
     return new Promise(async (resolve, reject) => {
       if (!this.#connected) {
@@ -621,13 +923,35 @@ export class SpectodaSimulatedConnector {
 
       await sleep(1000) // finishing FW logic.
 
+      if (skipReboot) {
+        logging.info('Firmware written, skipping reboot as requested')
+      }
+
       this.#runtimeReference.emit(SpectodaAppEvents.OTA_STATUS, 'success')
       resolve(null)
     })
   }
 
   cancel(): void {
-    // TODO implement
+    logging.verbose('cancel()')
+
+    // Set cancellation flag
+    this.#scanCancelled = true
+
+    // Clear scan interval if it exists
+    if (this.#scanIntervalHandle) {
+      clearInterval(this.#scanIntervalHandle)
+      this.#scanIntervalHandle = null
+    }
+
+    // Immediately resolve the scan promise with current results
+    if (this.#scanResolve && this.#currentScanResults) {
+      const currentResults = [...this.#currentScanResults] // Create a copy
+
+      this.#scanResolve(currentResults)
+      this.#scanResolve = null
+      this.#currentScanResults = null
+    }
   }
 
   destroy(): Promise<unknown> {
@@ -664,8 +988,8 @@ export class SpectodaSimulatedConnector {
       `SpectodaSimulatedConnector::sendExecute(command_bytes=${command_bytes}, source_connection=${source_connection.address_string})`,
     )
 
-    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_SIMULATED) {
-      logging.debug('SpectodaSimulatedConnector::sendExecute() - source_connection is CONNECTOR_SIMULATED')
+    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
+      logging.debug('SpectodaSimulatedConnector::sendExecute() - source_connection is CONNECTOR_LEGACY_JS_RUNTIME')
       return Promise.resolve()
     }
 
@@ -698,11 +1022,11 @@ export class SpectodaSimulatedConnector {
     })
   }
 
-  // bool _sendRequest(const int32_t request_ticket_number, std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
+  // bool // bool _sendRequest(std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
 
-  sendRequest(request_ticket_number: number, request_bytecode: Uint8Array, destination_connection: Connection) {
+  sendRequest(request_bytecode: Uint8Array, destination_connection: Connection) {
     logging.verbose(
-      `SpectodaSimulatedConnector::sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode=${request_bytecode}, destination_connection=${destination_connection})`,
+      `SpectodaSimulatedConnector::sendRequest(request_bytecode=${request_bytecode}, destination_connection=${destination_connection})`,
     )
 
     // TODO! figure out what to do when the simulated controller is not connected
@@ -710,30 +1034,7 @@ export class SpectodaSimulatedConnector {
       return Promise.resolve()
     }
 
-    // TODO simulated connector needs the other side to receive the request
-
-    return Promise.reject('NotImplemented')
-  }
-  // bool _sendResponse(const int32_t request_ticket_number, const int32_t request_result, std::vector<uint8_t>& response_bytecode, const Connection& destination_connection) = 0;
-
-  sendResponse(
-    request_ticket_number: number,
-    request_result: number,
-    response_bytecode: Uint8Array,
-    destination_connection: Connection,
-  ) {
-    logging.verbose(
-      `SpectodaSimulatedConnector::sendResponse(request_ticket_number=${request_ticket_number}, request_result=${request_result}, response_bytecode=${response_bytecode}, destination_connection=${destination_connection})`,
-    )
-
-    // TODO! figure out what to do when the simulated controller is not connected
-    if (!this.#connected) {
-      return Promise.resolve()
-    }
-
-    // TODO simulated connector needs the other side to receive the response
-
-    return Promise.reject('NotImplemented')
+    return this.request(request_bytecode, false, DEFAULT_TIMEOUT)
   }
 
   // void _sendSynchronize(const Synchronization& synchronization, const Connection& source_connection) = 0;
@@ -743,8 +1044,8 @@ export class SpectodaSimulatedConnector {
       `SpectodaSimulatedConnector::sendSynchronize(synchronization=${synchronization.origin_address}, source_connection=${source_connection.address_string})`,
     )
 
-    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_SIMULATED) {
-      logging.debug('SpectodaSimulatedConnector::sendSynchronize() - source_connection is CONNECTOR_SIMULATED')
+    if (source_connection.connector_type == SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
+      logging.debug('SpectodaSimulatedConnector::sendSynchronize() - source_connection is CONNECTOR_LEGACY_JS_RUNTIME')
       return Promise.resolve()
     }
 
@@ -753,12 +1054,9 @@ export class SpectodaSimulatedConnector {
       return Promise.resolve()
     }
 
-    // TODO simulated connector needs the other side to receive the synchronizes
-
-    // ! This is a hack to make the simulated connector work with the preview controllers
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve) => {
       //
-      source_connection.connector_type = SpectodaWasm.connector_type_t.CONNECTOR_SIMULATED
+      source_connection.connector_type = SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME
 
       // TODO! SOURCE_CONNECTION_THIS_CONTROLLER should have the actual mac address of the controller. Not 00:00:00:00:00:00
       if (source_connection.address_string == '00:00:00:00:00:00') {

@@ -180,7 +180,7 @@ export {
 
 export { PercentageSchemaWithSuffix, TimeStampSchemaWithSuffix } from './src/schemas/valuesWithSuffixes'
 
-export { CONNECTORS, NO_NETWORK_SIGNATURE, BROADCAST_ID, JS_VALUE_LIMITS } from './src/constants'
+export { CONNECTORS, UNCOMMISSIONED_NETWORK_SIGNATURE, BROADCAST_ID, JS_VALUE_LIMITS } from './src/constants'
 
 export { VALUE_TYPES, type ValueType } from './src/constants/values'
 

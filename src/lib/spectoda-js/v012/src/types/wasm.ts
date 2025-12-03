@@ -1,7 +1,7 @@
 import { EventState } from '../..'
 
 /// === auto-generated from Emscripten build process === ///
-/// ========== DEBUG_UNIVERSAL_0.12.11_20251102.d.ts ========== ///
+/// ========== DEBUG_UNIVERSAL_0.12.11_20251116.d.ts ========== ///
 export type interface_error_tValue<T extends number> = {
   value: T
 }
@@ -91,9 +91,8 @@ export type IConnector_WASM = {
   _sendExecute(_0: Uint8Vector, _1: Connection): void
   _sendSynchronize(_0: Synchronization, _1: Connection): void
   _disconnect(_0: Connection): boolean
+  _sendRequest(_0: Uint8Vector, _1: Connection): boolean
   init(_0: connector_type_t): boolean
-  _sendRequest(_0: number, _1: Uint8Vector, _2: Connection): boolean
-  _sendResponse(_0: number, _1: number, _2: Uint8Vector, _3: Connection): boolean
   _scan(_0: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string, _1: number, _2: any): boolean
   _userConnect(_0: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string, _1: number, _2: any): boolean
   _autoConnect(
@@ -120,12 +119,12 @@ export type Spectoda_WASM = {
   registerConnector(_0: IConnector_WASM): void
   _onTnglLoad(_0: Uint8Vector, _1: Uint8Vector): boolean
   _onExecute(_0: Uint8Vector): boolean
+  _onRequest(_0: Uint8Vector, _1: Connection): boolean
   _onSynchronize(_0: Synchronization): boolean
   process(_0: boolean, _1: boolean, _2: boolean, _3: boolean): void
   eraseNetworkStorage(): boolean
   render(_0: number): void
   registerDeviceContext(_0: number): boolean
-  _onRequest(_0: number, _1: Uint8Vector, _2: Connection): boolean
   execute(_0: number, _1: Connection): boolean
   request(_0: number, _1: Uint8Vector, _2: Connection): boolean
   getIdentifier(): number
@@ -335,9 +334,9 @@ export type Spectoda_WASMImplementation = {
   //     return call<bool>("_onExecute", execute_bytecode);
   // }
 
-  // bool _onRequest(const int32_t request_ticket_number, const std::vector<uint8_t>& request_bytecode_vector, Connection&& destination_connection) override
+  // bool _onRequest(const std::vector<uint8_t>& request_bytecode_vector, Connection&& destination_connection) override
   // {
-  //     return call<bool>("_onRequest", request_ticket_number, request_bytecode_vector, val(std::move(destination_connection)));
+  //     return call<bool>("_onRequest", request_bytecode_vector, val(std::move(destination_connection)));
   // }
 
   // bool _onSynchronize(Synchronization&& synchronization) override
@@ -387,11 +386,7 @@ export type Spectoda_WASMImplementation = {
   _onEvents(event_array: EventState[]): boolean
   _onEventStateUpdates(event_array: EventState[]): boolean
   _onExecute(execute_bytecode: Uint8Vector): boolean
-  _onRequest(
-    request_ticket_number: number,
-    request_bytecode_vector: Uint8Vector,
-    destination_connection: Connection,
-  ): boolean
+  _onRequest(request_bytecode_vector: Uint8Vector, destination_connection: Connection): boolean
   _onSynchronize(synchronization: Synchronization): boolean
   _onProcess(options: ProcessOptions): boolean
   _handlePeerConnected(peer_mac: string): interface_error_t
@@ -435,14 +430,9 @@ export type IConnector_WASMImplementation = {
   //     return call<void>("_sendExecute", command_bytes, val(std::move(source_connection)));
   // }
 
-  // bool _sendRequest(const int32_t request_ticket_number, std::vector<uint8_t>& request_bytecode, Connection&& destination_connection) override
+  // bool _sendRequest(std::vector<uint8_t>& request_bytecode, Connection&& destination_connection) override
   // {
-  //     return call<bool>("_sendRequest", request_ticket_number, request_bytecode, val(std::move(destination_connection)));
-  // }
-
-  // bool _sendResponse(const int32_t request_ticket_number, const int32_t request_result, std::vector<uint8_t>& response_bytecode, Connection&& destination_connection) override
-  // {
-  //     return call<bool>("_sendResponse", request_ticket_number, request_result, response_bytecode, val(std::move(destination_connection)));
+  //     return call<bool>("_sendRequest", request_bytecode, val(std::move(destination_connection)));
   // }
 
   // void _sendSynchronize(Synchronization&& synchronization, Connection&& source_connection) override
@@ -462,17 +452,7 @@ export type IConnector_WASMImplementation = {
   _userConnect: (criteria_json: string, timeout: number, result_out: any) => boolean
   _disconnect: (connection: Connection) => boolean
   _sendExecute: (command_bytes: Uint8Vector, source_connection: Connection) => void
-  _sendRequest: (
-    request_ticket_number: number,
-    request_bytecode: Uint8Vector,
-    destination_connection: Connection,
-  ) => boolean
-  _sendResponse: (
-    request_ticket_number: number,
-    request_result: number,
-    response_bytecode: Uint8Vector,
-    destination_connection: Connection,
-  ) => boolean
+  _sendRequest: (request_bytecode: Uint8Vector, destination_connection: Connection) => boolean
   _sendSynchronize: (synchronization: Synchronization, source_connection: Connection) => void
   _process: () => void
 }

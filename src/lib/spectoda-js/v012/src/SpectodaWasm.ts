@@ -17,8 +17,6 @@ declare global {
   var __non_webpack_require__: NodeJS.Require
 }
 
-const r = globalThis?.__non_webpack_require__ ?? require
-
 export const downloadWasmFromS3 = async (version: string) => {
   const js_url = `${WEBASSEMBLY_BASE_URL}/${version}.js`
   const wasm_url = `${WEBASSEMBLY_BASE_URL}/${version}.wasm`
@@ -51,6 +49,7 @@ export const downloadWasmFromS3 = async (version: string) => {
     wasm_content = await wasm_response.arrayBuffer()
   } catch {
     if (IS_NODEJS) {
+	const r = globalThis?.__non_webpack_require__ ?? require
       const { readFile, readdir } = r(/* webpackIgnore: true */ /* @vite-ignore */ 'node:fs/promises')
       const { cwd } = r(/* webpackIgnore: true */ /* @vite-ignore */ 'node:process')
 
@@ -78,6 +77,7 @@ export const downloadWasmFromS3 = async (version: string) => {
 
   if (js_module_url === null) {
     if (IS_NODEJS) {
+	const r = globalThis?.__non_webpack_require__ ?? require
       const { writeFile, readdir, mkdir } = r(/* webpackIgnore: true */ /* @vite-ignore */ 'node:fs/promises')
       const { cwd } = r(/* webpackIgnore: true */ /* @vite-ignore */ 'node:process')
 

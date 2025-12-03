@@ -689,8 +689,10 @@ export class NodeBLEConnection {
       })
   }
 
-  async updateFirmware(firmware_bytes: Uint8Array): Promise<unknown> {
-    logging.verbose('updateFirmware()', firmware_bytes)
+  async updateFirmware(firmware_bytes: Uint8Array, options?: { skipReboot?: boolean }): Promise<unknown> {
+    const skipReboot = options?.skipReboot ?? false
+
+    logging.verbose('updateFirmware()', firmware_bytes, { skipReboot })
 
     if (!this.#deviceChar) {
       logging.warn('Device characteristics is null')
@@ -785,6 +787,10 @@ export class NodeBLEConnection {
       await sleep(2000)
 
       logging.info('Firmware written in ' + (Date.now() - start_timestamp) / 1000 + ' seconds')
+
+      if (skipReboot) {
+        logging.info('Firmware written, skipping reboot as requested')
+      }
 
       this.#runtimeReference.emit(SpectodaAppEvents.OTA_STATUS, 'success')
       return
@@ -1248,7 +1254,13 @@ export class SpectodaNodeBluetoothConnector {
   #disconnect() {
     logging.debug('#disconnect()')
 
-    return this.#bluetoothDevice?.disconnect().then(() => this.#onDisconnected())
+    if (!this.#bluetoothDevice) {
+      logging.debug('No BLE device to disconnect')
+      this.#onDisconnected()
+      return Promise.resolve()
+    }
+
+    return this.#bluetoothDevice.disconnect().then(() => this.#onDisconnected())
   }
 
   // disconnect Connector from the connected Spectoda Device. But keep it selected
@@ -1261,7 +1273,7 @@ export class SpectodaNodeBluetoothConnector {
 
     this.#connection.reset()
 
-    if (await this.#connected()) {
+    if (this.#connected()) {
       await this.#disconnect()
     } else {
       logging.debug('Bluetooth Device is already disconnected')
@@ -1409,14 +1421,16 @@ export class SpectodaNodeBluetoothConnector {
 
   // handles the firmware updating. Sends "ota" events
   // to all handlers
-  updateFW(firmware_bytes: Uint8Array): Promise<unknown> {
-    logging.debug('updateFW()', firmware_bytes)
+  updateFW(firmware_bytes: Uint8Array, options?: { skipReboot?: boolean }): Promise<unknown> {
+    const skipReboot = options?.skipReboot ?? false
+
+    logging.debug('updateFW()', firmware_bytes, { skipReboot })
 
     if (!this.#connected()) {
       return Promise.reject('DeviceDisconnected')
     }
 
-    return this.#connection.updateFirmware(firmware_bytes)
+    return this.#connection.updateFirmware(firmware_bytes, { skipReboot })
   }
 
   cancel(): void {
@@ -1458,28 +1472,14 @@ export class SpectodaNodeBluetoothConnector {
     return this.#connection.deliver(command_bytes, 1000)
   }
 
-  // bool _sendRequest(const int32_t request_ticket_number, std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
+  // bool // bool _sendRequest(std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
 
-  sendRequest(request_ticket_number: number, request_bytecode: Uint8Array, destination_connection: Connection) {
+  sendRequest(request_bytecode: Uint8Array, destination_connection: Connection) {
     logging.verbose(
-      `SpectodaWebBluetoothConnector::sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode=${request_bytecode}, destination_connection=${destination_connection})`,
+      `SpectodaWebBluetoothConnector::sendRequest(request_bytecode=${request_bytecode}, destination_connection=${destination_connection})`,
     )
 
-    return this.request(request_bytecode, false, 10000)
-  }
-  // bool _sendResponse(const int32_t request_ticket_number, const int32_t request_result, std::vector<uint8_t>& response_bytecode, const Connection& destination_connection) = 0;
-
-  sendResponse(
-    request_ticket_number: number,
-    request_result: number,
-    response_bytecode: Uint8Array,
-    destination_connection: Connection,
-  ) {
-    logging.verbose(
-      `SpectodaWebBluetoothConnector::sendResponse(request_ticket_number=${request_ticket_number}, request_result=${request_result}, response_bytecode=${response_bytecode}, destination_connection=${destination_connection})`,
-    )
-
-    return Promise.reject('NotImplemented')
+    return this.request(request_bytecode, false, DEFAULT_TIMEOUT)
   }
 
   // void _sendSynchronize(const Synchronization& synchronization, const Connection& source_connection) = 0;

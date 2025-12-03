@@ -1,21 +1,21 @@
-import { createNanoEvents } from './functions'
-
+/**
+ * TimeTrack class - manages timeline state (millis, paused, date)
+ * Note: This class does not emit events. Use TIMELINE_UPDATE event from Spectoda instead.
+ */
 export class TimeTrack {
   constructor(timestamp, paused) {
     this.memory_ = 0
     this.paused_ = false
     this.date_ = '01-01-1970'
 
-    this.eventEmitter_ = createNanoEvents()
-
     if (paused) {
-      this.pauseWithoutEvent()
+      this.pause()
     }
 
     if (timestamp) {
-      this.setMillisWithoutEvent(timestamp)
+      this.setMillis(timestamp)
     } else {
-      this.setMillisWithoutEvent(0)
+      this.setMillis(0)
     }
   }
 
@@ -27,8 +27,12 @@ export class TimeTrack {
     }
   }
 
-  setDate(date) {
-    this.date_ = date
+  getMillis() {
+    return this.millis()
+  }
+
+  setMillis(current_timestamp) {
+    this.memory_ = this.paused_ ? current_timestamp : Date.now() - current_timestamp
   }
 
   date() {
@@ -36,42 +40,19 @@ export class TimeTrack {
   }
 
   getDate() {
-    return this.date()
+    return this.date_
   }
 
-  setState(current_timestamp, paused) {
-    if ((paused && !this.paused_) || (!paused && this.paused_)) {
-      this.paused_ = paused
-      this.memory_ = Date.now() - this.memory_
-    }
-
-    this.memory_ = this.paused_ ? current_timestamp : Date.now() - current_timestamp
-    this.eventEmitter_.emit('change', { target: this })
-    // TODO implement event handlers
+  setDate(date) {
+    this.date_ = date
   }
 
-  setStateWithoutEvent(current_timestamp, paused) {
-    if ((paused && !this.paused_) || (!paused && this.paused_)) {
-      this.paused_ = paused
-      this.memory_ = Date.now() - this.memory_
-    }
-
-    this.memory_ = this.paused_ ? current_timestamp : Date.now() - current_timestamp
+  paused() {
+    return this.paused_
   }
 
-  setMillis(current_timestamp) {
-    this.memory_ = this.paused_ ? current_timestamp : Date.now() - current_timestamp
-    this.eventEmitter_.emit('change', { target: this })
-
-    this.eventEmitter_.emit('millis', current_timestamp)
-  }
-
-  getMillis() {
-    return this.millis()
-  }
-
-  setMillisWithoutEvent(current_timestamp) {
-    this.memory_ = this.paused_ ? current_timestamp : Date.now() - current_timestamp
+  getPaused() {
+    return this.paused_
   }
 
   setPaused(paused) {
@@ -86,15 +67,6 @@ export class TimeTrack {
     if (!this.paused_) {
       this.paused_ = true
       this.memory_ = Date.now() - this.memory_
-      this.eventEmitter_.emit('change', { target: this })
-    }
-    this.eventEmitter_.emit('pause')
-  }
-
-  pauseWithoutEvent() {
-    if (!this.paused_) {
-      this.paused_ = true
-      this.memory_ = Date.now() - this.memory_
     }
   }
 
@@ -102,27 +74,15 @@ export class TimeTrack {
     if (this.paused_) {
       this.paused_ = false
       this.memory_ = Date.now() - this.memory_
-      this.eventEmitter_.emit('change', { target: this })
     }
-    this.eventEmitter_.emit('play')
   }
 
-  unpauseWithoutEvent() {
-    if (this.paused_) {
-      this.paused_ = false
+  setState(current_timestamp, paused) {
+    if ((paused && !this.paused_) || (!paused && this.paused_)) {
+      this.paused_ = paused
       this.memory_ = Date.now() - this.memory_
     }
-  }
 
-  paused() {
-    return this.paused_
-  }
-
-  getPaused() {
-    return this.paused()
-  }
-
-  on() {
-    return this.eventEmitter_.on.apply(this.eventEmitter_, arguments)
+    this.memory_ = this.paused_ ? current_timestamp : Date.now() - current_timestamp
   }
 }

@@ -401,20 +401,11 @@ export class SpectodaDummyConnector {
     return Promise.resolve()
   }
 
-  // bool _sendRequest(const int32_t request_ticket_number, std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
+  // bool _sendRequest(std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
 
-  sendRequest(request_ticket_number, request_bytecode, destination_connection) {
+  sendRequest(request_bytecode, destination_connection) {
     logging.verbose(
-      `SpectodaDummyConnector::sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode=${request_bytecode}, destination_connection=${destination_connection})`,
-    )
-
-    return Promise.resolve()
-  }
-  // bool _sendResponse(const int32_t request_ticket_number, const int32_t request_result, std::vector<uint8_t>& response_bytecode, const Connection& destination_connection) = 0;
-
-  sendResponse(request_ticket_number, request_result, response_bytecode, destination_connection) {
-    logging.verbose(
-      `SpectodaDummyConnector::sendResponse(request_ticket_number=${request_ticket_number}, request_result=${request_result}, response_bytecode=${response_bytecode}, destination_connection=${destination_connection})`,
+      `SpectodaDummyConnector::sendRequest(request_bytecode=${request_bytecode}, destination_connection=${destination_connection})`,
     )
 
     return Promise.resolve()

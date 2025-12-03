@@ -23,22 +23,20 @@ export const CONNECTORS = Object.freeze({
 
   SIMULATED: 'simulated',
   /** @deprecated Use SIMULATED instead */
-  DUMMY: 'dummy',
+  DUMMY: 'simulated',
 })
 
 export const DEFAULT_CONNECTOR = CONNECTORS.DEFAULT
 
 /**
- * No Network Signature
- * @deprecated Use criteria.commissionable = true instead
+ * Uncommissioned Network signature
  */
-export const NO_NETWORK_SIGNATURE: NetworkSignature = '00000000000000000000000000000000'
+export const UNCOMMISSIONED_NETWORK_SIGNATURE: NetworkSignature = '00000000000000000000000000000000'
 
 /**
- * No Network Key
- * @deprecated Use criteria.commissionable = true instead
+ * Uncommissioned Network Key
  */
-export const NO_NETWORK_KEY: NetworkKey = '00000000000000000000000000000000'
+export const UNCOMMISSIONED_NETWORK_KEY: NetworkKey = '00000000000000000000000000000000'
 
 /** Default MAC address for the app */
 export const APP_MAC_ADDRESS: MacAddress = '00:00:12:34:56:78'

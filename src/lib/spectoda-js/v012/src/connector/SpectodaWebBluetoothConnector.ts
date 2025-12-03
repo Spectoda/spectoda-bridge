@@ -496,7 +496,9 @@ export class WebBLEConnection {
       })
   }
 
-  updateFirmware(firmware_bytes: Uint8Array): Promise<unknown> {
+  updateFirmware(firmware_bytes: Uint8Array, options?: { skipReboot?: boolean }): Promise<unknown> {
+    const skipReboot = options?.skipReboot ?? false
+
     if (!this.#deviceChar) {
       logging.warn('Device characteristics is null')
       return Promise.reject('UpdateFailed')
@@ -596,6 +598,10 @@ export class WebBLEConnection {
         await sleep(2000)
 
         logging.info('> Firmware written in ' + (Date.now() - start_timestamp) / 1000 + ' seconds')
+
+        if (skipReboot) {
+          logging.info('Firmware written, skipping reboot as requested')
+        }
 
         this.#runtimeReference.emit(SpectodaAppEvents.OTA_STATUS, 'success')
         resolve(null)
@@ -760,13 +766,15 @@ export class SpectodaWebBluetoothConnector {
         }
 
         // if any of these criteria are required, then we need to build a manufacturer data filter.
-        if (criterium.fw || criterium.network || criterium.product || criterium.commissionable) {
+        if (criterium.fw || criterium.network || criterium.product || criterium.commissionable || criterium.mac) {
           const company_identifier = 0x02e5 // Bluetooth SIG company identifier of Espressif
 
           delete filter.services
 
-          const prefix = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-          const mask = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+          // Extended to 27 bytes to include MAC address (6 bytes at offset 21)
+          // Layout: [fw:2][product:2][network:16][flags:1][mac:6] = 27 bytes
+          const prefix = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+          const mask = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
           if (criterium.product) {
             if (criterium.product < 0 || criterium.product > 0xffff) {
@@ -810,6 +818,27 @@ export class SpectodaWebBluetoothConnector {
 
             prefix[other_flags_offset] = flags_prefix
             mask[other_flags_offset] = flags_mask
+          }
+
+          if (criterium.mac) {
+            // MAC address format: "XX:XX:XX:XX:XX:XX"
+            const mac_byte_offset = 21
+            const mac_parts = criterium.mac.split(':')
+
+            if (mac_parts.length !== 6) {
+              throw 'InvalidMacAddress'
+            }
+
+            for (let i = 0; i < 6; i++) {
+              const byte = parseInt(mac_parts[i], 16)
+
+              if (isNaN(byte) || byte < 0 || byte > 255) {
+                throw 'InvalidMacAddress'
+              }
+
+              prefix[mac_byte_offset + i] = byte
+              mask[mac_byte_offset + i] = 0xff
+            }
           }
 
           if (criterium.fw) {
@@ -1264,14 +1293,18 @@ export class SpectodaWebBluetoothConnector {
 
   // handles the firmware updating. Sends "ota" events
   // to all handlers
-  updateFW(firmware_bytes: Uint8Array): Promise<unknown> {
-    logging.debug(`SpectodaWebBluetoothConnector::updateFW(firmware_bytes.length=${firmware_bytes.length})`)
+  updateFW(firmware_bytes: Uint8Array, options?: { skipReboot?: boolean }): Promise<unknown> {
+    const skipReboot = options?.skipReboot ?? false
+
+    logging.debug(
+      `SpectodaWebBluetoothConnector::updateFW(firmware_bytes.length=${firmware_bytes.length}, skipReboot=${skipReboot})`,
+    )
 
     if (!this.#connected()) {
       return Promise.reject('DeviceDisconnected')
     }
 
-    return this.#connection.updateFirmware(firmware_bytes)
+    return this.#connection.updateFirmware(firmware_bytes, { skipReboot })
   }
 
   cancel(): void {
@@ -1311,30 +1344,15 @@ export class SpectodaWebBluetoothConnector {
     return this.#connection.deliver(command_bytes, 1000)
   }
 
-  // bool _sendRequest(const int32_t request_ticket_number, std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
+  // bool // bool _sendRequest(std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
 
-  sendRequest(request_ticket_number: number, request_bytecode: Uint8Array, destination_connection: Connection) {
+  sendRequest(request_bytecode: Uint8Array, destination_connection: Connection) {
     logging.debug(
-      `SpectodaWebBluetoothConnector::sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode.length=${request_bytecode.length}, destination_connection=${destination_connection})`,
+      `SpectodaWebBluetoothConnector::sendRequest(request_bytecode.length=${request_bytecode.length}, destination_connection=${destination_connection})`,
     )
     logging.verbose('request_bytecode=', request_bytecode)
 
-    return this.request(request_bytecode, false, 10000)
-  }
-  // bool _sendResponse(const int32_t request_ticket_number, const int32_t request_result, std::vector<uint8_t>& response_bytecode, const Connection& destination_connection) = 0;
-
-  sendResponse(
-    request_ticket_number: number,
-    request_result: number,
-    response_bytecode: Uint8Array,
-    destination_connection: Connection,
-  ) {
-    logging.debug(
-      `SpectodaWebBluetoothConnector::sendResponse(request_ticket_number=${request_ticket_number}, request_result=${request_result}, response_bytecode.length=${response_bytecode.length}, destination_connection=${destination_connection})`,
-    )
-    logging.verbose('response_bytecode=', response_bytecode)
-
-    return Promise.reject('NotImplemented')
+    return this.request(request_bytecode, false, DEFAULT_TIMEOUT)
   }
 
   // void _sendSynchronize(const Synchronization& synchronization, const Connection& source_connection) = 0;

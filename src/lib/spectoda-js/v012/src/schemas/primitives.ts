@@ -53,22 +53,20 @@ const MAC_REGEX = /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/
  *
  * @example "12:43:ab:8d:ff:04"
  */
-export const MacAddressSchema = z
-  .string()
-	.transform((v, ctx) => {
-		const transformed = v.replace(/[\n\r\s\t]+/g, '')
+export const MacAddressSchema = z.string().transform((v, ctx) => {
+  const transformed = v.replace(/[\n\r\s\t]+/g, '')
 
-		if (MAC_REGEX.test(transformed) === true) {
-			return transformed
-		}
+  if (MAC_REGEX.test(transformed) === true) {
+    return transformed
+  }
 
-		ctx.addIssue({
-			code: "custom",
-			message: "MAC address must be in format 'XX:XX:XX:XX:XX:XX' (e.g. '12:43:ab:8d:ff:04'"
-		})
+  ctx.addIssue({
+    code: 'custom',
+    message: "MAC address must be in format 'XX:XX:XX:XX:XX:XX' (e.g. '12:43:ab:8d:ff:04'",
+  })
 
-		return z.NEVER
-	})
+  return z.NEVER
+})
 
 /**
  * PCB (Printed Circuit Board) code.
@@ -76,7 +74,8 @@ export const MacAddressSchema = z
  *
  * @example 32
  */
-export const PcbCodeSchema = z.number('PCB code must be an integer')
+export const PcbCodeSchema = z
+  .int('PCB code must be an integer')
   .min(0, `PCB code must be between 0 and ${MAX_PCB_CODE}`)
   .max(MAX_PCB_CODE, `PCB code must be between 0 and ${MAX_PCB_CODE}`)
 
@@ -86,7 +85,10 @@ export const PcbCodeSchema = z.number('PCB code must be an integer')
  *
  * @example 24
  */
-export const ProductCodeSchema = z.number('Product code must be an integer')
+export const ProductCodeSchema = z.coerce
+  .number()
+  .positive()
+  .int('Product' + ' code' + ' must be' + ' an integer')
   .min(0, `Product code must be between 0 and ${MAX_PRODUCT_CODE}`)
   .max(MAX_PRODUCT_CODE, `Product code must be between 0 and ${MAX_PRODUCT_CODE}`)
 
@@ -122,29 +124,29 @@ const FIRMWARE_VERSION_FULL_REGEXP = new RegExp(
  *
  * @example "UNIVERSAL_0.12.2_20250208"
  */
-export const FirmwareVersionFullSchema = z
-  .string()
-	.transform((value, ctx) => {
-		const transformed = value.replace(".enc", "")
+export const FirmwareVersionFullSchema = z.string().transform((value, ctx) => {
+  const transformed = value.replace('.enc', '')
 
-		if (FIRMWARE_VERSION_FULL_REGEXP.test(transformed)) {
-			return transformed
-		}
+  if (FIRMWARE_VERSION_FULL_REGEXP.test(transformed)) {
+    return transformed
+  }
 
-		ctx.addIssue({
-		  code: "custom",
-		  message: "Firmware version must be in format 'PREFIX_X.Y.Z_YYYYMMDD' (e.g. 'UNIVERSAL_0.12.2_20250208') where PREFIX contains uppercase letters, numbers and underscores, X.Y.Z is a valid semantic version, and YYYYMMDD is a valid date",
-		});
+  ctx.addIssue({
+    code: 'custom',
+    message:
+      "Firmware version must be in format 'PREFIX_X.Y.Z_YYYYMMDD' (e.g. 'UNIVERSAL_0.12.2_20250208') where PREFIX contains uppercase letters, numbers and underscores, X.Y.Z is a valid semantic version, and YYYYMMDD is a valid date",
+  })
 
-		return z.NEVER
-	})
+  return z.NEVER
+})
 
 /**
  * Firmware version code.
  *
  * @example 1201
  */
-export const FirmwareVersionCodeSchema = z.number('Firmware version code must be a positive integer')
+export const FirmwareVersionCodeSchema = z
+  .int('Firmware version code must be a positive integer')
   .min(0, 'Firmware version code must be a positive integer')
 
 /**
@@ -162,7 +164,8 @@ export const FingerprintSchema = z
  *
  * @example 42
  */
-export const TnglBankSchema = z.number('TNGL bank must be an integer')
+export const TnglBankSchema = z
+  .int('TNGL bank must be an integer')
   .min(0, `TNGL bank must be between 0 and ${MAX_TNGL_BANK}`)
   .max(MAX_TNGL_BANK, `TNGL bank must be between 0 and ${MAX_TNGL_BANK}`)
 
@@ -172,7 +175,8 @@ export const TnglBankSchema = z.number('TNGL bank must be an integer')
  *
  * @example 115200
  */
-export const BaudrateSchema = z.number('Baudrate must be a positive integer')
+export const BaudrateSchema = z
+  .int('Baudrate must be a positive integer')
   .positive('Baudrate must be a positive integer (e.g. 9600, 115200)')
 
 /**

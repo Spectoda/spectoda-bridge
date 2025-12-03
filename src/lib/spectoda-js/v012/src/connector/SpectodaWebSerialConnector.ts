@@ -1238,8 +1238,9 @@ export class SpectodaWebSerialConnector {
     })
   }
 
-  updateFW(firmware_bytes: Uint8Array): Promise<unknown> {
-    logging.debug(`SpectodaWebSerialConnector::updateFW(firmware_bytes.length=${firmware_bytes.length})`)
+  updateFW(firmware_bytes: Uint8Array, options?: { skipReboot?: boolean }): Promise<unknown> {
+    const skipReboot = options?.skipReboot ?? false
+    logging.debug(`SpectodaWebSerialConnector::updateFW(firmware_bytes.length=${firmware_bytes.length}, skipReboot=${skipReboot})`)
 
     if (!this.#serialPort) {
       logging.warn('Serial Port is null')
@@ -1330,9 +1331,13 @@ export class SpectodaWebSerialConnector {
 
         await sleep(2000)
 
-        const bytes = new Uint8Array([COMMAND_FLAGS.FLAG_DEVICE_REBOOT_REQUEST])
+        if (!skipReboot) {
+          const bytes = new Uint8Array([COMMAND_FLAGS.FLAG_DEVICE_REBOOT_REQUEST])
 
-        await this.#write(CHANNEL_DEVICE, bytes, 10000)
+          await this.#write(CHANNEL_DEVICE, bytes, 10000)
+        } else {
+          logging.info('Firmware written, skipping reboot as requested')
+        }
 
         this.#runtimeReference.emit(SpectodaAppEvents.OTA_STATUS, 'success')
         resolve(null)
@@ -1379,9 +1384,9 @@ export class SpectodaWebSerialConnector {
     return this.#write(CHANNEL_NETWORK, command_bytes, 1000)
   }
 
-  sendRequest(request_ticket_number: number, request_bytecode: Uint8Array, destination_connection: Connection) {
+  sendRequest(request_bytecode: Uint8Array, destination_connection: Connection) {
     logging.debug(
-      `SpectodaWebSerialConnector::sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode=${request_bytecode}, destination_connection=${destination_connection})`,
+      `SpectodaWebSerialConnector::sendRequest(request_bytecode=${request_bytecode}, destination_connection=${destination_connection})`,
     )
 
     if (destination_connection.connector_type != SpectodaWasm.connector_type_t.CONNECTOR_LEGACY_JS_RUNTIME) {
@@ -1393,19 +1398,6 @@ export class SpectodaWebSerialConnector {
     }
 
     return this.#write(CHANNEL_DEVICE, request_bytecode, 1000)
-  }
-
-  sendResponse(
-    request_ticket_number: number,
-    request_result: number,
-    response_bytecode: Uint8Array,
-    destination_connection: Connection,
-  ) {
-    logging.debug(
-      `SpectodaWebSerialConnector::sendResponse(request_ticket_number=${request_ticket_number}, request_result=${request_result}, response_bytecode=${response_bytecode}, destination_connection=${destination_connection})`,
-    )
-
-    return Promise.reject('NotImplemented')
   }
 
   sendSynchronize(synchronization: Synchronization, source_connection: Connection) {

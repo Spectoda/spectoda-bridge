@@ -38,6 +38,8 @@ export const SpectodaAppEvents = {
   NETWORK_ERROR: 'networkerror',
   NETWORK_WARNING: 'networkwarning',
 
+  TIMELINE_UPDATE: 'timelineupdate',
+
   /** @private for spectoda-js internal use only */
   PRIVATE_CONNECTED: '#connected',
   /** @private for spectoda-js internal use only */
@@ -90,6 +92,12 @@ type PropsMap = RemoteControlConnectionStatusProps &
 
     [SpectodaAppEvents.NETWORK_ERROR]: ControllerError
     [SpectodaAppEvents.NETWORK_WARNING]: ControllerWarning
+
+    [SpectodaAppEvents.TIMELINE_UPDATE]: {
+      millis: number
+      paused: boolean
+      date: string
+    }
 
     /** @private event */
     [SpectodaAppEvents.PRIVATE_CONNECTED]: undefined

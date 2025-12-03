@@ -9,29 +9,24 @@ import {
   detectLinux,
   detectNode,
   detectSpectodaConnect,
-  numberToBytes,
   sleep,
-  uint8ArrayToHexString,
 } from '../functions'
 import { logging } from '../logging'
 import { TimeTrack } from '../TimeTrack'
 import { Spectoda } from '../Spectoda'
-import { TnglReader } from '../TnglReader'
-import { TnglWriter } from '../TnglWriter'
 import { EventState } from '..'
 
 import { SpectodaWebBluetoothConnector } from './connector/SpectodaWebBluetoothConnector'
 import { SpectodaWebSerialConnector } from './connector/SpectodaWebSerialConnector'
 // import { SpectodaConnectConnector } from "./SpectodaConnectConnector";
-import { PreviewController } from './PreviewController'
 import { SpectodaWasm } from './SpectodaWasm'
 import { Spectoda_JS } from './Spectoda_JS'
 import { SpectodaConnectConnector } from './connector/SpectodaConnectConnector'
-import { APP_MAC_ADDRESS, COMMAND_FLAGS, DEFAULT_TIMEOUT } from './constants'
+import { APP_MAC_ADDRESS, DEFAULT_TIMEOUT } from './constants'
 import { SpectodaNodeBluetoothConnector } from './connector/SpectodaNodeBleConnector'
 import { SpectodaNodeSerialConnector } from './connector/SpectodaNodeSerialConnector'
 import { SpectodaSimulatedConnector } from './connector/SpectodaSimulatedConnector'
-import { SPECTODA_APP_EVENTS, SpectodaAppEventMap, SpectodaAppEvents } from './types/app-events'
+import { SpectodaAppEventMap, SpectodaAppEvents } from './types/app-events'
 import { ConnectorType } from './types/connect'
 import { Criteria, Criterium, ValueTypeID, ValueTypeIDs } from './types/primitives'
 import { Connection, Synchronization } from './types/wasm'
@@ -142,15 +137,7 @@ type SendExecuteQuery = {
 }
 
 type SendRequestQuery = {
-  request_ticket_number: number
   request_bytecode: Uint8Array
-  destination_connection: Connection
-}
-
-type SendResponseQuery = {
-  request_ticket_number: number
-  request_result: number
-  response_bytecode: Uint8Array
   destination_connection: Connection
 }
 
@@ -228,6 +215,7 @@ class Query {
 // filters out duplicate payloads and merges them together. Also decodes payloads received from the connector.
 export class SpectodaRuntime {
   #eventEmitter
+  #registeredListeners
 
   #queue: Query[]
   #processing: boolean
@@ -272,8 +260,6 @@ export class SpectodaRuntime {
   lastUpdateTime: number
   lastUpdatePercentage: number
 
-  previewControllers: { [key: string]: PreviewController }
-
   WIP_name: string
 
   constructor(spectodaReference: Spectoda) {
@@ -286,6 +272,7 @@ export class SpectodaRuntime {
     this.connector = null
 
     this.#eventEmitter = createNanoEventsWithWrappedEmit(emitHandler)
+    this.#registeredListeners = new Map()
 
     this.#queue = []
     this.#processing = false
@@ -345,52 +332,15 @@ export class SpectodaRuntime {
     })
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', (e) => {
-        // If I cant disconnect right now for some readon
-        // return this.disconnect(false).catch(reason => {
-        //   if (reason == "CurrentlyWriting") {
-        //     e.preventDefault();
-        //     e.cancelBubble = true;
-        //     e.returnValue = "Právě probíhá update připojeného zařízení, neopouštějte tuto stránku.";
-        //     window.confirm("Právě probíhá update připojeného zařízení, neopouštějte tuto stránku.");
-        //   }
-        // });
-
+      // Use pagehide instead of beforeunload to avoid destroying the runtime
+      // when user clicks "Cancel" on the leave confirmation dialog
+      window.addEventListener('pagehide', () => {
         if (this.#inicilized) {
           this.destroyConnector()
           this.spectoda_js.destruct()
         }
       })
     }
-
-    this.previewControllers = {}
-
-    this.#eventEmitter.on(SPECTODA_APP_EVENTS.PRIVATE_WASM_EXECUTE, (command: Uint8Array) => {
-      for (const previewController of Object.values(this.previewControllers)) {
-        try {
-          previewController.execute(
-            command,
-            SpectodaWasm.Connection.make(
-              '11:11:11:11:11:11',
-              SpectodaWasm.connector_type_t.CONNECTOR_UNDEFINED,
-              SpectodaWasm.connection_rssi_t.RSSI_MAX,
-            ),
-          )
-        } catch (error) {
-          logging.error(error)
-        }
-      }
-    })
-
-    this.#eventEmitter.on(SPECTODA_APP_EVENTS.PRIVATE_WASM_CLOCK, (timestamp: number) => {
-      for (const previewController of Object.values(this.previewControllers)) {
-        try {
-          previewController.setClockTimestamp(timestamp)
-        } catch (error) {
-          logging.error(error)
-        }
-      }
-    })
 
     this.#ups = 10 // TODO increase to 10 when the performance is good
     this.#fps = 2 // TODO increase to 2 when the performance is good
@@ -484,7 +434,43 @@ export class SpectodaRuntime {
    * @alias this.addEventListener
    */
   on<K extends keyof SpectodaAppEventMap>(event: K, callback: (props: SpectodaAppEventMap[K]) => void) {
-    return this.#eventEmitter.on(event, callback)
+    const eventKey = String(event)
+
+    let listenersForEvent = this.#registeredListeners.get(eventKey)
+
+    if (!listenersForEvent) {
+      listenersForEvent = new Set()
+      this.#registeredListeners.set(eventKey, listenersForEvent)
+    }
+
+    listenersForEvent.add(callback)
+
+    const unsubscribe = this.#eventEmitter.on(event, callback)
+
+    return () => {
+      const currentListeners = this.#registeredListeners.get(eventKey)
+
+      currentListeners?.delete(callback)
+
+      if (currentListeners && currentListeners.size === 0) {
+        this.#registeredListeners.delete(eventKey)
+      }
+
+      if (typeof unsubscribe === 'function') {
+        unsubscribe()
+      }
+    }
+  }
+
+  /**
+   * Returns a snapshot of currently registered listeners for this runtime,
+   * grouped by event key.
+   *
+   * The returned Map is the internal instance, so callers should treat it as
+   * read-only and never mutate it directly.
+   */
+  getRegisteredListeners() {
+    return this.#registeredListeners
   }
 
   emit<K extends keyof SpectodaAppEventMap>(
@@ -865,10 +851,12 @@ export class SpectodaRuntime {
     return item.promise
   }
 
-  updateFW(firmware_bytes: Uint8Array) {
-    logging.debug(`SpectodaRuntime::updateFW(firmware_bytes.length=${firmware_bytes.length})`)
+  updateFW(firmware_bytes: Uint8Array, options?: { skipReboot?: boolean }) {
+    const skipReboot = options?.skipReboot ?? false
 
-    const item = new Query(Query.TYPE_FIRMWARE_UPDATE, firmware_bytes)
+    logging.debug(`SpectodaRuntime::updateFW(firmware_bytes.length=${firmware_bytes.length}, skipReboot=${skipReboot})`)
+
+    const item = new Query(Query.TYPE_FIRMWARE_UPDATE, firmware_bytes, skipReboot)
 
     for (let i = 0; i < this.#queue.length; i++) {
       if (this.#queue[i].type === Query.TYPE_FIRMWARE_UPDATE) {
@@ -1183,7 +1171,9 @@ export class SpectodaRuntime {
                   } catch {}
 
                   try {
-                    await this.connector?.updateFW(item.a).then((response: any) => {
+                    const skipReboot = item.b === true
+
+                    await this.connector?.updateFW(item.a, { skipReboot }).then((response: any) => {
                       item.resolve(response)
                     })
                   } catch (error) {
@@ -1254,44 +1244,13 @@ export class SpectodaRuntime {
 
               case Query.TYPE_SEND_REQUEST: {
                 {
-                  // bool _sendRequest(const int32_t request_ticket_number, std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
+                  // bool _sendRequeststd::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
 
                   const send_request_query: SendRequestQuery = item.a
 
                   try {
                     await this.connector
-                      .sendRequest(
-                        send_request_query.request_ticket_number,
-                        send_request_query.request_bytecode,
-                        send_request_query.destination_connection,
-                      )
-                      .then((result: any) => {
-                        item.resolve(result)
-                      })
-                      .catch((e: any) => {
-                        item.reject(e)
-                      })
-                  } catch (error) {
-                    item.reject(error)
-                  }
-                }
-                break
-              }
-
-              case Query.TYPE_SEND_RESPONSE: {
-                {
-                  // bool _sendResponse(const int32_t request_ticket_number, std::vector<uint8_t>& response_bytecode, const Connection& destination_connection) = 0;
-
-                  const send_response_query: SendResponseQuery = item.a
-
-                  try {
-                    await this.connector
-                      .sendResponse(
-                        send_response_query.request_ticket_number,
-                        send_response_query.request_result,
-                        send_response_query.response_bytecode,
-                        send_response_query.destination_connection,
-                      )
+                      .sendRequest(send_request_query.request_bytecode, send_request_query.destination_connection)
                       .then((result: any) => {
                         item.resolve(result)
                       })
@@ -1353,289 +1312,12 @@ export class SpectodaRuntime {
     return this.spectoda_js.readVariableAddress(variable_address, device_id)
   }
 
-  WIP_makePreviewController(controller_mac_address: string, controller_config: object) {
-    logging.debug(`> Making PreviewController ${controller_mac_address}...`)
-
-    if (typeof controller_config === 'string') {
-      // TODO Add data validation
-      controller_config = JSON.parse(controller_config) as any
-    }
-
-    logging.verbose(`controller_config=${JSON.stringify(controller_config)}`)
-
-    const controller = new PreviewController(controller_mac_address)
-
-    controller.construct(controller_config)
-    this.previewControllers[controller_mac_address] = controller
-
-    return controller
-  }
-
-  WIP_getPreviewController(controller_mac_address: string) {
-    // logging.verbose(`> Getting PreviewController ${controller_mac_address}...`)
-
-    return this.previewControllers[controller_mac_address]
-  }
-
-  WIP_getPreviewControllers() {
-    // logging.verbose('> Getting PreviewControllers...')
-
-    return this.previewControllers
-  }
-
-  WIP_renderPreview() {
-    // logging.verbose(`> Rendering preview...`);
-
-    try {
-      for (const previewController of Object.values(this.previewControllers)) {
-        previewController.render()
-      }
-    } catch (e) {
-      console.error(e)
-    }
-  }
-
   WIP_loadFS() {
     return SpectodaWasm.loadFS()
   }
 
   WIP_saveFS() {
     return SpectodaWasm.saveFS()
-  }
-
-  // returns a promise that resolves a bytecode of the captured port pixels
-  async WIP_capturePixels() {
-    const A_ASCII_CODE = 'A'.charCodeAt(0)
-    const D_ASCII_CODE = 'D'.charCodeAt(0)
-
-    const PIXEL_ENCODING_CODE = 1
-
-    let uuidCounter = Math.floor(Math.random() * 0xffffffff)
-
-    const writer = new TnglWriter(65535)
-
-    for (const previewController of Object.values(this.previewControllers)) {
-      const tempWriter = new TnglWriter(65535)
-
-      for (let portTag = A_ASCII_CODE; portTag <= D_ASCII_CODE; portTag++) {
-        const request_uuid = uuidCounter++
-        const request_bytes = [
-          COMMAND_FLAGS.FLAG_READ_PORT_PIXELS_REQUEST,
-          ...numberToBytes(request_uuid, 4),
-          portTag,
-          PIXEL_ENCODING_CODE,
-        ]
-
-        logging.debug('Sending request', uint8ArrayToHexString(request_bytes))
-        const response = await previewController.request(
-          new Uint8Array(request_bytes),
-          SpectodaWasm.Connection.make(
-            '11:11:11:11:11:11',
-            SpectodaWasm.connector_type_t.CONNECTOR_UNDEFINED,
-            SpectodaWasm.connection_rssi_t.RSSI_MAX,
-          ),
-        )
-
-        logging.debug('Received response', uint8ArrayToHexString(response))
-        const tempReader = new TnglReader(response)
-
-        const response_flag = tempReader.readFlag()
-
-        if (response_flag !== COMMAND_FLAGS.FLAG_READ_PORT_PIXELS_RESPONSE) {
-          logging.error('InvalidResponse1')
-          continue
-        }
-
-        const response_uuid = tempReader.readUint32()
-
-        if (response_uuid !== request_uuid) {
-          logging.error('InvalidResponse2')
-          continue
-        }
-
-        const error_code = tempReader.readUint8()
-
-        if (error_code === 0) {
-          // error_code 0 is success
-          const pixelDataSize = tempReader.readUint16()
-
-          logging.debug('pixelDataSize=', pixelDataSize)
-
-          const pixelData = tempReader.readBytes(pixelDataSize)
-
-          logging.debug('pixelData=', pixelData)
-
-          tempWriter.writeBytes(
-            new Uint8Array([
-              COMMAND_FLAGS.FLAG_WRITE_PORT_PIXELS_REQUEST,
-              ...numberToBytes(uuidCounter++, 4),
-              portTag,
-              PIXEL_ENCODING_CODE,
-              ...numberToBytes(pixelDataSize, 2),
-              ...pixelData,
-            ]),
-          )
-        }
-      }
-
-      const controllerIdentifier = previewController.identifier
-
-      logging.debug('controllerIdentifier=', controllerIdentifier)
-
-      const tempWriterDataView = tempWriter.bytes
-      const tempWriterDataArray = new Uint8Array(tempWriterDataView.buffer)
-
-      writer.writeBytes(
-        new Uint8Array([
-          COMMAND_FLAGS.FLAG_EVALUATE_ON_CONTROLLER_REQUEST,
-          ...numberToBytes(uuidCounter++, 4),
-          ...numberToBytes(controllerIdentifier, 4),
-          ...numberToBytes(tempWriter.written, 2),
-          ...tempWriterDataArray,
-        ]),
-      )
-    }
-
-    const command_bytes = new Uint8Array(writer.bytes.buffer)
-
-    logging.verbose('command_bytes=', command_bytes)
-
-    this.execute(command_bytes, undefined)
-
-    return command_bytes
-  }
-
-  WIP_previewToJSON() {
-    const segmnet_template = `{
-      "segment": "seg1",
-      "id": 0,
-      "sections": []
-    }`
-
-    // TODO Add data validation
-    const segment = JSON.parse(segmnet_template) as any
-
-    const A_ASCII_CODE = 'A'.charCodeAt(0)
-    const D_ASCII_CODE = 'D'.charCodeAt(0)
-
-    const PIXEL_ENCODING_CODE = 1
-
-    let uuidCounter = Math.floor(Math.random() * 0xffffffff)
-
-    const writer = new TnglWriter(65535)
-
-    for (const previewController of Object.values(this.previewControllers)) {
-      for (let portTag = A_ASCII_CODE; portTag <= D_ASCII_CODE; portTag++) {
-        const request_uuid = uuidCounter++
-        const request_bytes = [
-          COMMAND_FLAGS.FLAG_READ_PORT_PIXELS_REQUEST,
-          ...numberToBytes(request_uuid, 4),
-          portTag,
-          PIXEL_ENCODING_CODE,
-        ]
-
-        logging.debug('Sending request', uint8ArrayToHexString(request_bytes))
-        const response = previewController.request(
-          new Uint8Array(request_bytes),
-          SpectodaWasm.Connection.make(
-            '11:11:11:11:11:11',
-            SpectodaWasm.connector_type_t.CONNECTOR_UNDEFINED,
-            SpectodaWasm.connection_rssi_t.RSSI_MAX,
-          ),
-        )
-
-        logging.debug('Received response', uint8ArrayToHexString(response))
-        const tempReader = new TnglReader(response)
-
-        const response_flag = tempReader.readFlag()
-
-        if (response_flag !== COMMAND_FLAGS.FLAG_READ_PORT_PIXELS_RESPONSE) {
-          logging.error('InvalidResponse1')
-          continue
-        }
-
-        const response_uuid = tempReader.readUint32()
-
-        if (response_uuid !== request_uuid) {
-          logging.error('InvalidResponse2')
-          continue
-        }
-
-        const error_code = tempReader.readUint8()
-
-        if (error_code === 0) {
-          // error_code 0 is success
-          const pixelDataSize = tempReader.readUint16()
-
-          logging.debug('pixelDataSize=', pixelDataSize)
-
-          const pixelData = tempReader.readBytes(pixelDataSize)
-
-          logging.debug('pixelData=', pixelData)
-
-          const bitset = new BitSet(pixelDataSize * 8)
-
-          for (let i = 0; i < pixelDataSize; i++) {
-            for (let j = 0; j < 8; j++) {
-              if (pixelData[i] & (1 << j)) {
-                bitset.setBit(i * 8 + j)
-              }
-            }
-          }
-
-          console.log(`Controller ${previewController.label}, Port ${String.fromCharCode(portTag)}:`, bitset.toString())
-
-          const section_template = `{
-            "controller": "con1",
-            "port": "A",
-            "from": 0,
-            "to": 0,
-            "reversed": false
-          }`
-
-          // TODO Add data validation
-          let section = JSON.parse(section_template) as any
-
-          section.controller = previewController.label
-          section.port = String.fromCharCode(portTag)
-          section.from = undefined
-          section.to = undefined
-          section.reversed = false
-
-          for (let i = 0; i < bitset.size; i++) {
-            if (bitset.isSet(i) && section.from === undefined) {
-              section.from = i
-            }
-            if (!bitset.isSet(i) && section.from !== undefined) {
-              section.to = i
-              if (section.to - section.from > 40) {
-                segment.sections.push(section)
-              }
-
-              // TODO Add data validation
-              section = JSON.parse(section_template) as any
-              section.controller = previewController.label
-              section.port = String.fromCharCode(portTag)
-              section.from = undefined
-              section.to = undefined
-              section.reversed = false
-            }
-          }
-
-          if (section.from !== undefined) {
-            section.to = bitset.size
-
-            if (section.to - section.from > 40) {
-              segment.sections.push(section)
-            }
-          }
-        }
-      }
-    }
-
-    console.log(JSON.stringify(segment))
-
-    return segment
   }
 
   async WIP_waitForInitilize() {
@@ -1794,45 +1476,20 @@ export class SpectodaRuntime {
     return item.promise
   }
 
-  // bool _sendRequest(const int32_t request_ticket_number, std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
+  // bool _sendRequest(std::vector<uint8_t>& request_bytecode, const Connection& destination_connection) = 0;
 
-  sendRequest(request_ticket_number: number, request_bytecode: Uint8Array, destination_connection: Connection) {
+  sendRequest(request_bytecode: Uint8Array, destination_connection: Connection) {
     logging.debug(
-      `SpectodaRuntime::sendRequest(request_ticket_number=${request_ticket_number}, request_bytecode.length=${request_bytecode.length}, destination_connection=${destination_connection})`,
+      `SpectodaRuntime::sendRequest(request_bytecode.length=${request_bytecode.length}, destination_connection=${destination_connection})`,
     )
     logging.verbose('request_bytecode=', request_bytecode)
 
     const send_request_query: SendRequestQuery = {
-      request_ticket_number,
       request_bytecode,
       destination_connection,
     }
 
     const item = new Query(Query.TYPE_SEND_REQUEST, send_request_query)
-
-    this.#process(item)
-    return item.promise
-  }
-  // bool _sendResponse(const int32_t request_ticket_number, const int32_t request_result, std::vector<uint8_t>& response_bytecode, const Connection& destination_connection) = 0;
-
-  sendResponse(
-    request_ticket_number: number,
-    request_result: number,
-    response_bytecode: Uint8Array,
-    destination_connection: Connection,
-  ) {
-    logging.debug(
-      `SpectodaRuntime::sendResponse(request_ticket_number=${request_ticket_number}, request_result=${request_result}, response_bytecode=${response_bytecode}, destination_connection=${destination_connection})`,
-    )
-
-    const send_response_query: SendResponseQuery = {
-      request_ticket_number,
-      request_result,
-      response_bytecode,
-      destination_connection,
-    }
-
-    const item = new Query(Query.TYPE_SEND_RESPONSE, send_response_query)
 
     this.#process(item)
     return item.promise

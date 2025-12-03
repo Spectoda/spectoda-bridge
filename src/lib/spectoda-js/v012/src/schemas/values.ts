@@ -74,7 +74,7 @@ export const ColorSchema = z
  * @example 32767
  */
 
-export const PixelsSchema = z.number('Pixels value must be an integer')
+export const PixelsSchema = z.int('Pixels value must be an integer')
   .min(
     JS_EVENT_VALUE_LIMITS.PIXELS_MIN,
     `Pixels value must be between ${JS_EVENT_VALUE_LIMITS.PIXELS_MIN} and ${JS_EVENT_VALUE_LIMITS.PIXELS_MAX}`,
@@ -117,7 +117,7 @@ export const UndefinedSchema = z.undefined()
  * @example 999999999
  */
 
-export const NumberSchema = z.number('Number must be an integer')
+export const NumberSchema = z.int('Number must be an integer')
   .min(
     JS_EVENT_VALUE_LIMITS.NUMBER_MIN,
     `Number must be between ${JS_EVENT_VALUE_LIMITS.NUMBER_MIN} and ${JS_EVENT_VALUE_LIMITS.NUMBER_MAX}`,

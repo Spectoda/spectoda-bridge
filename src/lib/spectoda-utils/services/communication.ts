@@ -7,7 +7,7 @@ import {
   addEventListeners,
 } from '@spectoda/spectoda-core'
 import { CONNECTORS, Spectoda } from '@spectoda/spectoda-js/v012'
-import { simpleError } from '@spectoda/error'
+import { simpleError } from '../../../error/index'
 import {
   handleInitializeReceiver,
   handleInitializeSenderAndReturnProxySpectodaObject,

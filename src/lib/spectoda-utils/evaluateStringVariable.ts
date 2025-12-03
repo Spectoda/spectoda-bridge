@@ -1,4 +1,4 @@
-import { isError } from '@spectoda/error'
+import { isError } from '../../../error/index'
 
 import { followJsonPath } from './followJsonPath'
 import { Json } from './types'

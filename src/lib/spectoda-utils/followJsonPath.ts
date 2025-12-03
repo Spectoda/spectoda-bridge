@@ -1,4 +1,4 @@
-import { privateError } from '@spectoda/error'
+import { privateError } from '../../../error/index'
 
 import { Json } from './types'
 

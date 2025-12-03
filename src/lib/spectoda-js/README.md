@@ -28,7 +28,7 @@ spectoda.connect()
 
 # No Network Mode
 
-When a controller is not in a network, it enters a mode where anyone can connect to it and move it to their own network. This is similar to a "pairing mode" in Bluetooth, though in Spectoda this is NOT called pairing. Controllers in no network have signature `00000000000000000000000000000000` (defined as [`NO_NETWORK_SIGNATURE`](./src/constants/index.ts) constant) and key `00000000000000000000000000000000` (defined as [`NO_NETWORK_KEY`](./src/constants/index.ts) constant).
+When a controller is not in a network, it enters a mode where anyone can connect to it and move it to their own network. This is similar to a "pairing mode" in Bluetooth, though in Spectoda this is NOT called pairing. Controllers in no network have signature `00000000000000000000000000000000` (defined as [`UNCOMMISSIONED_NETWORK_SIGNATURE`](./src/constants/index.ts) constant) and key `00000000000000000000000000000000` (defined as [`UNCOMMISSIONED_NETWORK_KEY`](./src/constants/index.ts) constant).
 
 # Connection Types
 

@@ -1,4 +1,4 @@
-import { isError, privateError } from '@spectoda/error'
+import { isError, privateError } from '../../../error/index'
 import { ProductParameterType } from '@spectoda/schemas/src/product/productParameters'
 
 import { Json, JsonObject } from './types'
