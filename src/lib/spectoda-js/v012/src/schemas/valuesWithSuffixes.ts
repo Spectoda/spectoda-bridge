@@ -1,8 +1,5 @@
-/* eslint-disable no-magic-numbers */
 import { z } from 'zod'
-
-import { PercentageSchema } from './values'
-import { TimestampSchema } from './values'
+import { PercentageSchema, TimestampSchema } from './values'
 
 // TODO: How to get rid of suffixes in DB?
 
@@ -20,7 +17,7 @@ export const PercentageSchemaWithSuffix = z
       const msg = result.error.issues[0]?.message || 'Invalid percentage'
 
       ctx.addIssue({
-        code: "custom",
+        code: 'custom',
         message: msg,
       })
     }
@@ -56,13 +53,16 @@ const parseTimeWithUnitToMs = (input: string): number | null => {
 
 export const TimeStampSchemaWithSuffix = z
   .string()
-  .regex(timeWithUnitRegex, "Must be a string like '6h', '10m', '3s', or '1000ms'")
+  .regex(
+    timeWithUnitRegex,
+    "Must be a string like '6h', '10m', '3s', or '1000ms'",
+  )
   .superRefine((num, ctx) => {
     const match = typeof num === 'string' ? num.match(timeWithUnitRegex) : null
 
     if (!match) {
       ctx.addIssue({
-        code: "custom",
+        code: 'custom',
         message: 'Invalid timestamp format',
       })
       return
@@ -72,7 +72,7 @@ export const TimeStampSchemaWithSuffix = z
 
     if (ms === null) {
       ctx.addIssue({
-        code: "custom",
+        code: 'custom',
         message: 'Invalid timestamp format',
       })
       return
@@ -84,7 +84,7 @@ export const TimeStampSchemaWithSuffix = z
       const msg = result.error.issues[0]?.message || 'Invalid timestamp value'
 
       ctx.addIssue({
-        code: "custom",
+        code: 'custom',
         message: msg,
       })
     }

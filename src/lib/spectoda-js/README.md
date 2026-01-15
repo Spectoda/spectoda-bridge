@@ -12,7 +12,7 @@ Each controller has a unique MAC address, which is used to identify it in the ne
 When multiple controllers have the same signature + key, they belong to the same network. If controllers have the same FW version + are in the same network, they will synchronize:
 
 - TNGL code
-- Event history
+- Event store
 - Timeline
 
 ---
@@ -21,7 +21,15 @@ When multiple controllers have the same signature + key, they belong to the same
 
 ```ts
 const spectoda = new Spectoda()
-spectoda.connect()
+
+// Connect to a specific network
+spectoda.connect('bluetooth', { network: 'abc123...', key: 'def456...' })
+
+// Connect to any device with auto-selection
+spectoda.connect('bluetooth', {}, { autoSelect: true })
+
+// Connect with autonomous reconnection
+spectoda.connect('bluetooth', { network: '...' }, { autonomousReconnection: true })
 ```
 
 ---
@@ -118,15 +126,44 @@ sendRequest(payload, size, timeout)
 #### Connection Examples
 
 ```typescript
-// Create Spectoda instance with virtual MAC address
-let spectoda = new Spectoda()
+// Create Spectoda instance
+const spectoda = new Spectoda()
 
-// Connection methods
-let connection1 = spectoda.connect() // default
-let connection2 = spectoda.connect.webbluetooth() // Bluetooth
-let connection3 = spectoda.connect.webserial() // Serial
+// New signature: connect(connector, criteria, options)
+// Connect via Bluetooth to any device
+spectoda.connect('bluetooth', {})
 
-connection1.disconnect()
+// Connect via Serial with criteria
+spectoda.connect('serial', { path: '/dev/ttyUSB0', baudrate: 115200 })
+
+// Connect with options
+spectoda.connect('bluetooth', { network: 'signature' }, {
+  autoSelect: true,
+  autonomousReconnection: true,
+  timeout: 30000,
+})
+
+// Disconnect
+spectoda.disconnect()
+```
+
+#### Scanning for Devices
+
+```typescript
+// Scan signature: scan(connector, criteria, options)
+
+// Scan for all devices via Bluetooth
+const devices = await spectoda.scan('bluetooth', {})
+
+// Scan for devices on a specific network with timeout
+const devices = await spectoda.scan('bluetooth', { network: 'abc123...' }, {
+  scanPerod: 5000,
+})
+
+// Scan for uncommissioned devices
+const devices = await spectoda.scan('bluetooth', {
+  network: '00000000000000000000000000000000',
+})
 ```
 
 Note: Connections are managed through Connectors (like SCBLE and WEBUSB) which provide access to other Interfaces.

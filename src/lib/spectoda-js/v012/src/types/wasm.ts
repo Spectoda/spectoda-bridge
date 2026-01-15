@@ -1,7 +1,7 @@
 import { EventState } from '../..'
 
 /// === auto-generated from Emscripten build process === ///
-/// ========== DEBUG_UNIVERSAL_0.12.11_20251116.d.ts ========== ///
+/// ========== DEBUG_UNIVERSAL_0.12.11_20260105.d.ts ========== ///
 export type interface_error_tValue<T extends number> = {
   value: T
 }
@@ -31,6 +31,33 @@ export type Connection = {
   connection_rssi: connection_rssi_t
   address_string: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string
   delete(): void
+}
+
+export type ConnectionInfo = {
+  connector: string
+  mac: string
+  rssi: number
+}
+
+export type ControllerInfoWasm = {
+  fullName: string
+  controllerLabel: string
+  macAddress: string
+  commissionable: boolean
+  pcbCode: number
+  productCode: number
+  fwVersionCode: number
+  fwPlatformCode: number
+  fwCompilationUnixTimestamp: number
+  fwVersionFull: string
+  fwVersion: string
+  networkSignature: string
+  tnglFingerprint: string
+  eventStoreFingerprint: string
+  configFingerprint: string
+  networkStorageFingerprint: string
+  controllerStoreFingerprint: string
+  notificationStoreFingerprint: string
 }
 
 export type Value = {
@@ -119,7 +146,6 @@ export type Spectoda_WASM = {
   registerConnector(_0: IConnector_WASM): void
   _onTnglLoad(_0: Uint8Vector, _1: Uint8Vector): boolean
   _onExecute(_0: Uint8Vector): boolean
-  _onRequest(_0: Uint8Vector, _1: Connection): boolean
   _onSynchronize(_0: Synchronization): boolean
   process(_0: boolean, _1: boolean, _2: boolean, _3: boolean): void
   eraseNetworkStorage(): boolean
@@ -181,6 +207,59 @@ export type Spectoda_WASM = {
     _1: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
     _2: number,
     _3: boolean,
+  ): boolean
+  requestWriteConfig(
+    _0: (errorCode: number, responseArray: number[]) => void,
+    _1: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
+    _2: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
+    _3: number,
+  ): boolean
+  requestReadConfig(
+    _0: (errorCode: number, configString: string) => void,
+    _1: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
+    _2: number,
+  ): boolean
+  requestReadConnections(
+    _0: (errorCode: number, connections: ConnectionInfo[]) => void,
+    _1: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
+    _2: number,
+  ): boolean
+  requestReadControllerInfo(
+    _0: (errorCode: number, controllerInfo: ControllerInfoWasm | null) => void,
+    _1: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
+    _2: number,
+  ): boolean
+  requestReboot(
+    _0: (errorCode: number) => void,
+    _1: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
+    _2: number,
+  ): boolean
+  requestSleep(
+    _0: (errorCode: number) => void,
+    _1: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
+    _2: number,
+    _3: number,
+  ): boolean
+  requestEraseNetwork(
+    _0: (errorCode: number) => void,
+    _1: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
+    _2: number,
+  ): boolean
+  requestReadControllerLabel(
+    _0: (errorCode: number, label: string) => void,
+    _1: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
+    _2: number,
+  ): boolean
+  requestWriteControllerLabel(
+    _0: (errorCode: number) => void,
+    _1: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
+    _2: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
+    _3: number,
+  ): boolean
+  requestReadFwVersion(
+    _0: (errorCode: number, fwVersion: string) => void,
+    _1: ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | string,
+    _2: number,
   ): boolean
   _onEvents(_0: any): boolean
   _onEventStateUpdates(_0: any): boolean
@@ -268,7 +347,7 @@ export type MainModule = {
   computeFingerprint32(_0: any): string
 }
 
-/// ========== DEBUG_UNIVERSAL_0.12.11_20251102.d.ts ========== ///
+/// ========== DEBUG_UNIVERSAL_0.12.11_20260105.d.ts ========== ///
 
 /// =================== MANUALLY DEFINED INTERFACES ================= ///
 
@@ -334,11 +413,6 @@ export type Spectoda_WASMImplementation = {
   //     return call<bool>("_onExecute", execute_bytecode);
   // }
 
-  // bool _onRequest(const std::vector<uint8_t>& request_bytecode_vector, Connection&& destination_connection) override
-  // {
-  //     return call<bool>("_onRequest", request_bytecode_vector, val(std::move(destination_connection)));
-  // }
-
   // bool _onSynchronize(Synchronization&& synchronization) override
   // {
   //     return call<bool>("_onSynchronize", val(std::move(synchronization)));
@@ -386,7 +460,6 @@ export type Spectoda_WASMImplementation = {
   _onEvents(event_array: EventState[]): boolean
   _onEventStateUpdates(event_array: EventState[]): boolean
   _onExecute(execute_bytecode: Uint8Vector): boolean
-  _onRequest(request_bytecode_vector: Uint8Vector, destination_connection: Connection): boolean
   _onSynchronize(synchronization: Synchronization): boolean
   _onProcess(options: ProcessOptions): boolean
   _handlePeerConnected(peer_mac: string): interface_error_t

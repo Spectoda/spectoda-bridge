@@ -1,191 +1,217 @@
-export { Spectoda } from './Spectoda'
-export { logging } from './logging'
+export { mockScanResult } from './__mocks__/scan'
 export {
-  // TODO Move to monorepo/packages/utils/bytes
-  toUint8Array,
-  convertToByteArray,
-  hexStringToArray,
-  hexStringToNumberArray,
-  hexStringToUint8Array,
-  uint8ArrayToHexString,
-  numberToBytes,
-  stringToBytes,
-  toBytes,
-  labelToBytes,
-  strMacToBytes,
-
   // TODO Move to monorepo/packages/utils/color
   colorToBytes,
+  // TODO Move to spectoda-js/tngl.helpers.ts
+  computeTnglCodeFingerprint,
+  computeTnglFingerprint,
+  convertToByteArray,
+  crc8,
+  // TODO Move to spectoda-js/utils/crypto
+  crc32,
+  // TODO Move to spectoda-js/utils/nano
+  createNanoEvents,
+  createNanoEventsWithWrappedEmit,
   cssColorToHex,
-  rgbToHex,
-  getColorString,
-
+  deactivateDebugMode,
   // TODO Move to monorepo/packages/utils/environment
   detectAndroid,
+  detectBrave,
   detectBrowser,
+  detectBun,
   detectChrome,
+  detectDeno,
+  detectEdge,
+  detectFirefox,
   detectGW,
   detectIPhone,
   detectLinux,
   detectMacintosh,
   detectNext,
   detectNode,
+  detectOpera,
   detectProductionBuild,
   detectSafari,
+  detectSamsungBrowser,
   detectServerEnvironment,
   detectSpectodaConnect,
   detectWindows,
-  // TODO Move to spectoda-js/utils/time
-  getClockTimestamp,
-  getSeconds,
-  validateTimestamp,
-  sleep,
-
-  // TODO Move to spectoda-js/utils/crypto
-  crc32,
-  crc8,
-
-  // TODO Move to spectoda-js/utils/nano
-  createNanoEvents,
-  createNanoEventsWithWrappedEmit,
-
-  // TODO Move to spectoda-js/tngl.helpers.ts
-  computeTnglCodeFingerprint,
-  computeTnglFingerprint,
-
-  // TODO Move to spectoda-js/utils
-  mapValue,
-  fetchFirmware,
-
   // TODO Move this out of functions
   enableDebugMode,
-  deactivateDebugMode,
+  fetchFirmware,
+  // TODO Move to spectoda-js/utils/time
+  getClockTimestamp,
+  getColorString,
+  getSeconds,
+  hexStringToArray,
+  hexStringToNumberArray,
+  hexStringToUint8Array,
+  labelToBytes,
+  // TODO Move to spectoda-js/utils
+  mapValue,
+  numberToBytes,
+  rgbToHex,
+  sleep,
+  stringToBytes,
+  strMacToBytes,
+  toBytes,
+  // TODO Move to monorepo/packages/utils/bytes
+  toUint8Array,
+  uint8ArrayToHexString,
+  validateTimestamp,
 } from './functions'
-
+export { logging } from './logging'
+export { Spectoda } from './Spectoda'
+export {
+  APP_MAC_ADDRESS,
+  BROADCAST_ID,
+  CONNECTORS,
+  JS_VALUE_LIMITS,
+  UNCOMMISSIONED_NETWORK_SIGNATURE,
+} from './src/constants'
+export { VALUE_TYPES, type ValueType } from './src/constants/values'
+export {
+  getRemoteControlClientMeta,
+  type RemoteControlClientMeta,
+} from './src/rc/meta'
+export { makeSpectodaVirtualProxy } from './src/rc/v1/RemoteControlSender'
+export { WASM_VERSION } from './src/SpectodaWasm'
+export {
+  type AnyEvent,
+  AnyEventSchema,
+  AnyEventValueSchema,
+  type BooleanEvent,
+  BooleanEventSchema,
+  type ColorEvent,
+  ColorEventSchema,
+  type EventInput,
+  EventInputSchema,
+  type EventState,
+  EventStateSchema as EventSchema,
+  type LabelEvent,
+  LabelEventSchema,
+  type NullEvent,
+  NullEventSchema,
+  type NumberEvent,
+  NumberEventSchema,
+  type PercentageEvent,
+  PercentageEventSchema,
+  type PixelsEvent,
+  PixelsEventSchema,
+  type TimestampEvent,
+  TimestampEventSchema,
+  type UndefinedEvent,
+  UndefinedEventSchema,
+} from './src/schemas/event'
+export {
+  BaudrateSchema,
+  ControllerNameSchema,
+  FIRMWARE_VERSION_REGEX_SOURCES_PARTS,
+  FingerprintSchema,
+  FirmwareVersionCodeSchema,
+  FirmwareVersionFullSchema,
+  FirmwareVersionSchema,
+  IDSchema,
+  MacAddressSchema,
+  NetworkKeySchema,
+  NetworkSignatureSchema,
+  PcbCodeSchema,
+  ProductCodeSchema,
+  SerialPathSchema,
+  TnglBankSchema,
+} from './src/schemas/primitives'
+export {
+  BooleanSchema,
+  ColorSchema,
+  DateSchema,
+  LabelSchema,
+  NullSchema,
+  NumberSchema,
+  PercentageSchema,
+  PixelsSchema,
+  TimestampSchema,
+  UndefinedSchema,
+} from './src/schemas/values'
+export {
+  PercentageSchemaWithSuffix,
+  TimeStampSchemaWithSuffix,
+} from './src/schemas/valuesWithSuffixes'
+export { preprocessTngl } from './src/TnglPreprocessor'
 export {
   SPECTODA_APP_EVENTS,
-  SpectodaAppEvents,
-  type SpectodaAppEventName,
   type SpectodaAppEventMap,
+  type SpectodaAppEventName,
+  SpectodaAppEvents,
 } from './src/types/app-events'
-
 export type {
-  ValueTypeNumber,
-  ValueTypeLabel,
-  ValueTypeTimestamp,
-  ValueTypePercentage,
-  ValueTypeDate,
-  ValueTypeColor,
-  ValueTypePixels,
-  ValueTypeBoolean,
-  ValueTypeNull,
-  ValueTypeUndefined,
-  ValueTypeID,
-  ValueTypeIDs,
-  SpectodaIdType,
-} from './src/types/values'
-
+  ConnectionStatus,
+  ConnectOptions,
+  ConnectorCriteria,
+  ConnectorType,
+  ScanOptions,
+} from './src/types/connect'
+export { CONNECTION_STATUS } from './src/types/connect'
+export type {
+  ControllerError,
+  ControllerMessage,
+  ControllerWarning,
+} from './src/types/messages'
 export type {
   BaseCriteria,
   BleCriteria,
+  ControllerConnectionCriteria,
+  ControllerInfo,
+  ControllerMoreData,
+  ControllerName,
   Criteria,
   Criterium,
-  ControllerConnectionCriteria,
-  ControllerMoreData,
-  ControllerInfo,
-  NetworkSignature,
-  NetworkKey,
+  DummyCriteria,
+  Fingerprint,
+  FirmwareVersion,
+  FirmwareVersionCode,
+  FirmwareVersionFull,
   MacAddress,
+  NetworkKey,
+  NetworkSignature,
   PcbCode,
   ProductCode,
-  FirmwareVersion,
-  FirmwareVersionFull,
-  FirmwareVersionCode,
-  Fingerprint,
-  TnglBank,
-  ControllerName,
-  DummyCriteria,
   SerialCriteria,
+  TnglBank,
 } from './src/types/primitives'
-
-export { FIRMWARE_VERSION_REGEX_SOURCES_PARTS } from './src/schemas/primitives'
-
-export { CONNECTION_STATUS, REMOTECONTROL_STATUS, WEBSOCKET_CONNECTION_STATE } from './src/types/connect'
-
+export type { SpectodaClass } from './src/types/spectodaClass'
 export type {
-  ConnectionStatus,
-  ConnectorType,
-  ConnectorCriteria,
-  RemoteControlConnectionStatus,
-} from './src/types/connect'
-export type { ControllerError, ControllerWarning, ControllerMessage } from './src/types/messages'
+  SpectodaIdsType,
+  SpectodaIdType,
+  ValueTypeBoolean,
+  ValueTypeColor,
+  ValueTypeDate,
+  ValueTypeLabel,
+  ValueTypeNull,
+  ValueTypeNumber,
+  ValueTypePercentage,
+  ValueTypePixels,
+  ValueTypeTimestamp,
+  ValueTypeUndefined,
+} from './src/types/values'
+export {
+  getSpectodaVersion,
+  JS_REVISION,
+  JS_REVISION_NEW_CONNECT_SCAN_API,
+  type SpectodaVersion,
+} from './src/version'
+export type { ConnectionInfo } from './src/types/wasm'
 
 export {
-  EventStateSchema as EventSchema,
-  EventInputSchema,
-  NumberEventSchema,
-  LabelEventSchema,
-  PercentageEventSchema,
-  TimestampEventSchema,
-  ColorEventSchema,
-  PixelsEventSchema,
-  BooleanEventSchema,
-  NullEventSchema,
-  UndefinedEventSchema,
-  AnyEventSchema,
-  AnyEventValueSchema,
-  type EventState,
-  type EventInput,
-  type NumberEvent,
-  type LabelEvent,
-  type PercentageEvent,
-  type TimestampEvent,
-  type ColorEvent,
-  type PixelsEvent,
-  type BooleanEvent,
-  type NullEvent,
-  type UndefinedEvent,
-  type AnyEvent,
-} from './src/schemas/event'
-
+  ControllerRef,
+  type ControllerRefLegacyMode,
+  type ControllerRefOptions,
+  type ControllerRefError,
+} from './src/ControllerRef'
 export {
-  FirmwareVersionSchema,
-  FirmwareVersionFullSchema,
-  ProductCodeSchema,
-  NetworkSignatureSchema,
-  MacAddressSchema,
-  BaudrateSchema,
-  ControllerNameSchema,
-  SerialPathSchema,
-  IDSchema,
-  FingerprintSchema,
-  FirmwareVersionCodeSchema,
-  NetworkKeySchema,
-  PcbCodeSchema,
-  TnglBankSchema,
-} from './src/schemas/primitives'
-
-export {
-  TimestampSchema,
-  PercentageSchema,
-  LabelSchema,
-  NumberSchema,
-  ColorSchema,
-  PixelsSchema,
-  BooleanSchema,
-  NullSchema,
-  DateSchema,
-  UndefinedSchema,
-} from './src/schemas/values'
-
-export { PercentageSchemaWithSuffix, TimeStampSchemaWithSuffix } from './src/schemas/valuesWithSuffixes'
-
-export { CONNECTORS, UNCOMMISSIONED_NETWORK_SIGNATURE, BROADCAST_ID, JS_VALUE_LIMITS } from './src/constants'
-
-export { VALUE_TYPES, type ValueType } from './src/constants/values'
-
-export { mockScanResult } from './__mocks__/scan'
-
-export { isCurrentSpectodaInstanceLocal, createSpectodaWebsocket } from './SpectodaWebSocketsConnector'
-
-export { WASM_VERSION } from './src/SpectodaWasm'
+  supportsControllerActions,
+  formatConnectionHop,
+  parseConnectionHop,
+  parseFirmwareVersion,
+  getMacFromPath,
+  type HopConnectorType,
+} from './src/controllerRef.utils'

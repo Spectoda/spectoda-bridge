@@ -1,11 +1,11 @@
 // TODO @immakermatty convert to typescript
 // TODO @immakermatty move compilation to WASM
 
-import { TnglWriter } from './TnglWriter'
-import { CPP_EVENT_VALUE_LIMITS as VALUE_LIMITS } from './src/constants/limits'
-import { PERCENTAGE_JS_VS_CPP_SCALE_FACTOR } from './src/constants'
 import { uint8ArrayToHexString } from './functions'
 import { logging } from './logging'
+import { PERCENTAGE_JS_VS_CPP_SCALE_FACTOR } from './src/constants'
+import { CPP_EVENT_VALUE_LIMITS as VALUE_LIMITS } from './src/constants/limits'
+import { TnglWriter } from './TnglWriter'
 
 const CONSTANTS = Object.freeze({
   MODIFIER_SWITCH_NONE: 0,
@@ -215,11 +215,11 @@ export class TnglCompiler {
   }
 
   // Add new method to handle parsing
-  parseAndCompileCode(tngl_code) {
-    logging.verbose(tngl_code)
+  parseAndCompileCode(tnglCode) {
+    logging.verbose(tnglCode)
 
     // 1st stage: tokenize the code
-    const tokens = this.#tokenize(tngl_code, TnglCompiler.#parses)
+    const tokens = this.#tokenize(tnglCode, TnglCompiler.#parses)
 
     logging.verbose(tokens)
 
@@ -358,7 +358,7 @@ export class TnglCompiler {
   }
 
   compileByte(byte) {
-    let reg = byte.match(/0x([0-9a-f][0-9a-f])(?![0-9a-f])/i)
+    const reg = byte.match(/0x([0-9a-f][0-9a-f])(?![0-9a-f])/i)
 
     if (!reg) {
       logging.error('Failed to compile a byte')
@@ -368,7 +368,7 @@ export class TnglCompiler {
   }
 
   compileChar(char) {
-    let reg = char.match(/(-?)'([\W\w])'/)
+    const reg = char.match(/(-?)'([\W\w])'/)
 
     if (!reg) {
       logging.error('Failed to compile char')
@@ -385,7 +385,7 @@ export class TnglCompiler {
 
   // takes string string as '"this is a string"'
   compileString(string) {
-    let reg = string.match(/"([\w ]*)"/)
+    const reg = string.match(/"([\w ]*)"/)
 
     if (!reg) {
       logging.error('Failed to compile a string')
@@ -406,7 +406,7 @@ export class TnglCompiler {
    */
   compileLinerals(linerals) {
     // Handle Infinity values
-    let infinityMatch = linerals.match(/([+-]?Infinity)/)
+    const infinityMatch = linerals.match(/([+-]?Infinity)/)
 
     if (infinityMatch) {
       if (infinityMatch[1] === 'Infinity' || infinityMatch[1] === '+Infinity') {
@@ -437,18 +437,18 @@ export class TnglCompiler {
     }
   }
 
-  compileValueAddress(variable_reference) {
-    logging.verbose(`compileValueAddress(${variable_reference})`)
+  compileValueAddress(variableReference) {
+    logging.verbose(`compileValueAddress(${variableReference})`)
 
-    let reg = variable_reference.match(/&([a-z_][\w]*)/i)
+    const reg = variableReference.match(/&([a-z_][\w]*)/i)
 
     if (!reg) {
       logging.error('Failed to compile variable address')
       return
     }
 
-    const variable_name = reg[1]
-    let valueadr = undefined
+    const variableName = reg[1]
+    let valueadr
 
     // TODO @immakermatty figure out how to handle const, let and var variables
     // // check if the variable is already declared
@@ -479,18 +479,18 @@ export class TnglCompiler {
     for (let i = this.#var_declarations.length - 1; i >= 0; i--) {
       const declaration = this.#var_declarations[i]
 
-      if (declaration.name === variable_name) {
+      if (declaration.name === variableName) {
         valueadr = declaration.address
         break
       }
     }
 
     if (valueadr === undefined) {
-      logging.error(`Variable ${variable_name} is not declated`)
+      logging.error(`Variable ${variableName} is not declated`)
       throw 'CompilationError'
     }
 
-    logging.verbose(`VALUE_ADDRESS name=${variable_name}, address=${valueadr}`)
+    logging.verbose(`VALUE_ADDRESS name=${variableName}, address=${valueadr}`)
     this.#tnglWriter.writeFlag(TNGL_FLAGS.VALUE_ADDRESS)
     this.#tnglWriter.writeUint16(valueadr)
   }
@@ -553,16 +553,18 @@ export class TnglCompiler {
 
   // takes in html color string "#abcdef" and encodes it into 24 bits [FLAG.VALUE_COLOR, R, G, B]
   compileColor(color) {
-    let reg = color.match(/#([0-9a-f][0-9a-f])([0-9a-f][0-9a-f])([0-9a-f][0-9a-f])/i)
+    const reg = color.match(
+      /#([0-9a-f][0-9a-f])([0-9a-f][0-9a-f])([0-9a-f][0-9a-f])/i,
+    )
 
     if (!reg) {
       logging.error('Failed to compile color')
       return
     }
 
-    let r = parseInt(reg[1], 16)
-    let g = parseInt(reg[2], 16)
-    let b = parseInt(reg[3], 16)
+    const r = parseInt(reg[1], 16)
+    const g = parseInt(reg[2], 16)
+    const b = parseInt(reg[3], 16)
 
     if (r === 255 && g === 255 && b === 255) {
       this.#tnglWriter.writeFlag(TNGL_FLAGS.CONST_COLOR_WHITE)
@@ -578,7 +580,7 @@ export class TnglCompiler {
 
   // takes in percentage string "83.234%" and encodes it into 24 bits
   compilePercentage(percentage) {
-    let reg = percentage.match(/([+-]?[\d.]+)%/)
+    const reg = percentage.match(/([+-]?[\d.]+)%/)
 
     if (!reg) {
       logging.error('Failed to compile percentage')
@@ -604,13 +606,15 @@ export class TnglCompiler {
       this.#tnglWriter.writeFlag(TNGL_FLAGS.CONST_PERCENTAGE_MINUS_100)
     } else {
       this.#tnglWriter.writeFlag(TNGL_FLAGS.VALUE_PERCENTAGE)
-      this.#tnglWriter.writeInt32(Math.round(val * PERCENTAGE_JS_VS_CPP_SCALE_FACTOR))
+      this.#tnglWriter.writeInt32(
+        Math.round(val * PERCENTAGE_JS_VS_CPP_SCALE_FACTOR),
+      )
     }
   }
 
   // takes label string as "$label" and encodes it into 32 bits
   compileLabel(label) {
-    let reg = label.match(/\$([\w]*)/)
+    const reg = label.match(/\$([\w]*)/)
 
     if (!reg) {
       logging.error('Failed to compile a label')
@@ -625,14 +629,14 @@ export class TnglCompiler {
 
   // takes pixels string "12px" and encodes it into 16 bits
   compilePixels(pixels) {
-    let reg = pixels.match(/(-?[\d]+)px/)
+    const reg = pixels.match(/(-?[\d]+)px/)
 
     if (!reg) {
       logging.error('Failed to compile pixels')
       return
     }
 
-    let count = parseInt(reg[1])
+    const count = parseInt(reg[1], 10)
 
     this.#tnglWriter.writeFlag(TNGL_FLAGS.VALUE_PIXELS)
     this.#tnglWriter.writeInt16(count)
@@ -649,26 +653,6 @@ export class TnglCompiler {
     return address
   }
 
-  #declareConst(name) {
-    logging.verbose(`#declareConst(${name})`)
-    // TODO @immakermatty #const_declarations_stack is not used anymore? So rename #var_declarations to something else?
-    const address = this.#reserveAddress(`const ${name}`)
-
-    logging.verbose(`declared const ${name} at address ${address}`)
-    this.#const_declarations_stack.push({ name: name, address: address })
-    return address
-  }
-
-  // TODO @immakermatty deprecate let keyword and use var keyword for let functionality instead
-  #declareLet(name) {
-    logging.verbose(`#declareLet(${name})`)
-    const address = this.#reserveAddress(`let ${name}`)
-
-    logging.verbose(`declared let ${name} at address ${address}`)
-    this.#let_declarations_stack.push({ name: name, address: address })
-    return address
-  }
-
   #declareVar(name) {
     logging.verbose(`#declareVar(${name})`)
     const address = this.#reserveAddress(`var ${name}`)
@@ -678,38 +662,42 @@ export class TnglCompiler {
     return address
   }
 
-  compileConstDeclaration(variable_declaration) {
-    logging.verbose(`compileConstDeclaration("${variable_declaration}")`)
+  compileConstDeclaration(variableDeclaration) {
+    logging.verbose(`compileConstDeclaration("${variableDeclaration}")`)
 
     // TODO @immakermatty implement const declaration
-    logging.error('const declaration is not supported in TNGL in this version of the compiler')
+    logging.error(
+      'const declaration is not supported in TNGL in this version of the compiler',
+    )
     throw 'ConstDeclarationNotSupported'
   }
 
-  compileLetDeclaration(variable_declaration) {
-    logging.verbose(`compileLetDeclaration(${variable_declaration})`)
+  compileLetDeclaration(variableDeclaration) {
+    logging.verbose(`compileLetDeclaration(${variableDeclaration})`)
 
     // TODO @immakermatty implement let declaration
-    logging.error('let declaration is not supported in TNGL in this version of the compiler')
+    logging.error(
+      'let declaration is not supported in TNGL in this version of the compiler',
+    )
     throw 'LetDeclarationNotSupported'
   }
 
-  compileVarDeclaration(variable_declaration) {
-    logging.verbose(`compileVarDeclaration(${variable_declaration})`)
+  compileVarDeclaration(variableDeclaration) {
+    logging.verbose(`compileVarDeclaration(${variableDeclaration})`)
 
-    let reg = variable_declaration.match(/var +([A-Za-z_][\w]*) *=/)
+    const reg = variableDeclaration.match(/var +([A-Za-z_][\w]*) *=/)
 
     if (!reg) {
       logging.error('Failed to compile var declaration')
       return
     }
 
-    const var_name = reg[1]
-    const var_address = this.#declareVar(var_name)
+    const varName = reg[1]
+    const varAddress = this.#declareVar(varName)
 
     // retrieve the var_address and write the TNGL_FLAGS with uint16_t variable address value.
     this.#tnglWriter.writeFlag(TNGL_FLAGS.DECLARE_VARIABLE)
-    this.#tnglWriter.writeUint16(var_address)
+    this.#tnglWriter.writeUint16(varAddress)
   }
 
   compileWord(word) {
@@ -1007,8 +995,8 @@ export class TnglCompiler {
         this.#tnglWriter.writeUint8(CONSTANTS.MODIFIER_SWITCH_BR)
         break
 
-      default:
-        let var_address = undefined
+      default: {
+        let varAddress
 
         // check if the variable is already declared
         // look for the latest variable address on the stack
@@ -1016,20 +1004,23 @@ export class TnglCompiler {
           const declaration = this.#var_declarations[i]
 
           if (declaration.name === word) {
-            var_address = declaration.address
+            varAddress = declaration.address
             break
           }
         }
 
-        if (var_address !== undefined) {
-          logging.verbose(`VALUE_READ_ADDRESS name=${word}, address=${var_address}`)
+        if (varAddress !== undefined) {
+          logging.verbose(
+            `VALUE_READ_ADDRESS name=${word}, address=${varAddress}`,
+          )
           this.#tnglWriter.writeFlag(TNGL_FLAGS.VALUE_READ_ADDRESS)
-          this.#tnglWriter.writeUint16(var_address)
+          this.#tnglWriter.writeUint16(varAddress)
           break
         }
 
         // === unknown ===
         throw new Error(`Unknown word >${word}<`)
+      }
     }
   }
 
@@ -1037,29 +1028,32 @@ export class TnglCompiler {
     switch (puctuation) {
       case '{':
         // push the current depth of the variable stack to the depth stack
-        this.#const_scope_depth_stack.push(this.#const_declarations_stack.length)
+        this.#const_scope_depth_stack.push(
+          this.#const_declarations_stack.length,
+        )
         this.#let_scope_depth_stack.push(this.#let_declarations_stack.length)
         break
 
-      case '}':
+      case '}': {
         // pop the scope depth of the depth stack variable stack and set the variable stack to the previous depth
-        const const_depth = this.#const_scope_depth_stack.pop()
+        const constDepth = this.#const_scope_depth_stack.pop()
 
-        this.#const_declarations_stack.length = const_depth
-        const let_depth = this.#let_scope_depth_stack.pop()
+        this.#const_declarations_stack.length = constDepth
+        const letDepth = this.#let_scope_depth_stack.pop()
 
-        this.#let_declarations_stack.length = let_depth
+        this.#let_declarations_stack.length = letDepth
 
         this.#tnglWriter.writeFlag(TNGL_FLAGS.END_OF_SCOPE)
         break
+      }
 
       default:
         break
     }
   }
 
-  compileMacAddress(mac_address) {
-    let reg = mac_address.match(/([0-9a-f][0-9a-f]:){5}[0-9a-f][0-9a-f]/i)
+  compileMacAddress(macAddress) {
+    const reg = macAddress.match(/([0-9a-f][0-9a-f]:){5}[0-9a-f][0-9a-f]/i)
 
     if (!reg) {
       logging.error('Failed to compile mac address')
@@ -1068,7 +1062,7 @@ export class TnglCompiler {
 
     this.#tnglWriter.writeFlag(TNGL_FLAGS.OBJECT_MAC_ADDRESS)
 
-    let mac = reg[0].split(':')
+    const mac = reg[0].split(':')
 
     for (let i = 0; i < 6; i++) {
       this.#tnglWriter.writeUint8(parseInt(mac[i], 16))
@@ -1088,7 +1082,10 @@ export class TnglCompiler {
   compileId(id) {
     // Check if the string starts with "ID" or "id" (case-insensitive)
     if (typeof id !== 'string' || !id.startsWith('ID')) {
-      logging.error("Invalid ID format! Expected 'ID0' to 'ID255'. Received:", id)
+      logging.error(
+        "Invalid ID format! Expected 'ID0' to 'ID255'. Received:",
+        id,
+      )
       this.#tnglWriter.writeFlag(TNGL_FLAGS.ID)
       this.#tnglWriter.writeUint16(0)
       return
@@ -1112,7 +1109,10 @@ export class TnglCompiler {
     const berryMatch = berry.match(/^BERRY\s*\(\s*`([\s\S]*)`\s*\)$/)
 
     if (!berryMatch) {
-      logging.error('Invalid Berry script format! Expected BERRY(`...`). Received:', berry)
+      logging.error(
+        'Invalid Berry script format! Expected BERRY(`...`). Received:',
+        berry,
+      )
       return
     }
     const code = berryMatch[1]
@@ -1131,7 +1131,10 @@ export class TnglCompiler {
   compileParametersMap(parameter) {
     // Check if parameter is a string and matches parameter map format
     if (typeof parameter !== 'string') {
-      logging.error('Invalid parameter format! Expected parameter map string. Received:', parameter)
+      logging.error(
+        'Invalid parameter format! Expected parameter map string. Received:',
+        parameter,
+      )
       return
     }
 
@@ -1140,21 +1143,21 @@ export class TnglCompiler {
 
     // Find all ID:value pairs using regex
     const regex = /ID\d+\s*:\s*[^,{}]+/g
-    let matches = [...parameter.matchAll(regex)]
+    const matches = [...parameter.matchAll(regex)]
 
-    const parameter_description = `parameter ${parameter}`
+    const parameterDescription = `parameter ${parameter}`
 
     let address = 0
 
     for (const description of this.#memory_stack) {
-      if (description === parameter_description) {
+      if (description === parameterDescription) {
         address = this.#memory_stack.indexOf(description)
         break
       }
     }
 
     if (address === 0) {
-      address = this.#reserveAddress(parameter_description)
+      address = this.#reserveAddress(parameterDescription)
     }
 
     // Write the variable address that the parameters map is stored in
@@ -1163,7 +1166,10 @@ export class TnglCompiler {
     // Process each ID:value pair
     for (const match of matches) {
       if (!match[0]) {
-        logging.error('Invalid parameter map format! Expected ID:value pairs. Received:', parameter)
+        logging.error(
+          'Invalid parameter map format! Expected ID:value pairs. Received:',
+          parameter,
+        )
         continue
       }
 
@@ -1175,7 +1181,11 @@ export class TnglCompiler {
   }
 
   get tnglBytes() {
-    return new Uint8Array(this.#tnglWriter.bytes.buffer, 0, this.#tnglWriter.written)
+    return new Uint8Array(
+      this.#tnglWriter.bytes.buffer,
+      0,
+      this.#tnglWriter.written,
+    )
   }
 
   static PARSES = Object.freeze({
@@ -1242,8 +1252,8 @@ export class TnglCompiler {
   #tokenize(s, parsers, deftok) {
     var m,
       r,
-      l,
-      cnt,
+      _l,
+      _cnt,
       t,
       tokens = []
 
@@ -1287,15 +1297,15 @@ export class TnglCodeParser {
     this.#compiler = new TnglCompiler()
   }
 
-  parseTnglCode(tngl_code) {
-    logging.debug(`parseTnglCode(tngl_code.length=${tngl_code.length})`)
-    logging.verbose('tngl_code=', tngl_code)
+  parseTnglCode(tnglCode) {
+    logging.debug(`parseTnglCode(tngl_code.length=${tnglCode.length})`)
+    logging.verbose('tngl_code=', tnglCode)
 
     this.#compiler.reset()
-    this.#compiler.parseAndCompileCode(tngl_code)
+    this.#compiler.parseAndCompileCode(tnglCode)
     this.#compiler.compileFlag(TNGL_FLAGS.END_OF_TNGL_BYTES)
 
-    let tnglBytes = this.#compiler.tnglBytes
+    const tnglBytes = this.#compiler.tnglBytes
 
     logging.verbose('tnglBytes=', tnglBytes)
     logging.debug('TNGL_BYTECODE:')

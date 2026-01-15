@@ -1,41 +1,21 @@
-import { spectoda } from "./communication";
-import { logging } from "./lib/spectoda-js/v012/logging";
-import { sleep } from "./lib/spectoda-js/v012/functions";
-import "./server";
-import fs from "fs";
-import { fetchPiInfo } from "./lib/utils/functions";
-import express from "express";
-import cors from "cors";
-import path from "path";
-import { SpectodaAppEvents } from "./lib/spectoda-js/v012";
+import { logging, SpectodaAppEvents, sleep } from './lib/spectoda-js/v012'
+import { spectoda } from './communication'
+import './server'
+import fs from 'node:fs'
+import { fetchPiInfo } from './lib/utils/functions'
 
 // if not exists, create assets folder
-if (!fs.existsSync("assets")) {
-  fs.mkdirSync("assets");
-}
-
-async function startWasmServer() {
-  const app = express();
-  const PORT = 5555;
-
-  app.use(cors());
-  app.use("/builds", express.static(path.join(__dirname, "webassembly")));
-
-  app.listen(PORT, () => {
-    logging.info(`WASM server running at http://localhost:${PORT}`);
-  });
+if (!fs.existsSync('assets')) {
+  fs.mkdirSync('assets')
 }
 
 async function main() {
-  // Start WASM server first
-  await startWasmServer();
+  const gatewayMetadata = await fetchPiInfo()
 
-  const gatewayMetadata = await fetchPiInfo();
+  await sleep(1000)
 
-  await sleep(1000);
-
-  if (fs.existsSync("assets/config.json")) {
-    const config = JSON.parse(fs.readFileSync("assets/config.json", "utf8"));
+  if (fs.existsSync('assets/config.json')) {
+    const config = JSON.parse(fs.readFileSync('assets/config.json', 'utf8'))
 
     /*
      {
@@ -72,84 +52,81 @@ async function main() {
      }
      */
 
-    if (config && config.spectoda) {
+    if (config?.spectoda) {
       if (config.spectoda.debug) {
         if (config.spectoda.debug.level) {
-          spectoda.setDebugLevel(config.spectoda.debug.level);
-        }
-      }
-
-      if (config.spectoda.network) {
-        if (config.spectoda.network.signature) {
-          logging.info(">> Assigning Signature...");
-          spectoda.setOwnerSignature(config.spectoda.network.signature);
-        }
-
-        if (config.spectoda.network.key) {
-          logging.info(">> Assigning Key...");
-          spectoda.setOwnerKey(config.spectoda.network.key);
+          spectoda.setDebugLevel(config.spectoda.debug.level)
         }
       }
 
       if (config.spectoda.remoteControl) {
-        if (config.spectoda.remoteControl.enable || config.spectoda.remoteControl.enabled) {
-          if (config.spectoda.network && config.spectoda.network.signature && config.spectoda.network.key) {
-            logging.info(">> Enabling Remote Control...");
+        if (
+          config.spectoda.remoteControl.enable ||
+          config.spectoda.remoteControl.enabled
+        ) {
+          if (
+            config.spectoda.network?.signature &&
+            config.spectoda.network.key
+          ) {
+            logging.info('>> Installing Remote Control Receiver...')
             try {
-              spectoda.enableRemoteControl({
+              spectoda.installRemoteControlReceiver({
                 signature: config.spectoda.network.signature,
                 key: config.spectoda.network.key,
                 meta: { gw: gatewayMetadata },
                 sessionOnly: config.spectoda.remoteControl.sessionOnly,
-              });
+              })
             } catch (err) {
-              logging.error("Failed to enable remote control", err);
+              logging.error('Failed to install remote control receiver', err)
             }
           } else {
-            logging.error("To enable remoteControl config.spectoda.network.signature && config.spectoda.network.key needs to be defined.");
+            logging.error(
+              'To enable remoteControl config.spectoda.network.signature && config.spectoda.network.key needs to be defined.',
+            )
           }
         }
       }
 
       if (config.spectoda.connect) {
-        if (config.spectoda.connect.connector) {
-          logging.info(">> Assigning Connector...");
-          try {
-            await spectoda.assignConnector(config.spectoda.connect.connector);
-          } catch (error) {
-            logging.error("Failed to assign connector", error);
-          }
-        }
+        const connector = config.spectoda.connect.connector || 'default'
 
-        let criteria = null;
-
-        if (config.spectoda.connect.criteria) {
-          criteria = config.spectoda.connect.criteria;
+        // Build criteria - include network/key from config if present
+        const criteria = {
+          ...config.spectoda.connect.criteria,
+          // Include network signature and key in criteria if defined
+          ...(config.spectoda.network?.signature && {
+            network: config.spectoda.network.signature,
+          }),
+          ...(config.spectoda.network?.key && {
+            key: config.spectoda.network.key,
+          }),
         }
 
         const connect = async () => {
           try {
-            let connected = await spectoda.connected();
+            const connected = await spectoda.connected().catch(() => false)
             if (!connected) {
-              logging.info(">> Connecting...");
-              await spectoda.connect(criteria, true, undefined, undefined, false, "");
+              logging.info('>> Connecting...')
+              // Use new connect signature: connect(connector, criteria, options)
+              await spectoda.connect(connector, criteria, {
+                autoSelect: true,
+              })
             }
           } catch (error) {
-            logging.error("Failed to connect", error);
+            logging.error('Failed to connect', error)
           }
-        };
+        }
 
-        connect();
+        connect()
 
-        let interval = setInterval(connect, 60000);
+        let interval = setInterval(connect, 60000)
         spectoda.on(SpectodaAppEvents.DISCONNECTED, () => {
-          clearInterval(interval);
-          interval = setInterval(connect, 60000);
-        });
-        
+          clearInterval(interval)
+          interval = setInterval(connect, 60000)
+        })
       }
     }
   }
 }
 
-main();
+main()

@@ -31,8 +31,10 @@ export class TimeTrack {
     return this.millis()
   }
 
-  setMillis(current_timestamp) {
-    this.memory_ = this.paused_ ? current_timestamp : Date.now() - current_timestamp
+  setMillis(currentTimestamp) {
+    this.memory_ = this.paused_
+      ? currentTimestamp
+      : Date.now() - currentTimestamp
   }
 
   date() {
@@ -77,12 +79,14 @@ export class TimeTrack {
     }
   }
 
-  setState(current_timestamp, paused) {
+  setState(currentTimestamp, paused) {
     if ((paused && !this.paused_) || (!paused && this.paused_)) {
       this.paused_ = paused
       this.memory_ = Date.now() - this.memory_
     }
 
-    this.memory_ = this.paused_ ? current_timestamp : Date.now() - current_timestamp
+    this.memory_ = this.paused_
+      ? currentTimestamp
+      : Date.now() - currentTimestamp
   }
 }

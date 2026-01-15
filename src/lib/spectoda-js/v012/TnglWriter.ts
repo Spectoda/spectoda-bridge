@@ -5,8 +5,8 @@ export class TnglWriter {
   #dataView: DataView
   #index: number
 
-  constructor(buffer_size = 65535) {
-    this.#buffer = new Uint8Array(buffer_size)
+  constructor(bufferSize = 65535) {
+    this.#buffer = new Uint8Array(bufferSize)
     this.#dataView = new DataView(this.#buffer.buffer)
     this.#index = 0
   }
@@ -15,7 +15,7 @@ export class TnglWriter {
     if (this.#index + byteCount <= this.#dataView.byteLength) {
       for (let i = 0; i < byteCount; i++) {
         this.#dataView.setUint8(this.#index++, value & 0xff)
-        value = Math.floor(value / Math.pow(2, 8))
+        value = Math.floor(value / 2 ** 8)
       }
     } else {
       console.trace('WriteOutOfRange')

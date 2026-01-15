@@ -32,8 +32,7 @@ export const VALUE_TYPES = Object.freeze({
 
 export type ValueType = (typeof VALUE_TYPES)[keyof typeof VALUE_TYPES]
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const NEXT_VALUE_TYPES = Object.freeze({
+const _NEXT_VALUE_TYPES = Object.freeze({
   // TODO Add schema, @immakermatty what is the type, please?
   REAL: 27,
 })

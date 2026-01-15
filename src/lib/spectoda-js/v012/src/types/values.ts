@@ -1,17 +1,17 @@
-import { z } from 'zod'
+import type { z } from 'zod'
 
-import { VALUE_TYPES } from '../constants/values'
-import { IDSchema } from '../schemas/primitives'
-import {
-  NumberSchema,
-  LabelSchema,
-  TimestampSchema,
-  PercentageSchema,
-  DateSchema,
-  ColorSchema,
-  PixelsSchema,
+import type { VALUE_TYPES } from '../constants/values'
+import type { IDSchema } from '../schemas/primitives'
+import type {
   BooleanSchema,
+  ColorSchema,
+  DateSchema,
+  LabelSchema,
   NullSchema,
+  NumberSchema,
+  PercentageSchema,
+  PixelsSchema,
+  TimestampSchema,
   UndefinedSchema,
 } from '../schemas/values'
 
@@ -25,10 +25,8 @@ export type ValueTypePixels = z.infer<typeof PixelsSchema>
 export type ValueTypeBoolean = z.infer<typeof BooleanSchema>
 export type ValueTypeNull = z.infer<typeof NullSchema>
 export type ValueTypeUndefined = z.infer<typeof UndefinedSchema>
-export type ValueTypeID = z.infer<typeof IDSchema>
-export type ValueTypeIDs = ValueTypeID | ValueTypeID[]
+
+export type SpectodaIdType = z.infer<typeof IDSchema>
+export type SpectodaIdsType = SpectodaIdType | SpectodaIdType[]
 
 export type ValueType = (typeof VALUE_TYPES)[keyof typeof VALUE_TYPES]
-
-/** @alias ValueTypeID */
-export type SpectodaIdType = ValueTypeID

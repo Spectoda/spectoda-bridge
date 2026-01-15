@@ -1,7 +1,6 @@
 import { z } from 'zod'
-
-import { JS_EVENT_VALUE_LIMITS } from '../constants/limits'
 import { LABEL_MAX_LENGTH } from '../constants'
+import { JS_EVENT_VALUE_LIMITS } from '../constants/limits'
 
 /**
  * Timestamp in milliseconds. Range: -86400000 to 86400000
@@ -52,7 +51,10 @@ export const PercentageSchema = z
 
 export const DateSchema = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in format 'YYYY-MM-DD' (e.g. '2024-01-01')")
+  .regex(
+    /^\d{4}-\d{2}-\d{2}$/,
+    "Date must be in format 'YYYY-MM-DD' (e.g. '2024-01-01')",
+  )
 
 /**
  * Color string in hexadecimal format, where the # is optional.
@@ -64,7 +66,10 @@ export const DateSchema = z
 
 export const ColorSchema = z
   .string()
-  .regex(/#?[\dA-Fa-f]{6}/g, "Color must be a 6-character hex value with optional # (e.g. 'FF0000' or '#00FF00')")
+  .regex(
+    /#?[\dA-Fa-f]{6}/g,
+    "Color must be a 6-character hex value with optional # (e.g. 'FF0000' or '#00FF00')",
+  )
 
 /**
  * Pixels value. Range: -32768 to 32767
@@ -74,7 +79,8 @@ export const ColorSchema = z
  * @example 32767
  */
 
-export const PixelsSchema = z.int('Pixels value must be an integer')
+export const PixelsSchema = z
+  .int('Pixels value must be an integer')
   .min(
     JS_EVENT_VALUE_LIMITS.PIXELS_MIN,
     `Pixels value must be between ${JS_EVENT_VALUE_LIMITS.PIXELS_MIN} and ${JS_EVENT_VALUE_LIMITS.PIXELS_MAX}`,
@@ -117,7 +123,8 @@ export const UndefinedSchema = z.undefined()
  * @example 999999999
  */
 
-export const NumberSchema = z.int('Number must be an integer')
+export const NumberSchema = z
+  .int('Number must be an integer')
   .min(
     JS_EVENT_VALUE_LIMITS.NUMBER_MIN,
     `Number must be between ${JS_EVENT_VALUE_LIMITS.NUMBER_MIN} and ${JS_EVENT_VALUE_LIMITS.NUMBER_MAX}`,
@@ -139,5 +146,11 @@ export const NumberSchema = z.int('Number must be an integer')
 
 export const LabelSchema = z
   .string()
-  .regex(/^[a-zA-Z0-9_]*$/, 'Label must contain only letters, numbers, and underscores')
-  .max(LABEL_MAX_LENGTH, `Label must be at most ${LABEL_MAX_LENGTH} characters long`)
+  .regex(
+    /^[a-zA-Z0-9_]*$/,
+    'Label must contain only letters, numbers, and underscores',
+  )
+  .max(
+    LABEL_MAX_LENGTH,
+    `Label must be at most ${LABEL_MAX_LENGTH} characters long`,
+  )

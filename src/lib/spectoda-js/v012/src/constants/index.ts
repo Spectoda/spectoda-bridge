@@ -1,4 +1,8 @@
-import type { NetworkSignature, MacAddress, NetworkKey } from '../types/primitives'
+import type {
+  MacAddress,
+  NetworkKey,
+  NetworkSignature,
+} from '../types/primitives'
 
 export const BROADCAST_ID = 255
 export const LABEL_MAX_LENGTH = 5
@@ -22,8 +26,6 @@ export const CONNECTORS = Object.freeze({
   SERIAL: 'serial',
 
   SIMULATED: 'simulated',
-  /** @deprecated Use SIMULATED instead */
-  DUMMY: 'simulated',
 })
 
 export const DEFAULT_CONNECTOR = CONNECTORS.DEFAULT
@@ -31,12 +33,14 @@ export const DEFAULT_CONNECTOR = CONNECTORS.DEFAULT
 /**
  * Uncommissioned Network signature
  */
-export const UNCOMMISSIONED_NETWORK_SIGNATURE: NetworkSignature = '00000000000000000000000000000000'
+export const UNCOMMISSIONED_NETWORK_SIGNATURE: NetworkSignature =
+  '00000000000000000000000000000000'
 
 /**
  * Uncommissioned Network Key
  */
-export const UNCOMMISSIONED_NETWORK_KEY: NetworkKey = '00000000000000000000000000000000'
+export const UNCOMMISSIONED_NETWORK_KEY: NetworkKey =
+  '00000000000000000000000000000000'
 
 /** Default MAC address for the app */
 export const APP_MAC_ADDRESS: MacAddress = '00:00:12:34:56:78'
@@ -65,6 +69,9 @@ export const COMMAND_FLAGS = Object.freeze({
 
   FLAG_CONFIG_UPDATE_REQUEST: 10,
   FLAG_CONFIG_UPDATE_RESPONSE: 11,
+
+  FLAG_FORWARD_REQUEST: 12,
+  FLAG_FORWARD_RESPONSE: 13,
 
   // Former CommandFlag begin
   // FLAG_RSSI_DATA:  100,
@@ -204,13 +211,6 @@ export const COMMAND_FLAGS = Object.freeze({
 
   FLAG_DEVICE_CONFIG_REQUEST: 226,
   FLAG_DEVICE_CONFIG_RESPONSE: 227,
-  FLAG_ROM_PHY_VDD33_REQUEST: 228,
-  FLAG_ROM_PHY_VDD33_RESPONSE: 229,
-  FLAG_VOLTAGE_ON_PIN_REQUEST: 230,
-  FLAG_VOLTAGE_ON_PIN_RESPONSE: 231,
-
-  FLAG_CHANGE_DATARATE_REQUEST: 232,
-  FLAG_CHANGE_DATARATE_RESPONSE: 233,
 
   FLAG_FW_VERSION_REQUEST: 234,
   FLAG_FW_VERSION_RESPONSE: 235,
@@ -228,4 +228,7 @@ export const COMMAND_FLAGS = Object.freeze({
   FLAG_ADOPT_RESPONSE: 241,
 })
 
-export { JS_EVENT_VALUE_LIMITS as JS_VALUE_LIMITS, CPP_EVENT_VALUE_LIMITS as CPP_VALUE_LIMITS } from './limits'
+export {
+  CPP_EVENT_VALUE_LIMITS as CPP_VALUE_LIMITS,
+  JS_EVENT_VALUE_LIMITS as JS_VALUE_LIMITS,
+} from './limits'

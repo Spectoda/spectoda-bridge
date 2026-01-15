@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
-import { MAX_ID, MAX_PCB_CODE, MAX_PRODUCT_CODE, MAX_TNGL_BANK } from '../constants'
+import {
+  MAX_ID,
+  MAX_PCB_CODE,
+  MAX_PRODUCT_CODE,
+  MAX_TNGL_BANK,
+} from '../constants'
 
 import { LabelSchema } from './values'
 
@@ -44,7 +49,10 @@ export const NetworkSignatureSchema = z
  */
 export const NetworkKeySchema = z
   .string()
-  .regex(/^[a-f0-9]{32}$/, "Network key must be a 32-character hex string (e.g. '34567890123456789012345678901234')")
+  .regex(
+    /^[a-f0-9]{32}$/,
+    "Network key must be a 32-character hex string (e.g. '34567890123456789012345678901234')",
+  )
 
 const MAC_REGEX = /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/
 
@@ -62,7 +70,8 @@ export const MacAddressSchema = z.string().transform((v, ctx) => {
 
   ctx.addIssue({
     code: 'custom',
-    message: "MAC address must be in format 'XX:XX:XX:XX:XX:XX' (e.g. '12:43:ab:8d:ff:04'",
+    message:
+      "MAC address must be in format 'XX:XX:XX:XX:XX:XX' (e.g. '12:43:ab:8d:ff:04'",
   })
 
   return z.NEVER
@@ -90,7 +99,10 @@ export const ProductCodeSchema = z.coerce
   .positive()
   .int('Product' + ' code' + ' must be' + ' an integer')
   .min(0, `Product code must be between 0 and ${MAX_PRODUCT_CODE}`)
-  .max(MAX_PRODUCT_CODE, `Product code must be between 0 and ${MAX_PRODUCT_CODE}`)
+  .max(
+    MAX_PRODUCT_CODE,
+    `Product code must be between 0 and ${MAX_PRODUCT_CODE}`,
+  )
 
 /**
  * Firmware version in format "X.Y.Z"
@@ -99,7 +111,10 @@ export const ProductCodeSchema = z.coerce
  */
 export const FirmwareVersionSchema = z
   .string()
-  .regex(/^!?\d+\.\d+\.\d+$/, "Firmware version must be in format 'X.Y.Z' (e.g. '0.12.2')")
+  .regex(
+    /^!?\d+\.\d+\.\d+$/,
+    "Firmware version must be in format 'X.Y.Z' (e.g. '0.12.2')",
+  )
 
 const DATE_REGEX_SOURCE = {
   // TODO: Hello, maintainers of the year 9999! Please change this regex to allow for years 10000 and beyond.
@@ -156,7 +171,10 @@ export const FirmwareVersionCodeSchema = z
  */
 export const FingerprintSchema = z
   .string()
-  .regex(/^[a-f0-9]{32}$/, "Fingerprint must be a 32-character hex string (e.g. '839dfa03839dfa03839dfa03839dfa03')")
+  .regex(
+    /^[a-f0-9]{32}$/,
+    "Fingerprint must be a 32-character hex string (e.g. '839dfa03839dfa03839dfa03839dfa03')",
+  )
 
 /**
  * TNGL bank identifier.

@@ -1,5 +1,5 @@
-const LocalStorageManager = {
-  set: function (key, value) {
+const LOCAL_STORAGE_MANAGER = {
+  set: (key, value) => {
     if (typeof localStorage === 'undefined') {
       return
     }
@@ -7,7 +7,7 @@ const LocalStorageManager = {
     localStorage.setItem(key, JSON.stringify(value))
   },
 
-  get: function (key) {
+  get: (key) => {
     if (typeof localStorage === 'undefined') {
       return
     }
@@ -46,11 +46,11 @@ async function fetchTnglFromApiById(id) {
     const response = await fetch(url)
     const data = await response.json()
 
-    LocalStorageManager.set(`tnglapidata_${id}`, data)
+    LOCAL_STORAGE_MANAGER.set(`tnglapidata_${id}`, data)
     return data
   } catch (error) {
     // Handle error case (e.g., network error, API error)
-    const data = LocalStorageManager.get(`tnglapidata_${id}`)
+    const data = LOCAL_STORAGE_MANAGER.get(`tnglapidata_${id}`)
 
     if (data) {
       console.warn('Warning:', 'You are offline. Using offline emulation.')
@@ -87,10 +87,10 @@ async function sendTnglToApi({ tngl, name, id }) {
     const response = await fetch(url, options)
     const responseData = await response.json()
 
-    LocalStorageManager.set(`tnglapidata_${id}`, responseData) // save successful response to local storage
+    LOCAL_STORAGE_MANAGER.set(`tnglapidata_${id}`, responseData) // save successful response to local storage
     return responseData
   } catch (error) {
-    const data = LocalStorageManager.set(`tnglapidata_${id}`, {
+    const data = LOCAL_STORAGE_MANAGER.set(`tnglapidata_${id}`, {
       tngl,
       name,
       id,

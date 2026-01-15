@@ -1,10 +1,10 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 import { createNanoEvents, sleep } from '../functions'
 import { logging } from '../logging'
-
+import type { IConnector_JS } from './connector/IConnector_JS'
 import { LogEntry, RingLogBuffer } from './LogBuffer'
-import {
+import { SpectodaWasm } from './SpectodaWasm'
+import type {
   Connection,
   interface_error_t,
   Spectoda_WASM,
@@ -12,8 +12,6 @@ import {
   Synchronization,
   Uint8Vector,
 } from './types/wasm'
-import { IConnector_JS } from './connector/IConnector_JS'
-import { SpectodaWasm } from './SpectodaWasm'
 
 // TODO: Deprecate and instead use SimulatedController
 export class PreviewController {
@@ -43,10 +41,10 @@ export class PreviewController {
   #ringLogBuffer: RingLogBuffer
   #eventEmitter
 
-  constructor(controller_mac_address: string) {
+  constructor(controllerMacAddress: string) {
     this.logging = logging // TODO! refactor logging to be able to create individual instances to be able to debug each Simulated controller separatelly
 
-    this.#macAddress = controller_mac_address
+    this.#macAddress = controllerMacAddress
 
     this.#instance = undefined
     this.#config = undefined
@@ -57,7 +55,10 @@ export class PreviewController {
     this.#ringLogBuffer = new RingLogBuffer(1000)
   }
 
-  construct(config: object, SimulatedConnector: IConnector_JS | undefined = undefined) {
+  construct(
+    config: object,
+    SimulatedConnector: IConnector_JS | undefined = undefined,
+  ) {
     this.logging.info(`construct(config=${JSON.stringify(config)}`)
 
     if (this.#instance) {
@@ -73,7 +74,7 @@ export class PreviewController {
 
       this.#connector = SimulatedConnector
 
-      const PreviewControllerImplementation: Spectoda_WASMImplementation = {
+      const PREVIEW_CONTROLLER_IMPLEMENTATION: Spectoda_WASMImplementation = {
         /* Constructor function is optional */
         // __construct: function () {
         //   this.__parent.__construct.call(this);
@@ -84,46 +85,56 @@ export class PreviewController {
         //   this.__parent.__destruct.call(this);
         // },
 
-        _onTnglLoad: (tngl_bytes_vector, used_ids_vector) => {
-          this.logging.verbose('PreviewController::_onTnglLoad', tngl_bytes_vector, used_ids_vector)
+        _onTnglLoad: (tnglBytesVector, usedIdsVector) => {
+          this.logging.verbose(
+            'PreviewController::_onTnglLoad',
+            tnglBytesVector,
+            usedIdsVector,
+          )
 
           return true
         },
 
-        _onEvents: (event_array) => {
-          this.logging.verbose('PreviewController::_onEvents', event_array)
+        _onEvents: (eventArray) => {
+          this.logging.verbose('PreviewController::_onEvents', eventArray)
 
           return true
         },
 
-        _onEventStateUpdates: (event_state_updates_array) => {
-          this.logging.verbose('PreviewController::_onEventStateUpdates', event_state_updates_array)
+        _onEventStateUpdates: (eventStateUpdatesArray) => {
+          this.logging.verbose(
+            'PreviewController::_onEventStateUpdates',
+            eventStateUpdatesArray,
+          )
 
-          if (this.logging.level >= 3 && event_state_updates_array.length > 0) {
-            let debug_log = ''
+          if (this.logging.level >= 3 && eventStateUpdatesArray.length > 0) {
+            let debugLog = ''
 
             const name = this.#instance?.getLabel()
 
             {
-              const e = event_state_updates_array[0]
+              const e = eventStateUpdatesArray[0]
 
-              debug_log += `🖥️ $${name}: \t📍 $${e.label.padEnd(5)} <- ${e.id}: ${e.debug} [🕒 ${e.timestamp}]`
+              debugLog += `🖥️ $${name}: \t📍 $${e.label.padEnd(5)} <- ${e.id}: ${e.debug} [🕒 ${e.timestamp}]`
             }
 
-            for (let i = 1; i < event_state_updates_array.length; i++) {
-              const e = event_state_updates_array[i]
+            for (let i = 1; i < eventStateUpdatesArray.length; i++) {
+              const e = eventStateUpdatesArray[i]
 
-              debug_log += `\n🖥️ $${name}: \t📍 $${e.label.padEnd(5)} <- ${e.id}: ${e.debug} [🕒 ${e.timestamp}]`
+              debugLog += `\n🖥️ $${name}: \t📍 $${e.label.padEnd(5)} <- ${e.id}: ${e.debug} [🕒 ${e.timestamp}]`
             }
 
-            this.logging.log(debug_log)
+            this.logging.log(debugLog)
           }
 
           return true
         },
 
-        _onExecute: (commands_bytecode_vector: Uint8Vector) => {
-          this.logging.verbose('PreviewController::_onExecute', commands_bytecode_vector)
+        _onExecute: (commandsBytecodeVector: Uint8Vector) => {
+          this.logging.verbose(
+            'PreviewController::_onExecute',
+            commandsBytecodeVector,
+          )
 
           return true
         },
@@ -135,7 +146,10 @@ export class PreviewController {
         },
 
         _onSynchronize: (synchronization) => {
-          this.logging.verbose('PreviewController::_onSynchronize', synchronization)
+          this.logging.verbose(
+            'PreviewController::_onSynchronize',
+            synchronization,
+          )
 
           return true
         },
@@ -146,16 +160,22 @@ export class PreviewController {
           return true
         },
 
-        _handlePeerConnected: (peer_mac) => {
-          this.logging.verbose('PreviewController::_handlePeerConnected', peer_mac)
+        _handlePeerConnected: (peerMac) => {
+          this.logging.verbose(
+            'PreviewController::_handlePeerConnected',
+            peerMac,
+          )
 
           // this.#runtimeReference.emit("peer_connected", peer_mac);
 
           return SpectodaWasm.interface_error_t.SUCCESS
         },
 
-        _handlePeerDisconnected: (peer_mac) => {
-          this.logging.verbose('PreviewController::_handlePeerDisconnected', peer_mac)
+        _handlePeerDisconnected: (peerMac) => {
+          this.logging.verbose(
+            'PreviewController::_handlePeerDisconnected',
+            peerMac,
+          )
 
           // this.#runtimeReference.emit("peer_disconnected", peer_mac);
 
@@ -164,12 +184,12 @@ export class PreviewController {
 
         // virtual interface_error_t _handleTimelineManipulation(const int32_t timeline_timestamp, const bool timeline_paused, const double clock_timestamp) = 0;
         _handleTimelineManipulation: (
-          timeline_timestamp: number,
-          timeline_paused: boolean,
-          timeline_date: string,
+          timelineTimestamp: number,
+          timelinePaused: boolean,
+          timelineDate: string,
         ): interface_error_t => {
           this.logging.verbose(
-            `PreviewController::_handleTimelineManipulation(timeline_timestamp=${timeline_timestamp}, timeline_paused=${timeline_paused}, timeline_date=${timeline_date})`,
+            `PreviewController::_handleTimelineManipulation(timeline_timestamp=${timelineTimestamp}, timeline_paused=${timelinePaused}, timeline_date=${timelineDate})`,
           )
 
           return SpectodaWasm.interface_error_t.SUCCESS
@@ -221,24 +241,37 @@ export class PreviewController {
 
             this.#instance?.end()
             {
-              this.#instance = SpectodaWasm.Spectoda_WASM.implement(PreviewControllerImplementation)
+              this.#instance = SpectodaWasm.Spectoda_WASM.implement(
+                PREVIEW_CONTROLLER_IMPLEMENTATION,
+              )
 
-              this.#instance.init(this.#macAddress, JSON.stringify(this.#config))
-              this.#instance.begin('00000000000000000000000000000000', '00000000000000000000000000000000')
+              this.#instance.init(
+                this.#macAddress,
+                JSON.stringify(this.#config),
+              )
+              this.#instance.begin(
+                '00000000000000000000000000000000',
+                '00000000000000000000000000000000',
+              )
 
               if (this.#connector !== undefined) {
-                this.#instance.registerConnector(this.#connector.getWasmInstance())
+                this.#instance.registerConnector(
+                  this.#connector.getWasmInstance(),
+                )
               }
 
               // TODO! refactor to not need to build ports manually from JS
-              let current_tag = 'A'
+              let currentTag = 'A'
 
               if (this.#config?.ports) {
                 for (const port of this.#config.ports) {
-                  const port_tag = port.tag ? port.tag : current_tag
+                  const portTag = port.tag ? port.tag : currentTag
 
-                  current_tag = String.fromCharCode(port_tag.charCodeAt(0) + 1)
-                  this.#ports[port_tag] = this.makePort(`PORT${current_tag}`, JSON.stringify(port))
+                  currentTag = String.fromCharCode(portTag.charCodeAt(0) + 1)
+                  this.#ports[portTag] = this.makePort(
+                    `PORT${currentTag}`,
+                    JSON.stringify(port),
+                  )
                 }
               }
             }
@@ -248,10 +281,15 @@ export class PreviewController {
         },
       }
 
-      this.#instance = SpectodaWasm.Spectoda_WASM.implement(PreviewControllerImplementation)
+      this.#instance = SpectodaWasm.Spectoda_WASM.implement(
+        PREVIEW_CONTROLLER_IMPLEMENTATION,
+      )
 
       this.#instance.init(this.#macAddress, JSON.stringify(this.#config))
-      this.#instance.begin('00000000000000000000000000000000', '00000000000000000000000000000000')
+      this.#instance.begin(
+        '00000000000000000000000000000000',
+        '00000000000000000000000000000000',
+      )
 
       if (this.#connector !== undefined) {
         // logging.info('PreviewController::construct() registering connector');
@@ -259,14 +297,17 @@ export class PreviewController {
       }
 
       // TODO! refactor to not need to build ports manually from JS
-      let current_tag = 'A'
+      let currentTag = 'A'
 
       if (this.#config?.ports) {
         for (const port of this.#config.ports) {
-          const port_tag = port.tag ? port.tag : current_tag
+          const portTag = port.tag ? port.tag : currentTag
 
-          current_tag = String.fromCharCode(port_tag.charCodeAt(0) + 1)
-          this.#ports[port_tag] = this.makePort(`PORT${current_tag}`, JSON.stringify(port))
+          currentTag = String.fromCharCode(portTag.charCodeAt(0) + 1)
+          this.#ports[portTag] = this.makePort(
+            `PORT${currentTag}`,
+            JSON.stringify(port),
+          )
         }
       }
     })
@@ -282,23 +323,25 @@ export class PreviewController {
     this.#instance = undefined // remove javascript reference
   }
 
-  makePort(port_label: string, port_config: string): Uint32Array {
-    logging.info(`PreviewController::makePort(port_label=${port_label}, port_config=${port_config})`)
+  makePort(portLabel: string, portConfig: string): Uint32Array {
+    logging.info(
+      `PreviewController::makePort(port_label=${portLabel}, port_config=${portConfig})`,
+    )
 
     if (!this.#instance) {
       throw 'NotConstructed'
     }
 
-    return this.#instance.makePort(port_label, port_config)
+    return this.#instance.makePort(portLabel, portConfig)
   }
 
-  getPort(port_tag: string) {
+  getPort(portTag: string) {
     if (!this.#instance) {
       throw 'NotConstructed'
     }
 
     // TODO get config constructed ports from WASM
-    return this.#ports[port_tag]
+    return this.#ports[portTag]
   }
 
   getPorts() {
@@ -314,12 +357,12 @@ export class PreviewController {
    * @param {number} clock_timestamp
    * @return {null}
    */
-  setClockTimestamp(clock_timestamp: number) {
+  setClockTimestamp(clockTimestamp: number) {
     if (!this.#instance) {
       throw 'NotConstructed'
     }
 
-    this.#instance.setClockTimestamp(clock_timestamp)
+    this.#instance.setClockTimestamp(clockTimestamp)
   }
 
   /**
@@ -333,10 +376,10 @@ export class PreviewController {
     return this.#instance.getClockTimestamp()
   }
 
-  execute(execute_bytecode: Uint8Array, source_connection: Connection): void {
+  execute(executeBytecode: Uint8Array, sourceConnection: Connection): void {
     logging.debug(
-      `PreviewController::execute(execute_bytecode=${execute_bytecode}, source_connection=${JSON.stringify(
-        source_connection,
+      `PreviewController::execute(execute_bytecode=${executeBytecode}, source_connection=${JSON.stringify(
+        sourceConnection,
       )})`,
     )
 
@@ -344,17 +387,20 @@ export class PreviewController {
       throw 'NotConstructed'
     }
 
-    const execute_sucess = this.#instance.execute(SpectodaWasm.toHandle(execute_bytecode), source_connection)
+    const executeSucess = this.#instance.execute(
+      SpectodaWasm.toHandle(executeBytecode),
+      sourceConnection,
+    )
 
-    if (!execute_sucess) {
+    if (!executeSucess) {
       throw 'EvaluateError'
     }
   }
 
-  request(request_bytecode: Uint8Array, source_connection: Connection) {
+  request(requestBytecode: Uint8Array, sourceConnection: Connection) {
     logging.debug(
-      `PreviewController::request(request_bytecode=${request_bytecode}, source_connection=${JSON.stringify(
-        source_connection,
+      `PreviewController::request(request_bytecode=${requestBytecode}, source_connection=${JSON.stringify(
+        sourceConnection,
       )})`,
     )
 
@@ -362,40 +408,42 @@ export class PreviewController {
       throw 'NotConstructed'
     }
 
-    const response_bytecode_vector = new SpectodaWasm.Uint8Vector()
-    let response_bytecode = undefined
+    const responseBytecodeVector = new SpectodaWasm.Uint8Vector()
+    let responseBytecode
 
     try {
-      const request_sucess = this.#instance.request(
-        SpectodaWasm.toHandle(request_bytecode),
-        response_bytecode_vector,
-        source_connection,
+      const requestSucess = this.#instance.request(
+        SpectodaWasm.toHandle(requestBytecode),
+        responseBytecodeVector,
+        sourceConnection,
       )
 
-      if (!request_sucess) {
+      if (!requestSucess) {
         throw 'EvaluateError'
       }
 
-      response_bytecode = SpectodaWasm.convertUint8VectorUint8Array(response_bytecode_vector)
+      responseBytecode = SpectodaWasm.convertUint8VectorUint8Array(
+        responseBytecodeVector,
+      )
     } finally {
-      response_bytecode_vector.delete()
+      responseBytecodeVector.delete()
     }
 
-    return response_bytecode
+    return responseBytecode
   }
 
-  synchronize(synchronization: Synchronization, source_connection: Connection) {
+  synchronize(synchronization: Synchronization, sourceConnection: Connection) {
     logging.debug(
       `PreviewController::synchronize(synchronization=${JSON.stringify(
         synchronization,
-      )}, source_connection=${JSON.stringify(source_connection)})`,
+      )}, source_connection=${JSON.stringify(sourceConnection)})`,
     )
 
     if (!this.#instance) {
       throw 'NotConstructed'
     }
 
-    this.#instance.synchronize(synchronization, source_connection)
+    this.#instance.synchronize(synchronization, sourceConnection)
   }
 
   // ? process() is calling compute() and render() in the right order
@@ -408,7 +456,7 @@ export class PreviewController {
     } = {
       skip_berry_plugin_update: false,
       skip_eventstate_updates: false,
-      force_event_emittion: false,
+      force_event_emittion: true, // Allow same event values to be emitted consecutively
       skip_event_emittion: false,
     },
   ) {

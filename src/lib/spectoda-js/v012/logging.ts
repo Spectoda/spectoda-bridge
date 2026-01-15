@@ -1,4 +1,3 @@
-/* eslint-disable */
 // @ts-nocheck
 // TODO: Make Spectoda typesafe
 

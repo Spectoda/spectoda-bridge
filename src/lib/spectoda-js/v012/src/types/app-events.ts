@@ -1,12 +1,8 @@
-import { EventState } from '../..'
+import type { EventState } from '../..'
 
-import { CONNECTION_STATUS, ConnectionStatus, REMOTECONTROL_STATUS, RemoteControlConnectionStatus } from './connect'
-import { ControllerError, ControllerWarning } from './messages'
-import { TnglBytes, UsedIds } from './primitives'
-
-type RemoteControlConnectionStatusProps = {
-  [K in RemoteControlConnectionStatus]: undefined
-}
+import { CONNECTION_STATUS, type ConnectionStatus } from './connect'
+import type { ControllerError, ControllerWarning } from './messages'
+import type { TnglBytes, UsedIds } from './primitives'
 
 type ConnectionStatusProps = {
   [K in ConnectionStatus]: undefined
@@ -18,7 +14,6 @@ type SpectodaAppEventType<T extends string = string> = {
 
 export const SpectodaAppEvents = {
   ...CONNECTION_STATUS,
-  ...REMOTECONTROL_STATUS,
 
   SCAN_RESULTS: 'scan_results',
 
@@ -52,70 +47,70 @@ export const SpectodaAppEvents = {
   PRIVATE_WASM_EXECUTE: '#wasm_execute',
 } as const satisfies SpectodaAppEventType
 
-type PropsMap = RemoteControlConnectionStatusProps &
-  ConnectionStatusProps & {
-    // TODO for future payload key: `json`
-    [SpectodaAppEvents.SCAN_RESULTS]: string
+type PropsMap = ConnectionStatusProps & {
+  // TODO for future payload key: `json`
+  [SpectodaAppEvents.SCAN_RESULTS]: string
 
-    // TODO for future payload key: `mac`
-    [SpectodaAppEvents.PEER_CONNECTED]: string
+  // TODO for future payload key: `mac`
+  [SpectodaAppEvents.PEER_CONNECTED]: string
 
-    // TODO for future payload key: `mac`
-    [SpectodaAppEvents.PEER_DISCONNECTED]: string
+  // TODO for future payload key: `mac`
+  [SpectodaAppEvents.PEER_DISCONNECTED]: string
 
-    // TODO for future payload key: `status`
-    [SpectodaAppEvents.OTA_STATUS]: 'begin' | 'success' | 'fail'
+  // TODO for future payload key: `status`
+  [SpectodaAppEvents.OTA_STATUS]: 'begin' | 'success' | 'fail'
 
-    // TODO for future payload key: `percentageProgress`
-    [SpectodaAppEvents.OTA_PROGRESS]: number
+  // TODO for future payload key: `percentageProgress`
+  [SpectodaAppEvents.OTA_PROGRESS]: number
 
-    // TODO for future payload key: `timeleftSeconds`
-    [SpectodaAppEvents.OTA_TIMELEFT]: number
+  // TODO for future payload key: `timeleftSeconds`
+  [SpectodaAppEvents.OTA_TIMELEFT]: number
 
-    [SpectodaAppEvents.TNGL_UPDATE]: {
-      tngl_bytes: TnglBytes
-      used_ids: UsedIds
-    }
-
-    [SpectodaAppEvents.NETWORK_STORAGE_DATA_UPDATE]: {
-      data_name: string
-      data_version: number
-      data_fingerprint: string
-      data_bytes: Uint8Array
-    }
-
-    // TODO for future payload key: `events`
-    [SpectodaAppEvents.EVENT_STATE_UPDATES]: EventState[]
-
-    // TODO for future payload key: `events`
-    [SpectodaAppEvents.EMITTED_EVENTS]: EventState[]
-
-    [SpectodaAppEvents.NETWORK_ERROR]: ControllerError
-    [SpectodaAppEvents.NETWORK_WARNING]: ControllerWarning
-
-    [SpectodaAppEvents.TIMELINE_UPDATE]: {
-      millis: number
-      paused: boolean
-      date: string
-    }
-
-    /** @private event */
-    [SpectodaAppEvents.PRIVATE_CONNECTED]: undefined
-
-    /** @private event */
-    [SpectodaAppEvents.PRIVATE_DISCONNECTED]: undefined
-
-    /** @private event */
-    [SpectodaAppEvents.PRIVATE_WASM_CLOCK]: number
-
-    /** @private event */
-    [SpectodaAppEvents.PRIVATE_WASM_REQUEST]: Uint8Array
-
-    /** @private event */
-    [SpectodaAppEvents.PRIVATE_WASM_EXECUTE]: Uint8Array
+  [SpectodaAppEvents.TNGL_UPDATE]: {
+    tngl_bytes: TnglBytes
+    used_ids: UsedIds
   }
 
-export type SpectodaAppEventName = (typeof SpectodaAppEvents)[keyof typeof SpectodaAppEvents]
+  [SpectodaAppEvents.NETWORK_STORAGE_DATA_UPDATE]: {
+    data_name: string
+    data_version: number
+    data_fingerprint: string
+    data_bytes: Uint8Array
+  }
+
+  // TODO for future payload key: `events`
+  [SpectodaAppEvents.EVENT_STATE_UPDATES]: EventState[]
+
+  // TODO for future payload key: `events`
+  [SpectodaAppEvents.EMITTED_EVENTS]: EventState[]
+
+  [SpectodaAppEvents.NETWORK_ERROR]: ControllerError
+  [SpectodaAppEvents.NETWORK_WARNING]: ControllerWarning
+
+  [SpectodaAppEvents.TIMELINE_UPDATE]: {
+    millis: number
+    paused: boolean
+    date: string
+  }
+
+  /** @private event */
+  [SpectodaAppEvents.PRIVATE_CONNECTED]: undefined
+
+  /** @private event */
+  [SpectodaAppEvents.PRIVATE_DISCONNECTED]: undefined
+
+  /** @private event */
+  [SpectodaAppEvents.PRIVATE_WASM_CLOCK]: number
+
+  /** @private event */
+  [SpectodaAppEvents.PRIVATE_WASM_REQUEST]: Uint8Array
+
+  /** @private event */
+  [SpectodaAppEvents.PRIVATE_WASM_EXECUTE]: Uint8Array
+}
+
+export type SpectodaAppEventName =
+  (typeof SpectodaAppEvents)[keyof typeof SpectodaAppEvents]
 
 export type SpectodaAppEventMap = {
   [K in SpectodaAppEventName]: PropsMap[K]

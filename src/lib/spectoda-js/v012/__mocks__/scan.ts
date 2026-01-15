@@ -1,4 +1,4 @@
-import { Criterium } from '../src/types/primitives'
+import type { Criterium } from '../src/types/primitives'
 
 export const mockScanResult = [
   {

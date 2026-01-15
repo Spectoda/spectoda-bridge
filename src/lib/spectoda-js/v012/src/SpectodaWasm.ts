@@ -1,33 +1,36 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-
 import { logging } from '../logging'
 
-import { MainModule, Uint8Vector } from './types/wasm'
+import type { MainModule, Uint8Vector } from './types/wasm'
 
-export const WASM_VERSION = 'DEBUG_UNIVERSAL_0.12.11_20251123'
+export const WASM_VERSION = 'DEBUG_UNIVERSAL_0.12.11_20260115'
 export const WEBASSEMBLY_BASE_URL = 'https://webassembly.spectoda.com'
 
 const IS_NODEJS =
-  typeof process == 'object' && typeof process.versions == 'object' && typeof process.versions.node == 'string'
+  typeof process === 'object' &&
+  typeof process.versions === 'object' &&
+  typeof process.versions.node === 'string'
 
 let moduleInitilizing = false
 let moduleInitilized = false
+
+const looksLikeHtml = (content: string) =>
+  /^\s*<!doctype html>/i.test(content) || /^\s*<html/i.test(content)
 
 declare global {
   var __non_webpack_require__: NodeJS.Require
 }
 
 export const downloadWasmFromS3 = async (version: string) => {
-  const js_url = `${WEBASSEMBLY_BASE_URL}/${version}.js`
-  const wasm_url = `${WEBASSEMBLY_BASE_URL}/${version}.wasm`
+  const jsUrl = `${WEBASSEMBLY_BASE_URL}/${version}.js`
+  const wasmUrl = `${WEBASSEMBLY_BASE_URL}/${version}.wasm`
 
-  let js_content: string | null = null
-  let wasm_content: ArrayBuffer | null = null
-  let js_module_url: string | null = null
+  let jsContent: string | null = null
+  let wasmContent: ArrayBuffer | null = null
+  let jsModuleUrl: string | null = null
 
   try {
-    const [js_response, wasm_response] = await Promise.all([
-      fetch(js_url, {
+    const [jsResponse, wasmResponse] = await Promise.all([
+      fetch(jsUrl, {
         method: 'GET',
         cache: 'force-cache',
         credentials: 'omit',
@@ -35,7 +38,7 @@ export const downloadWasmFromS3 = async (version: string) => {
           Accept: 'text/javascript',
         },
       }),
-      fetch(wasm_url, {
+      fetch(wasmUrl, {
         method: 'GET',
         cache: 'force-cache',
         credentials: 'omit',
@@ -45,41 +48,85 @@ export const downloadWasmFromS3 = async (version: string) => {
       }),
     ])
 
-    js_content = await js_response.text()
-    wasm_content = await wasm_response.arrayBuffer()
+    if (!jsResponse.ok || !wasmResponse.ok) {
+      throw new Error(
+        `Failed to download ${version}.{js|wasm} (${jsResponse.status}/${wasmResponse.status})`,
+      )
+    }
+
+    jsContent = await jsResponse.text()
+    wasmContent = await wasmResponse.arrayBuffer()
+
+    if (looksLikeHtml(jsContent)) {
+      throw new Error(
+        `Downloaded ${version}.js is HTML (likely an error page).`,
+      )
+    }
+
+    if (wasmContent.byteLength === 0) {
+      throw new Error(`Downloaded ${version}.wasm is empty.`)
+    }
   } catch {
     if (IS_NODEJS) {
-	const r = globalThis?.__non_webpack_require__ ?? require
-      const { readFile, readdir } = r(/* webpackIgnore: true */ /* @vite-ignore */ 'node:fs/promises')
-      const { cwd } = r(/* webpackIgnore: true */ /* @vite-ignore */ 'node:process')
+      const r = globalThis?.__non_webpack_require__ ?? require
+      const { readFile, readdir, unlink } = r(
+        /* webpackIgnore: true */ /* @vite-ignore */ 'node:fs/promises',
+      )
+      const { cwd } = r(
+        /* webpackIgnore: true */ /* @vite-ignore */ 'node:process',
+      )
 
       const files = await readdir(`${cwd()}/.webassembly`)
 
-      if (files.includes(`${version}.js`) && files.includes(`${version}.wasm`)) {
-        const wasm_buffer = await readFile(`${cwd()}/.webassembly/${version}.wasm`)
+      if (
+        files.includes(`${version}.js`) &&
+        files.includes(`${version}.wasm`)
+      ) {
+        const wasmBuffer = await readFile(
+          `${cwd()}/.webassembly/${version}.wasm`,
+        )
 
-        js_content = await readFile(`${cwd()}/.webassembly/${version}.js`, { encoding: 'utf-8' })
-        wasm_content = wasm_buffer.buffer.slice(
-          wasm_buffer.byteOffset,
-          wasm_buffer.byteOffset + wasm_buffer.byteLength,
+        jsContent = await readFile(`${cwd()}/.webassembly/${version}.js`, {
+          encoding: 'utf-8',
+        })
+        if (looksLikeHtml(jsContent)) {
+          try {
+            await Promise.all([
+              unlink(`${cwd()}/.webassembly/${version}.js`),
+              unlink(`${cwd()}/.webassembly/${version}.wasm`),
+            ])
+          } catch {
+            // ignore cleanup errors
+          }
+          throw new Error(
+            `Cached ${version}.js is HTML. Removed cached files; rerun to re-download.`,
+          )
+        }
+        wasmContent = wasmBuffer.buffer.slice(
+          wasmBuffer.byteOffset,
+          wasmBuffer.byteOffset + wasmBuffer.byteLength,
         ) as ArrayBuffer
       } else {
         throw Error(`${version}.{js|wasm} is missing`)
       }
 
-      js_module_url = `${cwd()}/.webassembly/${version}.js`
+      jsModuleUrl = `${cwd()}/.webassembly/${version}.js`
     }
   }
 
-  if (js_content === null || wasm_content === null) {
+  if (jsContent === null || wasmContent === null) {
     throw Error(`Could not load ${version}.{js/wasm}`)
   }
 
-  if (js_module_url === null) {
+  if (jsModuleUrl === null) {
     if (IS_NODEJS) {
-	const r = globalThis?.__non_webpack_require__ ?? require
-      const { writeFile, readdir, mkdir } = r(/* webpackIgnore: true */ /* @vite-ignore */ 'node:fs/promises')
-      const { cwd } = r(/* webpackIgnore: true */ /* @vite-ignore */ 'node:process')
+      const r = globalThis?.__non_webpack_require__ ?? require
+      const { writeFile, readdir, mkdir } = r(
+        /* webpackIgnore: true */ /* @vite-ignore */ 'node:fs/promises',
+      )
+      const { cwd } = r(
+        /* webpackIgnore: true */ /* @vite-ignore */ 'node:process',
+      )
 
       try {
         await readdir(`${cwd()}/.webassembly`)
@@ -88,23 +135,28 @@ export const downloadWasmFromS3 = async (version: string) => {
       }
 
       await Promise.all([
-        writeFile(`${cwd()}/.webassembly/${version}.js`, js_content),
-        writeFile(`${cwd()}/.webassembly/${version}.wasm`, new DataView(wasm_content)),
+        writeFile(`${cwd()}/.webassembly/${version}.js`, jsContent),
+        writeFile(
+          `${cwd()}/.webassembly/${version}.wasm`,
+          new DataView(wasmContent),
+        ),
       ])
 
-      js_module_url = `${cwd()}/.webassembly/${version}.js`
+      jsModuleUrl = `${cwd()}/.webassembly/${version}.js`
     } else {
-      js_module_url = URL.createObjectURL(new Blob([js_content], { type: 'text/javascript' }))
+      jsModuleUrl = URL.createObjectURL(
+        new Blob([jsContent], { type: 'text/javascript' }),
+      )
     }
   }
 
-  if (js_module_url === null) {
+  if (jsModuleUrl === null) {
     throw Error('Could not load JS module')
   }
 
   return {
-    wasm_content,
-    js_module_url,
+    wasm_content: wasmContent,
+    js_module_url: jsModuleUrl,
   }
 }
 
@@ -114,13 +166,20 @@ export const loadWasmFromS3 = async (version: string): Promise<MainModule> => {
   try {
     // Both Webpack and Vite try to resolve this dynamic import during build time
     // Since this is a runtime-only dynamic import we want them to ignore it
-    const imported_module = await import(/* webpackIgnore: true */ /* @vite-ignore */ js_module_url)
+    const importedModule = await import(
+      /* webpackIgnore: true */ /* @vite-ignore */ js_module_url
+    )
 
-    if (!imported_module.default || typeof imported_module.default !== 'function') {
-      throw new Error(`JS file (${version}.js) did not export a default function as expected.`)
+    if (
+      !importedModule.default ||
+      typeof importedModule.default !== 'function'
+    ) {
+      throw new Error(
+        `JS file (${version}.js) did not export a default function as expected.`,
+      )
     }
 
-    const wasm_instance: MainModule = await imported_module.default({
+    const wasmInstance: MainModule = await importedModule.default({
       wasmBinary: wasm_content,
       locateFile: (path: string, prefix: string): string => {
         if (path.endsWith('.wasm')) {
@@ -131,10 +190,10 @@ export const loadWasmFromS3 = async (version: string): Promise<MainModule> => {
       },
     })
 
-    return wasm_instance
-  } catch (maybe_error) {
-    if (maybe_error instanceof Error) {
-      throw maybe_error
+    return wasmInstance
+  } catch (maybeError) {
+    if (maybeError instanceof Error) {
+      throw maybeError
     } else {
       throw new Error(`Could not download ${version}`)
     }
@@ -169,7 +228,9 @@ export class SpectodaWasm {
   //
   // TODO! disallow creating instances of this class
   constructor() {
-    console.error('SpectodaWasm is a singleton class, please do not create instances of it')
+    console.error(
+      'SpectodaWasm is a singleton class, please do not create instances of it',
+    )
   }
 
   // ? from MainModule:
@@ -236,18 +297,18 @@ export class SpectodaWasm {
   }
 
   static toHandle(value: any): number {
-    // @ts-ignore - Emval is a global object of Emscripten
+    // @ts-expect-error - Emval is a global object of Emscripten
     return Module.Emval.toHandle(value)
   }
 
   static toValue(value: number): any {
-    // @ts-ignore - Emval is a global object of Emscripten
+    // @ts-expect-error - Emval is a global object of Emscripten
     return Module.Emval.toValue(value)
   }
 
   static loadFS() {
     return new Promise((resolve, reject) => {
-      // @ts-ignore - FS is a global object of Emscripten
+      // @ts-expect-error - FS is a global object of Emscripten
       Module.FS.syncfs(true, (err: any) => {
         if (err) {
           logging.error('SpectodaWasm::loadFS() ERROR:', err)
@@ -262,7 +323,7 @@ export class SpectodaWasm {
 
   static saveFS() {
     return new Promise((resolve, reject) => {
-      // @ts-ignore - FS is a global object of Emscripten
+      // @ts-expect-error - FS is a global object of Emscripten
       Module.FS.syncfs(false, (err: any) => {
         if (err) {
           logging.error('SpectodaWasm::saveFS() ERROR:', err)
@@ -276,7 +337,6 @@ export class SpectodaWasm {
   }
 }
 
-// eslint-disable-next-line func-style
 function onWasmLoad() {
   logging.info('WASM loaded')
 
@@ -302,32 +362,32 @@ function onWasmLoad() {
 
   // ? SpectodaWasm holds the class definitions of the webassembly
 
-  // @ts-ignore - Module is a global object of Emscripten
-  SpectodaWasm.interface_error_t = Module.interface_error_t
-  // @ts-ignore - Module is a global object of Emscripten
-  SpectodaWasm.connector_type_t = Module.connector_type_t
-  // @ts-ignore - Module is a global object of Emscripten
+  // @ts-expect-error - Module is a global object of Emscripten
+  SpectodaWasm.interface_error_t = (Module as MainModule).interface_error_t
+  // @ts-expect-error - Module is a global object of Emscripten
+  SpectodaWasm.connector_type_t = (Module as MainModule).connector_type_t
+  // @ts-expect-error - Module is a global object of Emscripten
   SpectodaWasm.connection_rssi_t = Module.connection_rssi_t
-  // @ts-ignore - Module is a global object of Emscripten
+  // @ts-expect-error - Module is a global object of Emscripten
   SpectodaWasm.Value = Module.Value
-  // @ts-ignore - Module is a global object of Emscripten
+  // @ts-expect-error - Module is a global object of Emscripten
   SpectodaWasm.Connection = Module.Connection
-  // @ts-ignore - Module is a global object of Emscripten
+  // @ts-expect-error - Module is a global object of Emscripten
   SpectodaWasm.Synchronization = Module.Synchronization
-  // @ts-ignore - Module is a global object of Emscripten
+  // @ts-expect-error - Module is a global object of Emscripten
   SpectodaWasm.Uint8Vector = Module.Uint8Vector
-  // @ts-ignore - Module is a global object of Emscripten
+  // @ts-expect-error - Module is a global object of Emscripten
   SpectodaWasm.Spectoda_WASM = Module.Spectoda_WASM
-  // @ts-ignore - Module is a global object of Emscripten
+  // @ts-expect-error - Module is a global object of Emscripten
   SpectodaWasm.IConnector_WASM = Module.IConnector_WASM
-  // @ts-ignore - Module is a global object of Emscripten
+  // @ts-expect-error - Module is a global object of Emscripten
   SpectodaWasm.computeFingerprint32 = Module.computeFingerprint32
 
   // ? BROWSER: mounting FS
   if (typeof window !== 'undefined') {
-    // @ts-ignore - FS is a global object of Emscripten
+    // @ts-expect-error - FS is a global object of Emscripten
     Module.FS.mkdir('/littlefs')
-    // @ts-ignore - FS and IDBFS are global objects of Emscripten
+    // @ts-expect-error - FS and IDBFS are global objects of Emscripten
     Module.FS.mount(Module.FS.filesystems.IDBFS, {}, '/littlefs')
   }
   // ? NODE.JS: mounting FS
@@ -338,10 +398,24 @@ function onWasmLoad() {
     //   fs.mkdirSync("filesystem");
     // }
 
-    // @ts-ignore - FS is a global object of Emscripten
-    Module.FS.mkdir('/littlefs')
-    // @ts-ignore - FS is a global object of Emscripten
-    Module.FS.mount(Module.FS.filesystems.NODEFS, { root: './filesystem' }, '/littlefs')
+    // @ts-expect-error - FS is a global object of Emscripten
+    const module = Module as MainModule & {
+      FS: {
+        mkdir: (path: string) => void
+        mount: (
+          filesystem: unknown,
+          options: unknown,
+          mountpoint: string,
+        ) => void
+        filesystems: { NODEFS: unknown }
+      }
+    }
+    module.FS.mkdir('/littlefs')
+    module.FS.mount(
+      module.FS.filesystems.NODEFS,
+      { root: './filesystem' },
+      '/littlefs',
+    )
   }
 
   // ? Load WASM filesystem from mounted system filesystem
@@ -363,13 +437,11 @@ function onWasmLoad() {
   }
 }
 
-// eslint-disable-next-line func-style
 function loadWasm(wasmVersion: string) {
-  logging.info('Loading spectoda-js WASM version ' + wasmVersion)
+  logging.info(`Loading spectoda-js WASM version ${wasmVersion}`)
 
-  loadWasmFromS3(wasmVersion).then((module_instance) => {
-    // @ts-ignore
-    globalThis.Module = module_instance
+  loadWasmFromS3(wasmVersion).then((moduleInstance) => {
+    globalThis.Module = moduleInstance
     onWasmLoad()
   })
 }

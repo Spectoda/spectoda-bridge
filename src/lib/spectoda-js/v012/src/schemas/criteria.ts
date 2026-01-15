@@ -1,15 +1,21 @@
 import { z } from 'zod'
 
-import type { Criteria, DummyCriteria, BleCriteria, SerialCriteria } from '../types/primitives'
+import type {
+  BleCriteria,
+  Criteria,
+  DummyCriteria,
+  SerialCriteria,
+} from '../types/primitives'
 
 import {
-  MacAddressSchema,
-  NetworkSignatureSchema,
-  FirmwareVersionSchema,
-  ProductCodeSchema,
-  SerialPathSchema,
   BaudrateSchema,
   ControllerNameSchema,
+  FirmwareVersionSchema,
+  MacAddressSchema,
+  NetworkKeySchema,
+  NetworkSignatureSchema,
+  ProductCodeSchema,
+  SerialPathSchema,
 } from './primitives'
 
 /**
@@ -29,6 +35,12 @@ export const BaseCriteriaSchema = z.strictObject({
 
   /** Exact network signature match */
   network: NetworkSignatureSchema.optional(),
+
+  /**
+   * Network key for authentication
+   * Required when connecting to a specific network (when `network` is set)
+   */
+  key: NetworkKeySchema.optional(),
 
   /** Exact firmware version match */
   fw: FirmwareVersionSchema.optional(),
@@ -61,14 +73,23 @@ export const DummyCriteriaSchema = BaseCriteriaSchema
 /**
  * Union of all possible criteria types
  */
-export const CriteriaSchema = z.union([SerialCriteriaSchema, BleCriteriaSchema, DummyCriteriaSchema])
+export const CriteriaSchema = z.union([
+  SerialCriteriaSchema,
+  BleCriteriaSchema,
+  DummyCriteriaSchema,
+])
 
 /**
  * Single criterion or array of criteria
  */
-export const CriteriaArraySchema = z.union([CriteriaSchema, z.array(CriteriaSchema)])
+export const CriteriaArraySchema = z.union([
+  CriteriaSchema,
+  z.array(CriteriaSchema),
+])
 
-export const isSerialCriteria = (criteria: unknown): criteria is SerialCriteria => {
+export const isSerialCriteria = (
+  criteria: unknown,
+): criteria is SerialCriteria => {
   return SerialCriteriaSchema.safeParse(criteria).success
 }
 
@@ -76,10 +97,15 @@ export const isBleCriteria = (criteria: unknown): criteria is BleCriteria => {
   return BleCriteriaSchema.safeParse(criteria).success
 }
 
-export const isDummyCriteria = (criteria: unknown): criteria is DummyCriteria => {
+export const isDummyCriteria = (
+  criteria: unknown,
+): criteria is DummyCriteria => {
   return DummyCriteriaSchema.safeParse(criteria).success
 }
 
 export const isCriteriaArray = (value: unknown): value is Array<Criteria> => {
-  return Array.isArray(value) && value.every((item) => CriteriaSchema.safeParse(item).success)
+  return (
+    Array.isArray(value) &&
+    value.every((item) => CriteriaSchema.safeParse(item).success)
+  )
 }

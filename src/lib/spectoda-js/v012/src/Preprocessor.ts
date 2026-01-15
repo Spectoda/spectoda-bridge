@@ -6,7 +6,9 @@ import { logging } from '../logging'
  * with defSegment entries from "segments" and BERRY blocks from "scripts".
  */
 export const tnglDefinitionsFromJsonToTngl = (jsonString: string): string => {
-  logging.debug(`tnglDefinitionsFromJsonToTngl(jsonString.length=${jsonString.length})`)
+  logging.debug(
+    `tnglDefinitionsFromJsonToTngl(jsonString.length=${jsonString.length})`,
+  )
   logging.verbose('jsonString=', jsonString)
 
   try {
@@ -14,7 +16,9 @@ export const tnglDefinitionsFromJsonToTngl = (jsonString: string): string => {
     const controllers = JSON.parse(jsonString)
 
     if (!Array.isArray(controllers)) {
-      logging.error('TNGL_DEFINITIONS_FROM_JSON: Expected an array of controller definitions')
+      logging.error(
+        'TNGL_DEFINITIONS_FROM_JSON: Expected an array of controller definitions',
+      )
       throw new Error('Invalid JSON format: expected array')
     }
 
@@ -23,7 +27,9 @@ export const tnglDefinitionsFromJsonToTngl = (jsonString: string): string => {
     // Process each controller definition
     for (const controllerDef of controllers) {
       if (!controllerDef.controller?.name) {
-        logging.warn('TNGL_DEFINITIONS_FROM_JSON: Skipping controller without name')
+        logging.warn(
+          'TNGL_DEFINITIONS_FROM_JSON: Skipping controller without name',
+        )
         continue
       }
 
@@ -33,7 +39,9 @@ export const tnglDefinitionsFromJsonToTngl = (jsonString: string): string => {
 
       // Process segments
       if (controllerDef.segments) {
-        for (const [segmentName, segmentConfig] of Object.entries(controllerDef.segments)) {
+        for (const [segmentName, segmentConfig] of Object.entries(
+          controllerDef.segments,
+        )) {
           const config = segmentConfig as {
             id?: number
             io?: string
@@ -50,7 +58,9 @@ export const tnglDefinitionsFromJsonToTngl = (jsonString: string): string => {
               const ioName = String(config.io)
 
               if (config.from !== undefined && config.to !== undefined) {
-                segmentParts.push(`io($${ioName}, ${config.from}px, ${config.to}px)`)
+                segmentParts.push(
+                  `io($${ioName}, ${config.from}px, ${config.to}px)`,
+                )
               } else if (config.size !== undefined) {
                 segmentParts.push(`io($${ioName}, ${config.size}px)`)
               } else {
@@ -59,9 +69,12 @@ export const tnglDefinitionsFromJsonToTngl = (jsonString: string): string => {
               }
             }
 
-            const segmentContent = segmentParts.length > 0 ? ` ${segmentParts.join('; ')};` : ''
+            const segmentContent =
+              segmentParts.length > 0 ? ` ${segmentParts.join('; ')};` : ''
 
-            defSegments.push(`  defSegment($${segmentName}, ID${config.id}, {${segmentContent} });`)
+            defSegments.push(
+              `  defSegment($${segmentName}, ID${config.id}, {${segmentContent} });`,
+            )
           }
         }
       }

@@ -43,7 +43,10 @@ export class TnglReader {
       result = value - (1n << BigInt(byteCount * 8))
     }
 
-    if (result > BigInt(Number.MAX_SAFE_INTEGER) || result < BigInt(Number.MIN_SAFE_INTEGER)) {
+    if (
+      result > BigInt(Number.MAX_SAFE_INTEGER) ||
+      result < BigInt(Number.MIN_SAFE_INTEGER)
+    ) {
       logging.error('peekValue(): Value is outside of safe integer range')
       // TODO handle this error better than loosing precision in conversion to Number
       throw new RangeError('ValueOutOfRange')

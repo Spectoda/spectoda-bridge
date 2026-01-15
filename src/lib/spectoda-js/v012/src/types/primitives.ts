@@ -1,33 +1,37 @@
-import { z } from 'zod'
-
-import {
-  NetworkSignatureSchema,
-  NetworkKeySchema,
+import type { z } from 'zod'
+import type {
+  BaseCriteriaSchema,
+  BleCriteriaSchema,
+  DummyCriteriaSchema,
+  SerialCriteriaSchema,
+} from '../schemas/criteria'
+import type {
+  ControllerNameSchema,
+  FingerprintSchema,
+  FirmwareVersionCodeSchema,
+  FirmwareVersionFullSchema,
+  FirmwareVersionSchema,
   MacAddressSchema,
+  NetworkKeySchema,
+  NetworkSignatureSchema,
   PcbCodeSchema,
   ProductCodeSchema,
-  FirmwareVersionSchema,
-  FirmwareVersionFullSchema,
-  FingerprintSchema,
   TnglBankSchema,
-  ControllerNameSchema,
-  FirmwareVersionCodeSchema,
 } from '../schemas/primitives'
-import { BaseCriteriaSchema, SerialCriteriaSchema, BleCriteriaSchema, DummyCriteriaSchema } from '../schemas/criteria'
 
-import {
+import type {
+  SpectodaIdsType,
+  SpectodaIdType,
   ValueType,
-  ValueTypeNumber,
-  ValueTypeLabel,
-  ValueTypePercentage,
+  ValueTypeBoolean,
   ValueTypeColor,
   ValueTypeDate,
-  ValueTypeTimestamp,
-  ValueTypeIDs,
-  ValueTypeID,
+  ValueTypeLabel,
   ValueTypeNull,
-  ValueTypeBoolean,
+  ValueTypeNumber,
+  ValueTypePercentage,
   ValueTypePixels,
+  ValueTypeTimestamp,
   ValueTypeUndefined,
 } from './values'
 
@@ -36,12 +40,12 @@ type SerialCriteria = z.infer<typeof SerialCriteriaSchema>
 type BleCriteria = z.infer<typeof BleCriteriaSchema>
 type DummyCriteria = z.infer<typeof DummyCriteriaSchema>
 
-type criteria_generic = BaseCriteria
-type criteria_ble = BleCriteria
-type criteria_serial = SerialCriteria
-type criteria_dummy = criteria_generic
-type criteria_simulated = criteria_generic
-type criteria = criteria_ble | criteria_serial | criteria_dummy | criteria_simulated
+type CriteriaGeneric = BaseCriteria
+type CriteriaBle = BleCriteria
+type CriteriaSerial = SerialCriteria
+type CriteriaDummy = CriteriaGeneric
+type CriteriaSimulated = CriteriaGeneric
+type criteria = CriteriaBle | CriteriaSerial | CriteriaDummy | CriteriaSimulated
 
 type TnglBytes = Uint8Array
 type UsedIds = Uint8Array
@@ -90,7 +94,11 @@ type ControllerInfo = ControllerConnectionCriteria & ControllerMoreData
 
 type NetworkStorageData = { name: string; version: number; bytes: Uint8Array }
 
-type NetworkStorageMetadata = { name: string; version: number; fingerprint: string }
+type NetworkStorageMetadata = {
+  name: string
+  version: number
+  fingerprint: string
+}
 
 export type {
   BaseCriteria,
@@ -109,8 +117,8 @@ export type {
   ValueTypeColor,
   ValueTypeDate,
   ValueTypeTimestamp,
-  ValueTypeIDs,
-  ValueTypeID,
+  SpectodaIdsType,
+  SpectodaIdType,
   ValueTypeNull,
   ValueTypeUndefined,
   ValueTypeBoolean,

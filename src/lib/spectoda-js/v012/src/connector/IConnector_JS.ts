@@ -1,8 +1,6 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-
 import { logging } from '../../logging'
 import { SpectodaWasm } from '../SpectodaWasm'
-import { IConnector_WASM, connector_type_t } from '../types/wasm'
+import type { connector_type_t, IConnector_WASM } from '../types/wasm'
 
 export class IConnector_JS {
   #instance: IConnector_WASM | undefined
@@ -10,7 +8,7 @@ export class IConnector_JS {
   constructor() {
     this.#instance = undefined
   }
-  construct(implementation: object, connector_type: connector_type_t) {
+  construct(implementation: object, connectorType: connector_type_t) {
     logging.debug('construct(implementation=', implementation, ')')
 
     if (this.#instance) {
@@ -19,7 +17,7 @@ export class IConnector_JS {
 
     return SpectodaWasm.waitForInitilize().then(() => {
       this.#instance = SpectodaWasm.IConnector_WASM.implement(implementation)
-      this.#instance.init(connector_type)
+      this.#instance.init(connectorType)
     })
   }
 

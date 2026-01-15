@@ -37,7 +37,7 @@ export class RingLogBuffer {
       return null
     }
 
-    let item = this.buffer[this.start]
+    const item = this.buffer[this.start]
 
     this.start = (this.start + 1) % this.size
     return item
@@ -45,9 +45,9 @@ export class RingLogBuffer {
 
   // Method to retrieve all logs in the buffer
   getAllLogs() {
-    let logs = []
+    const logs = []
     let start = this.start
-    let end = this.end
+    const end = this.end
 
     while (start !== end) {
       logs.push(this.buffer[start])
@@ -57,7 +57,7 @@ export class RingLogBuffer {
   }
 
   getAllLogsWithPop() {
-    let logs = []
+    const logs = []
 
     while (!this.isEmpty()) {
       logs.push(this.pop())

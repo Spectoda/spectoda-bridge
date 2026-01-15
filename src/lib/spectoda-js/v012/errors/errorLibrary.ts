@@ -42,11 +42,14 @@ type ErrorList = {
 export const app: ErrorList = {
   MicAccessDenied: {
     title: 'Mikrofon se nepodařilo spustit.',
-    message: 'Zkontrolujte, zda jste v Nastavení povolili aplikaci přístup k mikrofonu.',
+    message:
+      'Zkontrolujte, zda jste v Nastavení povolili aplikaci přístup k mikrofonu.',
   },
   UserCanceledSelection: {
     title: 'Spárování nové lampy se nezdařilo',
-    message: 'Pro připojení již spárované lampy prosím stiskněte jakýkoli symbol' + ' "🛑"',
+    message:
+      'Pro připojení již spárované lampy prosím stiskněte jakýkoli symbol' +
+      ' "🛑"',
   },
 } as const
 
@@ -63,7 +66,8 @@ export const studio = {
 export const general = {
   DeviceDisconnected: {
     title: 'Device Disconnected',
-    message: 'The device has been disconnected. Please reconnect the device and try again.',
+    message:
+      'The device has been disconnected. Please reconnect the device and try again.',
   },
   DeviceUnsupported: {
     title: 'Your device is not supported',
@@ -94,11 +98,13 @@ export const general = {
   },
   NetworkDoesNotExistSwitchNetwork: {
     title: 'Network does not exist',
-    message: 'The network you are trying to switch to does not exist. Please contact support for assistance.',
+    message:
+      'The network you are trying to switch to does not exist. Please contact support for assistance.',
   },
   NetworkNotFound: {
     title: 'Network not found',
-    message: 'The network you are trying to access does not exist. Please contact support for assistance.',
+    message:
+      'The network you are trying to access does not exist. Please contact support for assistance.',
   },
   NetworkAlreadyLoaded: {
     title: 'Network already loaded',
@@ -116,7 +122,8 @@ export const general = {
   },
   ControllerNameAlreadyExists: {
     title: 'Controller name already exists',
-    message: 'The controller name you are trying to use already exists. Please choose a different name.',
+    message:
+      'The controller name you are trying to use already exists. Please choose a different name.',
   },
   DeviceAlreadyDisconnected: {
     title: 'Device already disconnected',
